@@ -12,3 +12,6 @@ pnpm-lock.yaml
 yarn.lock
 .git
 .husky
+
+# TanStack Router (генерируется плагином)
+**/routeTree.gen.ts
