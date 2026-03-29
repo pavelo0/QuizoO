@@ -13,13 +13,13 @@ type ButtonProps = ComponentPropsWithoutRef<'button'> & {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-[var(--primary-accent)] text-white border border-transparent hover:shadow-[0_4px_15px_var(--purple-glow)] focus-visible:shadow-[0_4px_15px_var(--purple-glow)]',
+    'bg-(--primary-accent) text-white border border-transparent hover:shadow-[0_4px_15px_var(--purple-glow)] focus-visible:shadow-[0_4px_15px_var(--purple-glow)]',
   outline:
-    'bg-transparent text-[var(--text-primary)] border border-[var(--text-primary)]/80 hover:bg-white/10 hover:border-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--primary-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)]',
+    'bg-transparent text-(--text-primary) border border-(--text-primary)/80 hover:bg-white/10 hover:border-(--text-primary) focus-visible:ring-2 focus-visible:ring-(--primary-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--bg-color)',
   secondary:
-    'bg-[var(--secondary-accent)] text-[#0f1117] border border-transparent hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--secondary-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)]',
+    'bg-(--secondary-accent) text-[#0f1117] border border-transparent hover:opacity-90 focus-visible:ring-2 focus-visible:ring-(--secondary-accent) focus-visible:ring-offset-2 focus-visible:ring-offset-(--bg-color)',
   danger:
-    'bg-[var(--danger-color)] text-white border border-transparent hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[var(--danger-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)]',
+    'bg-(--danger-color) text-white border border-transparent hover:opacity-90 focus-visible:ring-2 focus-visible:ring-(--danger-color) focus-visible:ring-offset-2 focus-visible:ring-offset-(--bg-color)',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

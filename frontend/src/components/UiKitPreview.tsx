@@ -21,19 +21,19 @@ export function UiKitPreview() {
       <div className="relative mx-auto max-w-[1200px] space-y-12">
         <header className="space-y-3 text-center md:text-left">
           <p
-            className="text-sm uppercase tracking-[0.2em] text-[var(--text-secondary)]"
+            className="text-sm uppercase tracking-[0.2em] text-(--text-secondary)"
             style={{ fontFamily: 'var(--font-jetbrains-mono)' }}
           >
             UI Kit · smoke test
           </p>
           <h1
-            className="text-[clamp(2rem,5vw,4.5rem)] font-bold leading-tight tracking-[0.02em] text-[var(--text-primary)]"
+            className="text-[clamp(2rem,5vw,4.5rem)] font-bold leading-tight tracking-[0.02em] text-(--text-primary)"
             style={{ fontFamily: 'var(--font-syne)' }}
           >
             Learn smarter. Remember longer.
           </h1>
           <p
-            className="max-w-2xl text-base text-[var(--text-secondary)] md:text-lg"
+            className="max-w-2xl text-base text-(--text-secondary) md:text-lg"
             style={{ fontFamily: 'var(--font-dm-sans)' }}
           >
             Кнопки, поля и карточки соответствуют токенам из techDesign.md;
@@ -43,7 +43,7 @@ export function UiKitPreview() {
 
         <section className="space-y-4">
           <h2
-            className="text-xl font-bold tracking-[0.02em] text-[var(--text-primary)] md:text-2xl"
+            className="text-xl font-bold tracking-[0.02em] text-(--text-primary) md:text-2xl"
             style={{ fontFamily: 'var(--font-syne)' }}
           >
             Buttons
@@ -67,13 +67,13 @@ export function UiKitPreview() {
         <section className="grid gap-8 lg:grid-cols-2">
           <Card className="p-6" interactive>
             <h3
-              className="mb-2 text-lg font-bold text-[var(--text-primary)]"
+              className="mb-2 text-lg font-bold text-(--text-primary)"
               style={{ fontFamily: 'var(--font-syne)' }}
             >
               Interactive card
             </h3>
             <p
-              className="text-sm text-[var(--text-secondary)]"
+              className="text-sm text-(--text-secondary)"
               style={{ fontFamily: 'var(--font-dm-sans)' }}
             >
               Hover — лёгкий подъём и фиолетовый бордер (как в спеке карточек).
@@ -82,7 +82,7 @@ export function UiKitPreview() {
 
           <Card variant="hero" className="p-8">
             <h3
-              className="mb-4 text-xl font-bold text-[var(--text-primary)]"
+              className="mb-4 text-xl font-bold text-(--text-primary)"
               style={{ fontFamily: 'var(--font-syne)' }}
             >
               Form preview
@@ -114,7 +114,7 @@ export function UiKitPreview() {
         </section>
 
         <footer
-          className="border-t border-[var(--border-default)] pt-8 text-center text-sm text-[var(--text-secondary)] md:text-left"
+          className="border-t border-(--border-default) pt-8 text-center text-sm text-(--text-secondary) md:text-left"
           style={{ fontFamily: 'var(--font-jetbrains-mono)' }}
         >
           1,200+ modules created · QuizoO

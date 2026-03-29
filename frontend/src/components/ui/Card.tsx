@@ -18,10 +18,10 @@ const Card = ({
   return (
     <div
       className={cn(
-        'border border-[var(--border-default)] bg-[var(--surface-color)]',
+        'border border-(--border-default) bg-(--surface-color)',
         variant === 'default' ? 'rounded-2xl' : 'rounded-[24px]',
         interactive &&
-          'cursor-pointer transition-all duration-300 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] hover:-translate-y-1 hover:border-[var(--primary-accent)]',
+          'cursor-pointer transition-all duration-300 ease-in-out hover:-translate-y-1 hover:border-(--primary-accent)',
         className,
       )}
       {...rest}
