@@ -1,12 +1,5 @@
 #!/usr/bin/env sh
-# Prettier по staged-файлам. Используем пути относительно корня репозитория (как в `git status`),
-# а не абсолютные — иначе на macOS при папке с кириллицей Git может выдать:
-# "fatal: ... is outside repository" (разная NFC/NFD-нормализация Unicode в пути).
-
+# Работаем из корня репозитория (важно при нестандартных путях / Unicode).
 cd "$(git rev-parse --show-toplevel)" || exit 1
 
-FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|json|css|md)$' || true)
-if [ -n "$FILES" ]; then
-  echo "$FILES" | xargs npx prettier --write
-  echo "$FILES" | xargs git add
-fi
+npx lint-staged
