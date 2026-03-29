@@ -36,8 +36,8 @@ export function UiKitPreview() {
             className="max-w-2xl text-base text-[var(--text-secondary)] md:text-lg"
             style={{ fontFamily: 'var(--font-dm-sans)' }}
           >
-            Кнопки, поля и карточки соответствуют токенам из techDesign.md; сетка —
-            mobile → tablet → desktop.
+            Кнопки, поля и карточки соответствуют токенам из techDesign.md;
+            сетка — mobile → tablet → desktop.
           </p>
         </header>
 
