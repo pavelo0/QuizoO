@@ -1,4 +1,4 @@
-import { UiKitPreview } from '@/components/UiKitPreview';
+import TestComponent from '@/components/TestComponent';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/')({
@@ -6,5 +6,5 @@ export const Route = createFileRoute('/')({
 });
 
 function HomePage() {
-  return <UiKitPreview />;
+  return <TestComponent />;
 }
