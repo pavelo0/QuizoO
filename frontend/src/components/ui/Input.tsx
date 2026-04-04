@@ -1,71 +1,19 @@
-import cn from '@/lib/utils/cn';
-import { forwardRef, useId } from 'react';
-import type { ComponentPropsWithoutRef } from 'react';
+import * as React from 'react';
 
-type InputProps = ComponentPropsWithoutRef<'input'> & {
-  label?: string;
-  error?: string;
-  hint?: string;
-};
+import { cn } from '@/lib/utils';
 
-const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, hint, className, id: idProp, ...rest },
-  ref,
-) {
-  const uid = useId();
-  const id = idProp ?? uid;
-
+function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
   return (
-    <div className="flex w-full flex-col gap-1.5">
-      {label ? (
-        <label
-          htmlFor={id}
-          className="text-sm font-medium tracking-wide text-(--text-secondary)"
-          style={{ fontFamily: 'var(--font-dm-sans)' }}
-        >
-          {label}
-        </label>
-      ) : null}
-      <input
-        ref={ref}
-        id={id}
-        className={cn(
-          'h-[52px] w-full rounded-[10px] border border-(--border-default) bg-(--input-bg) px-4 text-base text-(--text-primary)',
-          'placeholder:text-(--text-secondary)',
-          'transition-[border-color,box-shadow] duration-300 ease-in-out',
-          'focus:border-(--primary-accent) focus:outline-none focus:shadow-[0_0_10px_var(--purple-glow)]',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          error &&
-            'border-(--danger-color) focus:border-(--danger-color) focus:shadow-[0_0_10px_rgba(255,92,92,0.25)]',
-          className,
-        )}
-        style={{ fontFamily: 'var(--font-dm-sans)' }}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={
-          error ? `${id}-error` : hint ? `${id}-hint` : undefined
-        }
-        {...rest}
-      />
-      {error ? (
-        <p
-          id={`${id}-error`}
-          className="text-sm text-(--danger-color)"
-          style={{ fontFamily: 'var(--font-dm-sans)' }}
-          role="alert"
-        >
-          {error}
-        </p>
-      ) : hint ? (
-        <p
-          id={`${id}-hint`}
-          className="text-sm text-(--text-secondary)"
-          style={{ fontFamily: 'var(--font-dm-sans)' }}
-        >
-          {hint}
-        </p>
-      ) : null}
-    </div>
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        'h-7 w-full min-w-0 rounded-md border border-input bg-input/20 px-2 py-0.5 text-sm transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-xs/relaxed file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 md:text-xs/relaxed dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40',
+        className,
+      )}
+      {...props}
+    />
   );
-});
+}
 
 export { Input };

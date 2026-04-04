@@ -12,14 +12,14 @@
 
 ## Стек технологий
 
-| Слой               | Технология                                                  |
-| ------------------ | ----------------------------------------------------------- |
-| **Frontend**       | React, React Router, Axios                                  |
-| **Backend**        | Node.js, NestJS                                             |
-| **База данных**    | PostgreSQL                                                  |
-| **Инфраструктура** | Docker, Docker Compose, Nginx                               |
-| **Real-time**      | WebSocket (Socket.io) — диплом                              |
-| **Авторизация**    | JWT (Access + Refresh токены); опционально Google OAuth 2.0 |
+| Слой               | Технология                                                                 |
+| ------------------ | -------------------------------------------------------------------------- |
+| **Frontend**       | React, React Router, Redux Toolkit (RTK Query), Axios, Tailwind, shadcn/ui |
+| **Backend**        | Node.js, NestJS                                                            |
+| **База данных**    | PostgreSQL                                                                 |
+| **Инфраструктура** | Docker, Docker Compose, Nginx                                              |
+| **Real-time**      | WebSocket (Socket.io) — диплом                                             |
+| **Авторизация**    | JWT (Access + Refresh токены); опционально Google OAuth 2.0                |
 
 ---
 

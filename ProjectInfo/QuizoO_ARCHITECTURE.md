@@ -310,9 +310,11 @@ frontend/
 │   │   ├── modules.api.ts
 │   │   ├── cards.api.ts
 │   │   └── sessions.api.ts
-│   ├── store/                  # Zustand или Context
-│   │   ├── auth.store.ts
-│   │   └── module.store.ts
+│   ├── store/                  # Redux Toolkit: slices + RTK Query API
+│   │   ├── index.ts            # configureStore
+│   │   ├── hooks.ts            # useAppDispatch, useAppSelector
+│   │   ├── authSlice.ts
+│   │   └── api/                # createApi (модули, сессии, …)
 │   ├── pages/
 │   │   ├── Landing.tsx
 │   │   ├── Login.tsx
@@ -332,11 +334,7 @@ frontend/
 │   │   ├── layout/
 │   │   │   ├── Navbar.tsx
 │   │   │   └── ProtectedRoute.tsx
-│   │   ├── ui/                 # переиспользуемые UI компоненты
-│   │   │   ├── Button.tsx
-│   │   │   ├── Input.tsx
-│   │   │   ├── Modal.tsx
-│   │   │   └── Card.tsx
+│   │   ├── ui/                 # shadcn/ui + обёртки под дизайн-токены
 │   │   ├── modules/
 │   │   │   ├── ModuleCard.tsx
 │   │   │   └── ModuleList.tsx
@@ -531,7 +529,7 @@ export interface SessionResult {
 
 - [ ] Инициализация Vite + React + TypeScript
 - [ ] Axios инстанс с interceptor для refresh токена
-- [ ] Zustand store для авторизации
+- [ ] Redux Toolkit: slice авторизации + при необходимости RTK Query для API
 - [ ] Роутинг + ProtectedRoute
 - [ ] Страницы: Landing, Login, Register
 - [ ] Dashboard + ModuleCard компонент
@@ -580,9 +578,12 @@ export interface SessionResult {
 {
   "react": "^18",
   "react-router-dom": "^6",
+  "react-redux": "^9",
+  "@reduxjs/toolkit": "^2",
   "axios": "^1",
-  "zustand": "^4",
   "recharts": "^2",
   "@dnd-kit/core": "^6"
 }
 ```
+
+> Сборка UI: **shadcn/ui** (CLI `shadcn add …`), стили — `docs/techDesign.md` и `index.css`.

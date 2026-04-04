@@ -1,6 +1,8 @@
 # Настройка фронтенда QuizOo — с шага 4
 
-Простая структура: без FSD, по папкам по смыслу (app, routes, components, lib, hooks, types).
+Простая структура: без FSD, по папкам по смыслу (`app`, `pages`, `components`, `store`, `lib`, `hooks`, `types`).
+
+**Стек:** React Router, Redux Toolkit + RTK Query, axios, Tailwind, shadcn/ui (см. `docs/techDesign.md`).
 
 ---
 
@@ -8,187 +10,148 @@
 
 **Что сделать:** создать папки в `frontend/src/`.
 
-**Зачем:** чтобы не сваливать всё в кучу: роуты отдельно, провайдеры отдельно, утилиты и API — в своих местах.
+**Зачем:** роуты и страницы отдельно, Redux store отдельно, утилиты и API — в своих местах.
 
 **Структура:**
 
 ```
 src/
-  app/              — провайдеры (Query, Router) и конфиг приложения
+  app/                 — провайдеры (Redux `Provider`, при необходимости тема)
   app/providers/
-  routes/           — файлы роутов TanStack Router (по одному файлу = роут/экран)
-  components/       — переиспользуемые компоненты
-  components/ui/    — кнопки, инпуты, карточки
-  lib/              — код без React
-  lib/api/          — HTTP-клиент (axios)
-  lib/utils/        — утилиты (например cn для классов)
-  hooks/            — кастомные хуки
-  types/            — общие TypeScript-типы
+  pages/               — экраны (по одному компоненту на основной маршрут)
+  components/          — переиспользуемые блоки
+  components/ui/       — shadcn/ui (button, input, card, …)
+  store/               — configureStore, slices, RTK Query API
+  lib/                 — код без React
+  lib/api/             — HTTP-клиент (axios)
+  lib/utils/           — утилиты (например `cn` для классов)
+  hooks/               — кастомные хуки (часто обёртки над dispatch / selectors)
+  types/               — общие TypeScript-типы
 ```
 
 **Команды:**
 
 ```bash
 cd frontend/src
-mkdir -p app/providers routes components/ui lib/api lib/utils hooks types
+mkdir -p app/providers pages components/ui store lib/api lib/utils hooks types
 ```
 
 ---
 
 ## Шаг 5: Утилиты и API (lib)
 
-### 5.1 `src/lib/utils/cn.ts`
+### 5.1 `src/lib/utils.ts` (или `cn.ts`)
 
-**Что сделать:** один файл с функцией для склейки CSS-классов (Tailwind + условные классы).
+**Что сделать:** функция `cn` для склейки CSS-классов (Tailwind + условные классы) — как в shadcn.
 
-**Зачем:** чтобы писать `cn('base', isActive && 'active', className)` вместо ручного join и не ломать Tailwind.
-
-**Пример использования в компоненте:**
-
-```tsx
-import { cn } from '@/lib/utils/cn';
-<button className={cn('rounded px-4', isPrimary && 'bg-primary-600')}>
-  OK
-</button>;
-```
-
-**Код:** функция объединяет `clsx` и `tailwind-merge` (пакеты уже стоят).
-
----
+**Зачем:** `cn('base', isActive && 'active', className)` без ручного join.
 
 ### 5.2 `src/lib/api/client.ts`
 
-**Что сделать:** один экземпляр axios с `baseURL`, таймаутом и при необходимости интерцепторами.
+**Что сделать:** один экземпляр axios с `baseURL`, таймаутом и интерцепторами (JWT, refresh при 401).
 
-**Зачем:** все запросы к бэкенду идут через него; в одном месте можно добавить токен, обработку 401 и т.д.
-
-**Пример использования:**
+**Пример:**
 
 ```ts
 import { apiClient } from '@/lib/api/client';
-const { data } = await apiClient.get('/quizzes');
+const { data } = await apiClient.get('/modules');
 ```
 
-**Что задать:** `baseURL` из `import.meta.env.VITE_API_URL` (например `http://localhost:3001/api`), `timeout`, заголовок `Content-Type: application/json`. При желании — интерцепторы request (добавить токен) и response (обработка ошибок).
+`baseURL` из `import.meta.env.VITE_API_URL`.
 
 ---
 
-## Шаг 6: Провайдеры (app/providers)
+## Шаг 6: Redux store и провайдеры
 
-**Что сделать:** обернуть приложение в провайдеры TanStack Query и, при необходимости, других библиотек.
+### 6.1 `src/store/index.ts`
 
-### 6.1 `src/app/providers/QueryProvider.tsx`
+**Зачем:** единая точка входа — `configureStore`, подключение редьюсеров и RTK Query middleware.
 
-**Зачем:** дать всему приложению доступ к React Query (useQuery, useMutation).
+**Что внутри:** редьюсер из `authSlice`, `api` из `createApi` (например `baseApi` с `injectEndpoints`), `setupListeners` для refetch при фокусе окна (по желанию).
 
-**Что внутри:** `QueryClientProvider` от `@tanstack/react-query` и опционально `ReactQueryDevtools`. Создать один `QueryClient` с разумными defaults (staleTime, retry и т.д.) и передать его в провайдер.
+### 6.2 `src/store/hooks.ts`
 
-**Пример использования в main.tsx:** обернуть дерево в `<QueryProvider>`.
+**Зачем:** типизированные `useAppDispatch` и `useAppSelector` вместо голых `useDispatch` / `useSelector`.
 
----
+### 6.3 `src/app/providers/StoreProvider.tsx`
 
-## Шаг 7: Роуты (routes)
+**Зачем:** обернуть дерево в `<Provider store={store}>` из `react-redux`.
 
-**Что сделать:** завести файловый роутинг TanStack Router. Плагин сам сгенерирует `src/routeTree.gen.ts` по файлам в `src/routes/`.
-
-### 7.1 `src/routes/__root.tsx`
-
-**Зачем:** корневой layout для всего приложения (общая обёртка, Outlet для дочерних роутов).
-
-**Что внутри:** `createRootRoute` из `@tanstack/react-router`, в `component` — разметка с `<Outlet />`. Опционально подключить `TanStackRouterDevtools`.
-
-**Пример:** один корневой div (например с общим header/footer) и внутри `<Outlet />`.
+**В `main.tsx`:** `StoreProvider` → при необходимости другие провайдеры → `BrowserRouter` (см. шаг 8).
 
 ---
 
-### 7.2 `src/routes/index.tsx`
+## Шаг 7: Роутинг (react-router-dom)
 
-**Зачем:** главная страница по маршруту `/`.
+**Что сделать:** описать маршруты в `App.tsx` (или `routes.tsx`): `Routes`, `Route`, вложенные layout-роуты, `Navigate` для редиректов.
 
-**Что внутри:** `createFileRoute('/')` и компонент страницы (можно в том же файле). В `component` — разметка главной (например заголовок и краткое описание квиза).
+**Пример скелета:**
 
-**Пример:** простая страница с заголовком "QuizOo" и текстом.
+```tsx
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/dashboard" element={<ProtectedLayout />}>
+        <Route index element={<DashboardPage />} />
+      </Route>
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+}
+```
+
+Защищённые страницы: обёртка, которая читает сессию из Redux (или `localStorage` при гидрации) и редиректит на `/login` через `<Navigate to="/login" replace />`.
+
+**Файлового роутера как у TanStack Router нет** — один файл = один компонент страницы в `pages/`, маршруты объявляются явно.
 
 ---
 
-## Шаг 8: Точка входа (main.tsx)
+## Шаг 8: Точка входа (`main.tsx`)
 
-**Что сделать:** подключить роутер и провайдеры вместо голого `<App />`.
+**Что сделать:** `createRoot` → `StoreProvider` → `BrowserRouter` → `App` (с `Routes`) → при необходимости `Toaster` (например react-hot-toast).
 
-**Зачем:** приложение должно рендерить дерево роутов и иметь доступ к Query.
-
-**Что сделать по шагам:**
-
-1. Импортировать `createRouter` и `RouterProvider` из `@tanstack/react-router`.
-2. Импортировать сгенерированное дерево: `import { routeTree } from './routeTree.gen'`.
-3. Создать роутер: `const router = createRouter({ routeTree })`.
-4. При необходимости задекларировать типы для роутера (см. доки TanStack Router).
-5. В `render` отдать: `QueryProvider` → внутри `RouterProvider router={router}` → внутри при необходимости `Toaster` (react-hot-toast).
-6. Удалить импорт и использование `App.tsx`, если он больше не нужен.
-
-**Важно:** после добавления/изменения файлов в `src/routes/` перезапустить dev-сервер или дождаться пересборки — тогда появится/обновится `routeTree.gen.ts`.
+**Порядок:** Redux store доступен всему дереву; внутри роутера страницы используют `useAppDispatch` / RTK Query хуки.
 
 ---
 
 ## Шаг 9: Переменные окружения
 
-**Что сделать:** в `frontend/` создать `.env` и по желанию `.env.example`.
-
-**Зачем:** вынести baseURL API в переменную, чтобы не хардкодить и менять для dev/prod.
-
-**Пример содержимого:**
-
-- `.env`: `VITE_API_URL=http://localhost:3001/api`
-- `.env.example`: то же значение как пример (без секретов).
-
-В `lib/api/client.ts` использовать `import.meta.env.VITE_API_URL`.
+**Что сделать:** в `frontend/` создать `.env` и `.env.example` с `VITE_API_URL`.
 
 ---
 
-## Шаг 10: Типы (types)
+## Шаг 10: Типы (`types/`)
 
-**Что сделать:** завести общие типы в `src/types/`, чтобы использовать и в компонентах, и в API.
-
-**Примеры файлов:**
-
-- `src/types/api.ts` — общий ответ API (например `{ data: T, message?: string }`), тип ошибки, при необходимости пагинация.
-- `src/types/quiz.ts` — типы домена: Quiz, Question, Option и т.д. (под вашу модель с бэкенда).
-
-**Зачем:** один источник правды для контракта с API и для типизации стейта/пропсов.
-
-**Пример использования:**
-
-```ts
-import type { Quiz } from '@/types/quiz';
-const [quiz, setQuiz] = useState<Quiz | null>(null);
-```
+Общие типы домена и ответов API — как в прежней версии документа; используются в слайсах, селекторах и компонентах.
 
 ---
 
-## Шаг 11: Скрипты и линтинг (по желанию)
+## Шаг 11: shadcn/ui
 
-**Что сделать:** в `frontend/package.json` добавить скрипты для проверки кода.
+**Что сделать:** инициализировать shadcn (`components.json` в корне `frontend/`), добавить нужные примитивы (`button`, `input`, `card`, …) по макетам из `ProjectInfo/QuizoO_STITCH_PROMPTS.md` и токенам из этого репозитория.
 
-**Примеры:**
+**Зачем:** единые кнопки, поля, диалоги, таблицы без дублирования вёрстки.
 
-- `"lint:fix": "eslint . --ext ts,tsx --fix"`
-- `"format": "prettier --write \"src/**/*.{ts,tsx,css}\""`
-- `"format:check": "prettier --check \"src/**/*.{ts,tsx,css}\""`
-- `"type-check": "tsc --noEmit"`
+---
 
-**Зачем:** удобно перед коммитом запускать `npm run type-check` и `npm run lint`.
+## Шаг 12: Скрипты и линтинг
+
+По желанию: `lint:fix`, `type-check: tsc --noEmit` в `package.json`.
 
 ---
 
 ## Порядок выполнения (кратко)
 
 1. Создать папки (шаг 4).
-2. Написать `lib/utils/cn.ts` и `lib/api/client.ts` (шаг 5).
-3. Написать `app/providers/QueryProvider.tsx` (шаг 6).
-4. Создать `routes/__root.tsx` и `routes/index.tsx` (шаг 7).
-5. Обновить `main.tsx` (шаг 8).
-6. Добавить `.env` (шаг 9).
-7. Добавить типы в `types/` по мере необходимости (шаг 10).
-8. При желании — скрипты (шаг 11).
+2. `lib/api/client.ts` и `cn` (шаг 5).
+3. `store/` + `StoreProvider` (шаг 6).
+4. Страницы в `pages/` + `App.tsx` с `Routes` (шаги 7–8).
+5. `.env` (шаг 9).
+6. Типы по мере необходимости (шаг 10).
+7. Подключить shadcn-компоненты под дизайн-систему (шаг 11).
 
-После шагов 4–8 у вас будет: структура папок, работающий роутинг, Query и API-клиент. Остальное можно дописывать по ходу разработки.
+После шагов 4–8 у вас: структура, Redux, роутинг и API-клиент; данные с бэкенда удобно тянуть через **RTK Query** endpoints в том же `store`.

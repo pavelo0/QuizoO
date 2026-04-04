@@ -1,4 +1,4 @@
-import { Button, Card, Input } from '@/components/ui';
+import { Button, Card, Input, Label } from '@/components/ui';
 
 /**
  * Временный стенд для проверки UI Kit по docs/techDesign.md.
@@ -49,23 +49,23 @@ export function UiKitPreview() {
             Buttons
           </h2>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" size="md">
+            <Button variant="default" size="lg">
               Start for free
             </Button>
-            <Button variant="outline" size="md">
+            <Button variant="outline" size="lg">
               See how it works
             </Button>
             <Button variant="secondary" size="sm">
               Secondary
             </Button>
-            <Button variant="danger" size="lg">
+            <Button variant="destructive" size="lg">
               Danger
             </Button>
           </div>
         </section>
 
         <section className="grid gap-8 lg:grid-cols-2">
-          <Card className="p-6" interactive>
+          <Card className="p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary-accent)]">
             <h3
               className="mb-2 text-lg font-bold text-(--text-primary)"
               style={{ fontFamily: 'var(--font-syne)' }}
@@ -80,7 +80,7 @@ export function UiKitPreview() {
             </p>
           </Card>
 
-          <Card variant="hero" className="p-8">
+          <Card className="rounded-3xl p-8">
             <h3
               className="mb-4 text-xl font-bold text-(--text-primary)"
               style={{ fontFamily: 'var(--font-syne)' }}
@@ -93,20 +93,29 @@ export function UiKitPreview() {
                 e.preventDefault();
               }}
             >
-              <Input
-                type="email"
-                name="email"
-                label="Email"
-                placeholder="you@example.com"
-                autoComplete="email"
-              />
-              <Input
-                label="With error"
-                placeholder="Invalid"
-                error="Поле обязательно для демонстрации состояния."
-                defaultValue=""
-              />
-              <Button type="submit" variant="primary" className="w-full">
+              <div className="space-y-2">
+                <Label htmlFor="ui-email">Email</Label>
+                <Input
+                  id="ui-email"
+                  type="email"
+                  name="email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ui-error">With error</Label>
+                <Input
+                  id="ui-error"
+                  placeholder="Invalid"
+                  aria-invalid
+                  defaultValue=""
+                />
+                <p className="text-sm text-destructive">
+                  Поле обязательно для демонстрации состояния.
+                </p>
+              </div>
+              <Button type="submit" variant="default" className="w-full">
                 Log in
               </Button>
             </form>
