@@ -1,3 +1,12 @@
-export { Button } from './Button';
-export { Card } from './Card';
-export { Input } from './Input';
+export { Button, buttonVariants } from './button';
+export {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from './card';
+export { Input } from './input';
+export { Label } from './label';

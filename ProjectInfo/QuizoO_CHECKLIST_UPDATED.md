@@ -1,6 +1,7 @@
 # QuizoO — Детальный чеклист (правильная хронология)
 
-> **Обновлено:** 7 марта 2026  
+> **Обновлено:** 4 апреля 2026  
+> **Стек фронтенда:** React Router, Redux Toolkit + RTK Query, axios, Tailwind, shadcn/ui (без TanStack Router / Query и без Zustand).  
 > **Принцип:** Сначала UI и структура, потом бэкенд, потом связываем
 
 ---
@@ -42,20 +43,19 @@
 ### ЭТАП 1: Базовая настройка фронтенда (БЕЗ авторизации)
 
 - [ ] 1.1 Заполнить `lib/api/client.ts` (простая версия без токенов)
-- [ ] 1.2 Заполнить `app/providers/QueryProvider.tsx`
-- [ ] 1.3 Заполнить `routes/__root.tsx`
-- [ ] 1.4 Заполнить `routes/index.tsx` (лендинг)
-- [ ] 1.5 Обновить `main.tsx` (роутер + провайдеры)
+- [ ] 1.2 Настроить `store/` (`configureStore`, `hooks.ts`) и `app/providers/StoreProvider.tsx`
+- [ ] 1.3 Собрать каркас маршрутов в `App.tsx` (`BrowserRouter`, `Routes`, `Route`)
+- [ ] 1.4 Создать `pages/Home.tsx` (лендинг)
+- [ ] 1.5 Обновить `main.tsx` (Redux `Provider` + роутер + провайдеры)
 - [ ] 1.6 Запустить и проверить (http://localhost:3000)
 
-### ЭТАП 2: UI Kit
+### ЭТАП 2: UI Kit (shadcn/ui)
 
-- [ ] 2.1 Создать `components/ui/Button.tsx`
-- [ ] 2.2 Создать `components/ui/Input.tsx`
-- [ ] 2.3 Создать `components/ui/Card.tsx`
-- [ ] 2.4 Создать `components/ui/index.ts` (реэкспорт)
-- [ ] 2.5 Обновить лендинг с Button
-- [ ] 2.6 Проверить что компоненты работают
+- [ ] 2.1 Добавить нужные примитивы shadcn (`npx shadcn add …`) под макеты и `docs/techDesign.md`
+- [ ] 2.2 Подключить тему (токены в `index.css`, классы на обёртках)
+- [ ] 2.3 При необходимости — тонкая обёртка `components/ui` над shadcn для единообразия
+- [ ] 2.4 Обновить лендинг с `Button` / ссылками
+- [ ] 2.5 Проверить что компоненты и стили совпадают с гайдом
 
 ### ЭТАП 3: Типы данных
 
@@ -100,10 +100,10 @@
 - [ ] 6.13 Включить ValidationPipe в `main.ts`
 - [ ] 6.14 Протестировать через curl (register, login)
 
-### ЭТАП 7: Frontend — Zustand стор
+### ЭТАП 7: Frontend — Redux: slice авторизации
 
-- [ ] 7.1 Создать `stores/useAuthStore.ts` (setAuth, logout, isAuthenticated, isAdmin)
-- [ ] 7.2 Создать `stores/index.ts` (реэкспорт)
+- [ ] 7.1 Создать `store/authSlice.ts` (setAuth, logout, селекторы isAuthenticated / isAdmin)
+- [ ] 7.2 Подключить slice в `store/index.ts` и при необходимости `redux-persist` только для токенов (по желанию)
 
 ### ЭТАП 8: Frontend — Хуки для авторизации
 
@@ -112,9 +112,9 @@
 
 ### ЭТАП 9: Frontend — Страницы авторизации
 
-- [ ] 9.1 Создать `routes/login.tsx` (форма входа)
-- [ ] 9.2 Создать `routes/register.tsx` (форма регистрации)
-- [ ] 9.3 Обновить `routes/index.tsx` (добавить Link на login/register)
+- [ ] 9.1 Создать `pages/Login.tsx` (форма входа)
+- [ ] 9.2 Создать `pages/Register.tsx` (форма регистрации)
+- [ ] 9.3 Обновить `pages/Home.tsx` (добавить Link на login/register)
 - [ ] 9.4 Протестировать флоу (регистрация → логин → редирект)
 
 ### ЭТАП 10: Frontend — Interceptors с токенами
@@ -151,7 +151,7 @@
 
 ### ЭТАП 14: Frontend — Dashboard
 
-- [ ] 14.1 Создать `routes/dashboard.tsx` (список модулей)
+- [ ] 14.1 Создать `pages/Dashboard.tsx` (список модулей)
 - [ ] 14.2 Добавить beforeLoad (защита роута)
 - [ ] 14.3 Добавить Header с кнопкой "Выйти"
 - [ ] 14.4 Добавить Empty state
@@ -160,14 +160,14 @@
 
 ### ЭТАП 15: Frontend — Создание модуля
 
-- [ ] 15.1 Создать `routes/modules/new.tsx`
+- [ ] 15.1 Создать `pages/modules/new.tsx`
   - [ ] Шаг 1: Выбор типа (Карточки / Квиз)
   - [ ] Шаг 2: Заполнение названия и описания
   - [ ] Редирект на редактор после создания
 
 ### ЭТАП 16: Frontend — Страница модуля
 
-- [ ] 16.1 Создать `routes/modules/$id.tsx`
+- [ ] 16.1 Создать `pages/modules/$id.tsx`
   - [ ] Заголовок и описание
   - [ ] Бейдж с типом
   - [ ] Кнопки: Редактировать, Удалить
@@ -177,7 +177,7 @@
 ### ЭТАП 17: Frontend — Редактор карточек
 
 - [ ] 17.1 Создать `hooks/useCards.ts` (useCards, useCreateCard, useUpdateCard, useDeleteCard)
-- [ ] 17.2 Создать `routes/modules/$id.edit.tsx`
+- [ ] 17.2 Создать `pages/modules/$id.edit.tsx`
   - [ ] Форма: название и описание модуля
   - [ ] Список существующих карточек
   - [ ] Форма добавления новой карточки (вопрос + ответ)
@@ -186,7 +186,7 @@
 
 ### ЭТАП 18: Frontend — Режим карточек (Flashcards)
 
-- [ ] 18.1 Создать `routes/modules/$id.flashcards.tsx`
+- [ ] 18.1 Создать `pages/modules/$id.flashcards.tsx`
   - [ ] Загрузка и перемешивание карточек
   - [ ] Отображение текущей карточки
   - [ ] Кнопка "Перевернуть" (анимация flip)
@@ -224,7 +224,7 @@
 ### ЭТАП 21: Frontend — Режим квиза
 
 - [ ] 21.1 Создать `hooks/useQuestions.ts`
-- [ ] 21.2 Создать `routes/modules/$id.quiz.tsx`
+- [ ] 21.2 Создать `pages/modules/$id.quiz.tsx`
   - [ ] Загрузка вопросов
   - [ ] Перемешивание
   - [ ] Показ текущего вопроса
@@ -252,7 +252,7 @@
 ### ЭТАП 23: Frontend — Статистика
 
 - [ ] 23.1 Создать `hooks/useSessions.ts`
-- [ ] 23.2 Создать `routes/statistics.tsx`
+- [ ] 23.2 Создать `pages/statistics.tsx`
   - [ ] История всех сессий (таблица)
   - [ ] Средний балл
   - [ ] Фильтры по модулю
@@ -277,11 +277,11 @@
 ### ЭТАП 25: Frontend — Admin панель
 
 - [ ] 25.1 Создать `hooks/useAdmin.ts`
-- [ ] 25.2 Создать `routes/admin/index.tsx`
+- [ ] 25.2 Создать `pages/admin/index.tsx`
   - [ ] Таблица пользователей
   - [ ] Кнопки блокировки/разблокировки
   - [ ] Пагинация
-- [ ] 25.3 Создать `routes/admin/modules.tsx`
+- [ ] 25.3 Создать `pages/admin/modules.tsx`
   - [ ] Таблица всех модулей
   - [ ] Кнопки удаления
   - [ ] Поиск и фильтры
@@ -368,7 +368,7 @@
 ### Frontend
 
 - [x] Vite + React + TypeScript
-- [x] Все зависимости установлены (Router, Query, Tailwind, Zustand, Axios)
+- [x] Все зависимости установлены (React Router, Redux Toolkit, Tailwind, shadcn, Axios)
 - [x] Vite конфиг (плагины, алиасы, прокси)
 - [x] TypeScript конфиг (strict, path aliases)
 - [x] ESLint + Prettier
@@ -380,10 +380,11 @@
 ### Что НЕ готово (пустые файлы)
 
 - [ ] `lib/api/client.ts` — пустой
-- [ ] `app/providers/QueryProvider.tsx` — пустой
-- [ ] `routes/__root.tsx` — пустой
-- [ ] `routes/index.tsx` — пустой
-- [ ] `main.tsx` — старая версия без роутера
+- [ ] `store/index.ts` / `store/hooks.ts` — не заполнены
+- [ ] `app/providers/StoreProvider.tsx` — пустой
+- [ ] `App.tsx` — нет `Routes` / `BrowserRouter`
+- [ ] `pages/Home.tsx` — пустой
+- [ ] `main.tsx` — без Redux `Provider` и роутера
 
 ---
 
@@ -430,182 +431,83 @@ apiClient.interceptors.response.use(
 
 ---
 
-### 1.2 ✏️ Заполнить `app/providers/QueryProvider.tsx`
+### 1.2 ✏️ Настроить Redux store и `StoreProvider`
 
-**Зачем:** Обёртка для React Query. Без неё `useQuery` не работает.
+**Зачем:** глобальное состояние (авторизация, UI) и дальше — **RTK Query** для запросов к API вместо React Query.
 
-**Что писать:**
+**Минимум в `store/index.ts`:**
 
 ```typescript
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { type ReactNode } from 'react';
+import { configureStore } from '@reduxjs/toolkit';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 минут
-      gcTime: 1000 * 60 * 10, // 10 минут
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: 0,
-    },
+export const store = configureStore({
+  reducer: {
+    // auth: authReducer — добавите после этапа 7
   },
 });
 
-interface QueryProviderProps {
-  children: ReactNode;
-}
-
-export function QueryProvider({ children }: QueryProviderProps) {
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
-  );
-}
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
 ```
 
-**Подсказки:**
-
-- Создаём один `QueryClient` с настройками по умолчанию
-- `staleTime` — как долго данные свежие
-- DevTools — панель для отладки
+**`app/providers/StoreProvider.tsx`:** обернуть `children` в `<Provider store={store}>` из `react-redux`.
 
 ---
 
-### 1.3 ✏️ Заполнить `routes/__root.tsx`
+### 1.3 ✏️ Каркас маршрутов в `App.tsx`
 
-**Зачем:** Корневой layout. Общая обёртка для всех страниц.
+**Зачем:** явный роутинг **react-router-dom** v6 — без файлового дерева TanStack Router.
 
-**Что писать:**
+**Пример:**
 
-```typescript
-import { createRootRoute, Outlet } from '@tanstack/react-router';
-import { TanStackRouterDevtools } from '@tanstack/router-devtools';
+```tsx
+import { Routes, Route } from 'react-router-dom';
+import { HomePage } from '@/pages/Home';
 
-export const Route = createRootRoute({
-  component: RootComponent,
-});
-
-function RootComponent() {
+export function App() {
   return (
-    <>
-      <div className="min-h-screen bg-gray-50">
-        <Outlet />
-      </div>
-      <TanStackRouterDevtools position="bottom-right" />
-    </>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+    </Routes>
   );
 }
 ```
 
-**Подсказки:**
-
-- `Outlet` — место для дочерних роутов
-- Минимальная обёртка — только фон
-- DevTools для роутера
+Общий layout (фон, контейнер) можно вынести в обёртку вокруг `<Routes>` или отдельный `RootLayout`.
 
 ---
 
-### 1.4 ✏️ Заполнить `routes/index.tsx`
+### 1.4 ✏️ Создать `pages/Home.tsx`
 
-**Зачем:** Лендинг (главная страница). Пока без кликабельных кнопок.
-
-**Что писать:**
-
-```typescript
-import { createFileRoute } from '@tanstack/react-router';
-
-export const Route = createFileRoute('/')({
-  component: HomePage,
-});
-
-function HomePage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-indigo-600">
-          QuizOo
-        </h1>
-        <p className="mt-4 text-xl text-gray-600">
-          Платформа закрепления знаний через тесты
-        </p>
-        <div className="mt-8 flex gap-4 justify-center">
-          <button className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-            Войти
-          </button>
-          <button className="px-6 py-3 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition">
-            Регистрация
-          </button>
-        </div>
-        <p className="mt-6 text-sm text-gray-500">
-          (Кнопки пока не работают — добавим позже)
-        </p>
-      </div>
-    </div>
-  );
-}
-```
-
-**Подсказки:**
-
-- Простой лендинг с заголовком и кнопками
-- Кнопки пока без onClick — просто вёрстка
-- Tailwind классы для градиента и центрирования
+**Зачем:** лендинг по `/`. Пока без рабочих ссылок на логин — только вёрстка (по желанию сразу с компонентами shadcn).
 
 ---
 
 ### 1.5 ✏️ Обновить `main.tsx`
 
-**Зачем:** Подключить роутер и провайдеры.
+**Зачем:** порядок провайдеров: **Redux** → **BrowserRouter** → `App` → при необходимости `Toaster`.
 
-**Что писать:**
-
-```typescript
+```tsx
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { RouterProvider, createRouter } from '@tanstack/react-router';
-import { QueryProvider } from './app/providers/QueryProvider';
+import { BrowserRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { store } from './store';
+import { App } from './App';
 import { Toaster } from 'react-hot-toast';
 import './index.css';
 
-// Импорт сгенерированного дерева роутов
-import { routeTree } from './routeTree.gen';
-
-// Создание роутера
-const router = createRouter({ routeTree });
-
-// Типизация роутера
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router;
-  }
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryProvider>
-      <RouterProvider router={router} />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-        }}
-      />
-    </QueryProvider>
+    <Provider store={store}>
+      <BrowserRouter>
+        <App />
+        <Toaster position="top-right" />
+      </BrowserRouter>
+    </Provider>
   </StrictMode>,
 );
 ```
-
-**Подсказки:**
-
-- `routeTree.gen.ts` создаётся автоматически плагином
-- `declare module` — для типизации путей
-- Порядок: Query → Router → Toaster
 
 ---
 
@@ -622,52 +524,38 @@ npm run dev
 
 **Что должно быть:**
 
-- [ ] Лендинг с заголовком "QuizOo"
-- [ ] Градиентный фон
-- [ ] Две кнопки (пока не кликабельные)
+- [ ] Лендинг с заголовком «QuizOo» (или аналог)
 - [ ] Нет ошибок в консоли
-- [ ] DevTools Router и Query видны
+- [ ] Redux DevTools видит store (расширение браузера)
 
 **Если всё ОК — переходим дальше! ✅**
 
 ---
 
-## ЭТАП 2: UI Kit (переиспользуемые компоненты)
+## ЭТАП 2: UI Kit (shadcn/ui)
 
-**Цель:** Создать базовые компоненты, чтобы потом быстро собирать страницы.
+**Цель:** не плодить с нуля кнопки/инпуты — взять примитивы из **shadcn/ui** и привести к токенам из `docs/techDesign.md` / `index.css`.
 
-### 2.1 ✏️ Создать `components/ui/Button.tsx`
+### 2.1 ✏️ Добавить компоненты через CLI
 
-**Код выше в разделе 2.1 (с вариантами, размерами, isLoading)**
+**Пример:** `npx shadcn@latest add button input card … -y` (список — под экраны из `QuizoO_STITCH_PROMPTS.md`).
 
----
+### 2.2 ✏️ Согласовать радиусы, цвета и шрифты
 
-### 2.2 ✏️ Создать `components/ui/Input.tsx`
+Проверить `components.json`, Tailwind и CSS variables — как в техническом гайде.
 
-**Код выше в разделе 2.2 (с label, error)**
+### 2.3 ✏️ Реэкспорт (по желанию)
 
----
+`components/ui/index.ts` — реэкспорт только тех примитивов, которые реально используются в приложении.
 
-### 2.3 ✏️ Создать `components/ui/Card.tsx`
+### 2.4 ✅ Обновить лендинг
 
-**Код выше в разделе 2.3 (с CardHeader, CardTitle и т.д.)**
-
----
-
-### 2.4 ✏️ Создать `components/ui/index.ts`
-
-**Реэкспорт всех компонентов**
-
----
-
-### 2.5 ✅ Обновить лендинг с Button
-
-**Заменить обычные button на компонент Button** (код выше в разделе 2.5)
+Использовать `Button` (shadcn) и ссылки `react-router-dom` на `/login` и `/register`, когда маршруты появятся.
 
 **Проверить:**
 
-- [ ] Кнопки выглядят красиво
-- [ ] Hover работает
+- [ ] Внешний вид близок к макетам Stitch
+- [ ] Состояния hover / focus читаемы
 
 ---
 
@@ -1387,44 +1275,52 @@ curl -X POST http://localhost:3001/auth/login \
 
 ---
 
-## ЭТАП 7: Frontend — Zustand стор для авторизации
+## ЭТАП 7: Frontend — Redux: slice авторизации
 
-**Цель:** Глобальное состояние для пользователя и токенов.
+**Цель:** глобальное состояние пользователя и токенов в **`authSlice`** (Redux Toolkit).
 
-### 7.1 ✏️ Создать `stores/useAuthStore.ts`
+### 7.1 ✏️ Создать `store/authSlice.ts`
 
-**Код выше в старом чеклисте, раздел 3.1**
+**Основные экшены / селекторы:**
 
-**Основные методы:**
+- `setCredentials({ user, accessToken, refreshToken })` — после логина / регистрации
+- `logout` — очистить сессию
+- Селекторы: `selectIsAuthenticated`, `selectIsAdmin`, `selectCurrentUser`
 
-- `setAuth(user, tokens)` — сохранить после логина
-- `logout()` — очистить
-- `isAuthenticated()` — проверка
-- `isAdmin()` — проверка роли
+Токены можно дублировать в `localStorage` и читать при инициализации store (или отдельный `listenerMiddleware`).
 
 ---
 
-### 7.2 ✏️ Создать `stores/index.ts`
+### 7.2 ✏️ Подключить slice в `store/index.ts`
 
 ```typescript
-export { useAuthStore } from './useAuthStore';
+import authReducer from './authSlice';
+
+export const store = configureStore({
+  reducer: {
+    auth: authReducer,
+  },
+});
 ```
 
 ---
 
-## ЭТАП 8: Frontend — Хуки для авторизации
+## ЭТАП 8: Frontend — Логика авторизации (thunks + RTK Query)
 
-**Цель:** React Query хуки для login, register, logout.
+**Цель:** асинхронный login / register / logout через **`createAsyncThunk`** или эндпоинты **`createApi`** (RTK Query), без React Query.
 
-### 8.1 ✏️ Создать `hooks/useAuth.ts`
+### 8.1 ✏️ Создать `features/auth/authApi.ts` (RTK Query) или thunks в `authSlice`
 
-**Код выше в старом чеклисте, раздел 4.1**
+**Варианты:**
 
-**Хуки:**
+- **RTK Query:** `authApi.endpoints.login.matchFulfilled` → диспатч `setCredentials`
+- **Thunk:** `loginUser`, `registerUser`, `logoutUser`, внутри — `apiClient` и `dispatch(setCredentials(...))`
 
-- `useLogin()` — вход
-- `useRegister()` — регистрация
-- `useLogout()` — выход
+**Хуки/обёртки:**
+
+- Обёртки над `useLoginMutation` / `useRegisterMutation` (если Query) или `useAppDispatch` + thunk
+
+---
 
 ---
 
@@ -1440,57 +1336,49 @@ export * from './useAuth';
 
 **Цель:** Формы логина и регистрации.
 
-### 9.1 ✏️ Создать `routes/login.tsx`
+### 9.1 ✏️ Создать `pages/Login.tsx`
 
-**Код выше в старом чеклисте, раздел 6.1**
+**Код выше в старом чеклисте, раздел 6.1** (форма; отправка через thunk или RTK Query mutation).
 
 ---
 
-### 9.2 ✏️ Создать `routes/register.tsx`
+### 9.2 ✏️ Создать `pages/Register.tsx`
 
 **Код выше в старом чеклисте, раздел 6.2**
 
 ---
 
-### 9.3 ✏️ Обновить `routes/index.tsx` — добавить навигацию
+### 9.3 ✏️ Обновить `pages/Home.tsx` — добавить навигацию
 
-**Заменить обычные button на Link:**
+**Заменить обычные button на `Link` из react-router-dom:**
 
-```typescript
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { Button } from '@/components/ui';
-import { useAuthStore } from '@/stores';
+```tsx
+import { Link, Navigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { useAppSelector } from '@/store/hooks';
+import { selectIsAuthenticated } from '@/store/authSlice';
 
-export const Route = createFileRoute('/')({
-  component: HomePage,
-});
+export function HomePage() {
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
-function HomePage() {
-  const navigate = useNavigate();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
-
-  // Если авторизован — редирект на dashboard
   if (isAuthenticated) {
-    navigate({ to: '/dashboard' });
-    return null;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="text-center">
-        <h1 className="text-6xl font-bold text-indigo-600">
-          QuizOo
-        </h1>
+        <h1 className="text-6xl font-bold text-indigo-600">QuizOo</h1>
         <p className="mt-4 text-xl text-gray-600">
           Платформа закрепления знаний через тесты
         </p>
-        <div className="mt-8 flex gap-4 justify-center">
-          <Link to="/login">
-            <Button size="lg">Войти</Button>
-          </Link>
-          <Link to="/register">
-            <Button variant="outline" size="lg">Регистрация</Button>
-          </Link>
+        <div className="mt-8 flex justify-center gap-4">
+          <Button asChild size="lg">
+            <Link to="/login">Войти</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link to="/register">Регистрация</Link>
+          </Button>
         </div>
       </div>
     </div>
@@ -1512,7 +1400,7 @@ function HomePage() {
 - [ ] Редирект на /dashboard (пока пустая страница — создадим дальше)
 - [ ] В localStorage появились accessToken и refreshToken
 - [ ] Перезагрузить страницу — должен остаться залогиненным
-- [ ] Выйти (пока через консоль: `useAuthStore.getState().logout()`)
+- [ ] Выйти (пока через консоль: `store.dispatch(logout())` или кнопка, вызывающая `logout`)
 
 ---
 
@@ -1734,21 +1622,21 @@ curl http://localhost:3001/modules \
 
 ---
 
-## ЭТАП 12: Frontend — Хуки для модулей
+## ЭТАП 12: Frontend — Модули (RTK Query)
 
-**Цель:** React Query хуки для работы с модулями.
+**Цель:** загрузка и мутации модулей через **`createApi`** (RTK Query): `useGetModulesQuery`, `useGetModuleQuery`, `useCreateModuleMutation` и т.д.
 
-### 12.1 ✏️ Создать `hooks/useModules.ts`
+### 12.1 ✏️ Создать `store/modulesApi.ts` (или общий `api` slice)
 
-**Код выше в старом чеклисте, раздел 4.2**
+**Сгенерированные хуки** из `endpoints` — вместо самописных `useQuery` / `useMutation` из TanStack Query.
 
-**Хуки:**
+**Примеры имён:**
 
-- `useModules()` — список модулей
-- `useModule(id)` — один модуль
-- `useCreateModule()` — создать
-- `useUpdateModule()` — обновить
-- `useDeleteModule()` — удалить
+- `useGetModulesQuery`
+- `useGetModuleQuery`
+- `useCreateModuleMutation`
+- `useUpdateModuleMutation`
+- `useDeleteModuleMutation`
 
 ---
 
@@ -1765,7 +1653,7 @@ export * from './useModules';
 
 **Цель:** Главная страница после входа со списком модулей.
 
-### 13.1 ✏️ Создать `routes/dashboard.tsx`
+### 13.1 ✏️ Создать `pages/Dashboard.tsx`
 
 **Код выше в старом чеклисте, раздел 6.3**
 
@@ -1781,21 +1669,23 @@ export * from './useModules';
 
 ### 13.2 ✏️ Добавить защиту роута
 
-**В `routes/dashboard.tsx` добавить `beforeLoad`:**
+**Вариант:** компонент-обёртка `ProtectedRoute` или проверка в родительском `Route`: если `!selectIsAuthenticated` → `<Navigate to="/login" replace />`.
 
-```typescript
-import { redirect } from '@tanstack/react-router';
+```tsx
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAppSelector } from '@/store/hooks';
+import { selectIsAuthenticated } from '@/store/authSlice';
 
-export const Route = createFileRoute('/dashboard')({
-  beforeLoad: () => {
-    const isAuthenticated = useAuthStore.getState().isAuthenticated();
-    if (!isAuthenticated) {
-      throw redirect({ to: '/login' });
-    }
-  },
-  component: DashboardPage,
-});
+export function ProtectedLayout() {
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
+}
 ```
+
+В `App.tsx`: вложить защищённые страницы в `<Route element={<ProtectedLayout />}>` с дочерними `Route`.
 
 ---
 
@@ -1815,7 +1705,7 @@ export const Route = createFileRoute('/dashboard')({
 
 **Цель:** Страница выбора типа и создания модуля.
 
-### 14.1 ✏️ Создать `routes/modules/new.tsx`
+### 14.1 ✏️ Создать `pages/modules/new.tsx`
 
 **Код выше в старом чеклисте, раздел 13.3**
 
@@ -1831,7 +1721,7 @@ export const Route = createFileRoute('/dashboard')({
 
 **Цель:** Просмотр модуля, кнопка запуска режима.
 
-### 15.1 ✏️ Создать `routes/modules/$id.tsx`
+### 15.1 ✏️ Создать `pages/modules/$id.tsx`
 
 **Код выше в старом чеклисте, раздел 13.2**
 
@@ -1860,7 +1750,7 @@ export const Route = createFileRoute('/dashboard')({
 
 ---
 
-### 16.2 ✏️ Создать `routes/modules/$id.edit.tsx`
+### 16.2 ✏️ Создать `pages/modules/$id.edit.tsx`
 
 **Что должно быть:**
 
@@ -1875,7 +1765,7 @@ export const Route = createFileRoute('/dashboard')({
 
 **Цель:** Интерактивный режим изучения карточек.
 
-### 17.1 ✏️ Создать `routes/modules/$id.flashcards.tsx`
+### 17.1 ✏️ Создать `pages/modules/$id.flashcards.tsx`
 
 **Логика:**
 
@@ -1950,7 +1840,7 @@ touch questions.module.ts questions.controller.ts questions.service.ts
 
 ---
 
-### 19.2 ✏️ Создать `routes/modules/$id.quiz.tsx`
+### 19.2 ✏️ Создать `pages/modules/$id.quiz.tsx`
 
 **Логика:**
 
@@ -1991,7 +1881,7 @@ touch questions.module.ts questions.controller.ts questions.service.ts
 
 **Цель:** История прохождений и графики.
 
-### 21.1 ✏️ Создать `routes/statistics.tsx`
+### 21.1 ✏️ Создать `pages/statistics.tsx`
 
 **Что показывать:**
 
@@ -2028,13 +1918,13 @@ touch questions.module.ts questions.controller.ts questions.service.ts
 
 **Цель:** Страницы для администратора.
 
-### 23.1 ✏️ Создать `routes/admin/index.tsx`
+### 23.1 ✏️ Создать `pages/admin/index.tsx`
 
 **Таблица пользователей с кнопками блокировки**
 
 ---
 
-### 23.2 ✏️ Создать `routes/admin/modules.tsx`
+### 23.2 ✏️ Создать `pages/admin/modules.tsx`
 
 **Таблица всех модулей с кнопками удаления**
 
@@ -2176,17 +2066,16 @@ SwaggerModule.setup('api/docs', app, document);
 ## Прямо сейчас (базовая настройка):
 
 - [ ] Заполнить `lib/api/client.ts` (простая версия без токенов)
-- [ ] Заполнить `app/providers/QueryProvider.tsx`
-- [ ] Заполнить `routes/__root.tsx`
-- [ ] Заполнить `routes/index.tsx` (лендинг)
-- [ ] Обновить `main.tsx` (роутер + провайдеры)
+- [ ] Настроить `store/` и Redux `Provider`
+- [ ] Собрать `App.tsx` с маршрутами и `pages/Home.tsx` (лендинг)
+- [ ] Обновить `main.tsx` (Redux + `BrowserRouter`)
 - [ ] Запустить `npm run dev` и проверить
 
-## Потом (UI компоненты):
+## Потом (UI — shadcn):
 
-- [ ] Создать Button, Input, Card
-- [ ] Обновить лендинг с Button
-- [ ] Проверить что компоненты работают
+- [ ] Добавить примитивы shadcn под дизайн-систему
+- [ ] Обновить лендинг с `Button` и ссылками
+- [ ] Проверить внешний вид по `techDesign.md`
 
 ## Затем (типы):
 
@@ -2205,11 +2094,11 @@ SwaggerModule.setup('api/docs', app, document);
 
 ## После (фронтенд с авторизацией):
 
-- [ ] Создать Zustand стор (useAuthStore)
-- [ ] Создать хуки (useAuth)
-- [ ] Создать страницы login и register
+- [ ] Создать `authSlice` и подключить к store
+- [ ] Реализовать login / register (thunk или RTK Query) и селекторы сессии
+- [ ] Создать страницы `pages/Login.tsx` и `pages/Register.tsx`
 - [ ] Протестировать флоу авторизации
-- [ ] **ТОЛЬКО ТЕПЕРЬ** обновить client.ts с interceptors для токенов
+- [ ] **ТОЛЬКО ТЕПЕРЬ** обновить `client.ts` с interceptors для токенов
 
 ## Основная функциональность:
 
@@ -2238,10 +2127,10 @@ SwaggerModule.setup('api/docs', app, document);
 
 ## Сейчас (этапы 1-3):
 
-- **TanStack Router:** createRootRoute, createFileRoute, Outlet, Link, useNavigate
-- **TanStack Query:** QueryClient, QueryClientProvider, defaultOptions
+- **react-router-dom:** BrowserRouter, Routes, Route, Outlet, Link, Navigate, useNavigate
+- **Redux Toolkit:** configureStore, createSlice, createAsyncThunk; **RTK Query:** createApi, endpoints, generated hooks
 - **React:** forwardRef, useState, useEffect
-- **Tailwind CSS:** утилитные классы, responsive design
+- **Tailwind CSS + shadcn/ui:** утилитные классы, `cn`, responsive design
 
 ## Потом (этапы 4-10):
 
@@ -2253,8 +2142,8 @@ SwaggerModule.setup('api/docs', app, document);
 
 ## Дальше (этапы 11-19):
 
-- **TanStack Query:** useQuery, useMutation, queryKey, invalidation
-- **Zustand:** create, persist middleware, selectors
+- **RTK Query:** `providesTags` / `invalidatesTags`, кэш, `refetch`, мутации
+- **Redux Toolkit:** слайсы, селекторы, `redux-persist` (по необходимости)
 - **TypeScript:** generics, union types, utility types
 - **React:** controlled components, forms, conditional rendering
 
@@ -2289,4 +2178,4 @@ SwaggerModule.setup('api/docs', app, document);
 
 **Успехов! 🎉**
 
-**Начинай с этапа 1.1 — заполнения `lib/api/client.ts`**
+**Начинай с этапа 1.1 — заполнения `lib/api/client.ts` и скелета `store/` + роутера (`docs/frontend-setup-from-step4.md`).**

@@ -1,3 +1,7 @@
 {
-  "prisma.pinToPrisma6": true
+  "prisma.pinToPrisma6": true,
+  "eslint.workingDirectories": [
+    { "directory": "frontend", "changeProcessCWD": true },
+    { "directory": "backend", "changeProcessCWD": true }
+  ]
 }

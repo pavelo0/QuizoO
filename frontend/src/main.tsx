@@ -1,32 +1,19 @@
-import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { QueryProvider } from './app/providers/QueryProvider';
+import { App } from './App';
+import { store } from './store/store';
 import './index.css';
-import { routeTree } from './routeTree.gen';
-
-const router = createRouter({ routeTree });
-
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router;
-  }
-}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryProvider>
-      <RouterProvider router={router} />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-        }}
-      />
-    </QueryProvider>
+    <Provider store={store}>
+      <BrowserRouter>
+        <App />
+        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      </BrowserRouter>
+    </Provider>
   </StrictMode>,
 );
-// touch
-// x
-// hooktest
