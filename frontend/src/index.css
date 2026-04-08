@@ -6,17 +6,17 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* QuizoO design tokens — см. docs/techDesign.md */
-  --bg-color: #0f1117;
-  --surface-color: #1a1d2e;
-  --input-bg: #222640;
-  --primary-accent: #6c63ff;
-  --secondary-accent: #00d4aa;
-  --danger-color: #ff5c5c;
-  --text-primary: #ffffff;
-  --text-secondary: #8b8fa8;
-  --border-default: #2e3250;
-  --purple-glow: rgba(108, 99, 255, 0.3);
+  /* QuizoO — светлая тема (по умолчанию без класса .dark на <html>) */
+  --bg-color: #f4f5fb;
+  --surface-color: #ffffff;
+  --input-bg: #e8eaf4;
+  --primary-accent: #574fd6;
+  --secondary-accent: #00997a;
+  --danger-color: #e03e3e;
+  --text-primary: #111827;
+  --text-secondary: #5c6378;
+  --border-default: #dfe3ee;
+  --purple-glow: rgba(87, 79, 214, 0.18);
 
   --font-syne: 'Syne', system-ui, sans-serif;
   --font-dm-sans: 'DM Sans', system-ui, sans-serif;
@@ -62,6 +62,11 @@
 }
 
 html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+html.dark {
   color-scheme: dark;
 }
 
@@ -83,12 +88,7 @@ body {
 }
 
 a {
-  color: var(--primary-accent);
   text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
 }
 
 @theme inline {
@@ -135,6 +135,18 @@ a:hover {
 }
 
 .dark {
+  /* QuizoO — тёмная тема */
+  --bg-color: #0f1117;
+  --surface-color: #1a1d2e;
+  --input-bg: #222640;
+  --primary-accent: #6c63ff;
+  --secondary-accent: #00d4aa;
+  --danger-color: #ff5c5c;
+  --text-primary: #ffffff;
+  --text-secondary: #8b8fa8;
+  --border-default: #2e3250;
+  --purple-glow: rgba(108, 99, 255, 0.3);
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
