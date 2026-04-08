@@ -1,3 +1,4 @@
+import type { DataRouter } from 'react-router-dom';
 import { createBrowserRouter } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
 import LandingLayout from './layouts/LandingLayout';
@@ -9,7 +10,7 @@ import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
 import SettingsPage from './pages/SettingsPage';
 
-export const router = createBrowserRouter([
+export const router: DataRouter = createBrowserRouter([
   {
     path: '/',
     element: <LandingLayout />,
