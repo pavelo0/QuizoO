@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Card } from './ui';
+import { Button, Card } from '@/components/ui';
 
 const TestComponent = () => {
   const [count, setCount] = useState<number>(0);
