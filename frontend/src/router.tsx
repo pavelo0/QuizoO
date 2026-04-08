@@ -1,64 +1,36 @@
-import { LandingPage } from '@/pages/LandingPage';
 import { createBrowserRouter } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
-import ServiceLayout from './layouts/ServiceLayout';
-import CreateNewPage from './pages/CreateNewPage';
+import LandingLayout from './layouts/LandingLayout';
 import DashboardPage from './pages/DashboardPage';
-import InProgressPage from './pages/InProgressPage';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
-import ModulePage from './pages/ModulePage';
+import OnboardingPage from './pages/OnboardingPage';
+import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
-import ResultsPage from './pages/ResultsPage';
-import StatsPage from './pages/StatsPage';
+import SettingsPage from './pages/SettingsPage';
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <LandingPage />,
+    element: <LandingLayout />,
+    children: [{ index: true, element: <LandingPage /> }],
   },
   {
-    path: 'auth',
+    path: '/auth',
     element: <AuthLayout />,
     children: [
-      {
-        path: 'login',
-        element: <LoginPage />,
-      },
-      {
-        path: 'register',
-        element: <RegisterPage />,
-      },
+      { path: 'login', element: <LoginPage /> },
+      { path: 'register', element: <RegisterPage /> },
     ],
   },
   {
-    path: 'service',
-    element: <ServiceLayout />,
+    path: '/app',
+    element: <AuthLayout />,
     children: [
-      {
-        path: 'modules',
-        element: <DashboardPage />,
-        children: [
-          {
-            path: ':id',
-            element: <ModulePage />,
-            children: [
-              { path: 'in-progress', element: <InProgressPage /> },
-              {
-                path: 'results',
-                element: <ResultsPage />,
-              },
-            ],
-          },
-          {
-            path: 'new',
-            element: <CreateNewPage />,
-          },
-        ],
-      },
-      {
-        path: 'stats',
-        element: <StatsPage />,
-      },
+      { index: true, element: <DashboardPage /> },
+      { path: 'settings', element: <SettingsPage /> },
+      { path: 'profile', element: <ProfilePage /> },
+      { path: 'onboarding', element: <OnboardingPage /> },
     ],
   },
 ]);
