@@ -9,6 +9,7 @@
   /* QuizoO — светлая тема (по умолчанию без класса .dark на <html>) */
   --bg-color: #f4f5fb;
   --surface-color: #ffffff;
+  --burger-btn: #000000;
   --input-bg: #e8eaf4;
   --primary-accent: #574fd6;
   --secondary-accent: #00997a;
@@ -138,6 +139,7 @@ a {
   /* QuizoO — тёмная тема */
   --bg-color: #0f1117;
   --surface-color: #1a1d2e;
+  --burger-btn: #ffffff;
   --input-bg: #222640;
   --primary-accent: #6c63ff;
   --secondary-accent: #00d4aa;
