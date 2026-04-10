@@ -1,5 +1,13 @@
+import { Link } from 'react-router-dom';
+
 const RegisterPage = () => {
-  return <div>RegisterPage</div>;
+  return (
+    <>
+      <Link to="/">Go home</Link>
+
+      <form>аштвук</form>
+    </>
+  );
 };
 
 export default RegisterPage;

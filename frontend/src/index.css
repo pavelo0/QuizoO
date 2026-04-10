@@ -89,7 +89,12 @@ body {
 }
 
 a {
+  cursor: pointer;
   text-decoration: none;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
 }
 
 @theme inline {
@@ -191,5 +196,29 @@ a {
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Auth branded panel — floating stat cards */
+@keyframes auth-stat-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--auth-stat-rotate, 0deg));
+  }
+  50% {
+    transform: translateY(-10px) rotate(var(--auth-stat-rotate, 0deg));
+  }
+}
+
+.auth-stat-card {
+  --auth-stat-rotate: 0deg;
+  animation: auth-stat-float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-stat-card {
+    animation: none;
+    transform: rotate(var(--auth-stat-rotate, 0deg));
   }
 }
