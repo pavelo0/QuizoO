@@ -28,7 +28,7 @@ const Header = () => {
             <div className="min-w-0 justify-self-start">
               <Link
                 to="/"
-                className="font-(family-name:--font-syne) text-[30px] font-extrabold leading-9 tracking-[-0.75px] text-(--text-primary) no-underline hover:opacity-70"
+                className="font-(family-name:--font-syne) text-[30px] font-extrabold leading-9 tracking-[-0.75px] text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
               >
                 QuizoO
               </Link>
@@ -42,7 +42,7 @@ const Header = () => {
                 <li>
                   <a
                     href="#features"
-                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-90"
+                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
                   >
                     Features
                   </a>
@@ -50,7 +50,7 @@ const Header = () => {
                 <li>
                   <a
                     href="#pricing"
-                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-90"
+                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
                   >
                     Pricing
                   </a>
@@ -58,7 +58,7 @@ const Header = () => {
                 <li>
                   <a
                     href="#how-it-works"
-                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-90"
+                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
                   >
                     How it works
                   </a>
@@ -76,7 +76,7 @@ const Header = () => {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="hidden h-12 w-12 shrink-0 rounded-2xl text-(--text-primary) transition-colors hover:bg-transparent hover:text-(--primary-accent) focus-visible:bg-transparent dark:hover:bg-transparent lg:inline-flex"
+                className="hidden h-12 w-12 shrink-0 rounded-2xl text-(--text-primary) transition-colors hover:text-(--primary-accent) lg:inline-flex"
                 aria-label={
                   theme === 'dark'
                     ? 'Switch to light theme'

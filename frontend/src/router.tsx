@@ -2,6 +2,7 @@ import type { DataRouter } from 'react-router-dom';
 import { createBrowserRouter } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
 import LandingLayout from './layouts/LandingLayout';
+import ServiceLayout from './layouts/ServiceLayout';
 import DashboardPage from './pages/DashboardPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -26,7 +27,7 @@ export const router: DataRouter = createBrowserRouter([
   },
   {
     path: '/app',
-    element: <AuthLayout />,
+    element: <ServiceLayout />,
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'settings', element: <SettingsPage /> },

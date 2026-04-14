@@ -35,6 +35,7 @@ export default function AuthLayout() {
   const { theme, toggle } = useTheme();
   const location = useLocation();
   const isAuthGate = location.pathname.startsWith('/auth');
+  const isRegister = location.pathname.includes('/auth/register');
 
   return (
     <div
@@ -47,10 +48,10 @@ export default function AuthLayout() {
     >
       <aside
         className={cn(
-          'relative flex flex-col overflow-hidden bg-[#0b0e14] lg:flex-[0_0_40%] lg:px-16',
+          'relative overflow-hidden bg-[#0b0e14] lg:flex-[0_0_40%] lg:px-16',
           isAuthGate
-            ? 'max-lg:max-h-[min(46vh,400px)] min-h-0 shrink-0 px-8 py-8 sm:px-12 sm:py-10 lg:max-h-none lg:min-h-0 lg:py-16'
-            : 'min-h-[min(52vh,420px)] flex-1 px-8 py-10 sm:px-12 sm:py-14 lg:min-h-screen lg:py-20',
+            ? 'hidden min-h-0 shrink-0 lg:flex lg:flex-col lg:max-h-none lg:min-h-0 lg:py-16'
+            : 'flex min-h-[min(52vh,420px)] flex-1 flex-col px-8 py-10 sm:px-12 sm:py-14 lg:min-h-screen lg:py-20',
         )}
       >
         <div
@@ -125,17 +126,19 @@ export default function AuthLayout() {
           <header className="flex shrink-0 items-start justify-between gap-6">
             <div className="min-w-0">
               <h1 className="font-(family-name:--font-syne) text-[1.75rem] font-extrabold tracking-[-0.02em] text-(--text-primary) sm:text-[2rem]">
-                Welcome back
+                {isRegister ? 'Create account' : 'Welcome back'}
               </h1>
               <p className="mt-2 font-(family-name:--font-dm-sans) text-sm leading-relaxed text-(--text-secondary) sm:text-[0.9375rem]">
-                Log in to continue your learning
+                {isRegister
+                  ? 'Join QuizoO and start learning'
+                  : 'Log in to continue your learning'}
               </p>
             </div>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-12 w-12 shrink-0 rounded-2xl text-(--text-primary) transition-colors hover:bg-(--input-bg)/80 hover:text-(--primary-accent) focus-visible:bg-(--input-bg)/50"
+              className="h-12 w-12 shrink-0 rounded-2xl hover:text-(--primary-accent)"
               aria-label={
                 theme === 'dark'
                   ? 'Switch to light theme'
@@ -156,7 +159,9 @@ export default function AuthLayout() {
         <div
           className={cn(
             'flex min-h-0 flex-1 flex-col',
-            isAuthGate ? 'overflow-hidden' : 'overflow-auto',
+            isAuthGate
+              ? 'overflow-y-auto overflow-x-hidden overscroll-contain'
+              : 'overflow-auto',
           )}
         >
           <Outlet />
