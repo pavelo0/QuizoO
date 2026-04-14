@@ -5,7 +5,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  "cursor-pointer group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-xs/relaxed font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "cursor-pointer group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-xs/relaxed font-medium whitespace-nowrap transition-all duration-300 outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -14,13 +14,14 @@ const buttonVariants = cva(
           'border-border hover:bg-input/50 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-input/30',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
+        /** Прозрачная «иконка/текст без подложки» — без hover-fill (в т.ч. dark); цвет текста/иконки задаётся снаружи */
         ghost:
-          'hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50',
+          'border-transparent bg-transparent text-foreground shadow-none hover:bg-transparent active:bg-transparent active:translate-y-0 dark:hover:bg-transparent dark:active:bg-transparent aria-expanded:bg-transparent data-[state=open]:bg-transparent focus-visible:border-transparent',
         destructive:
           'bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40',
         link: 'text-primary underline-offset-4 hover:underline',
         /** QuizoO: фиолетовый CTA, лёгкое свечение, ховер — чуть темнее фон (см. docs/techDesign.md) */
-        cta: 'border-0 bg-(--primary-accent) font-(family-name:--font-dm-sans) text-sm font-bold text-white shadow-[0_2px_14px_rgba(108,99,255,0.22)] transition-colors hover:bg-(--primary-accent)/88 hover:shadow-[0_2px_12px_rgba(108,99,255,0.18)]',
+        cta: 'border-0 bg-(--primary-accent) font-(family-name:--font-dm-sans) text-sm font-bold text-white shadow-[0_2px_14px_rgba(108,99,255,0.22)] transition-colors hover:bg-(--primary-accent)/80 hover:shadow-[0_2px_12px_rgba(108,99,255,0.18)]',
         /** Прозрачный фон, контур через box-shadow (без сдвига при «утолщении» на ховере) */
         outlineSoft:
           'border-0 bg-transparent font-(family-name:--font-dm-sans) text-sm font-bold text-(--text-primary) shadow-[0_0_0_1px_var(--border-default)] transition-shadow hover:shadow-[0_0_0_1px_var(--primary-accent)]',
