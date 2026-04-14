@@ -138,7 +138,7 @@ const LandingPage = () => {
             <li>
               <article className="flex h-full flex-col rounded-2xl border border-(--border-default) bg-(--surface-color) p-8 text-left transition-all duration-300s hover:border-(--primary-accent)">
                 <div
-                  className="flex size-12 shrink-0 items-center justify-scenter rounded-xl bg-(--primary-accent)/15 text-(--primary-accent)"
+                  className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-(--primary-accent)/15 text-(--primary-accent)"
                   aria-hidden
                 >
                   <BarChart3 className="size-6" strokeWidth={1.75} />
