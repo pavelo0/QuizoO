@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/theme/useTheme';
-import { Moon, Sun } from 'lucide-react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Home, Moon, Sun } from 'lucide-react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 
 const statCards = [
   {
@@ -36,6 +36,7 @@ export default function AuthLayout() {
   const location = useLocation();
   const isAuthGate = location.pathname.startsWith('/auth');
   const isRegister = location.pathname.includes('/auth/register');
+  const isForgotPassword = location.pathname.includes('/auth/forgot-password');
 
   return (
     <div
@@ -126,33 +127,53 @@ export default function AuthLayout() {
           <header className="flex shrink-0 items-start justify-between gap-6">
             <div className="min-w-0">
               <h1 className="font-(family-name:--font-syne) text-[1.75rem] font-extrabold tracking-[-0.02em] text-(--text-primary) sm:text-[2rem]">
-                {isRegister ? 'Create account' : 'Welcome back'}
+                {isRegister
+                  ? 'Create account'
+                  : isForgotPassword
+                    ? 'Reset password'
+                    : 'Welcome back'}
               </h1>
               <p className="mt-2 font-(family-name:--font-dm-sans) text-sm leading-relaxed text-(--text-secondary) sm:text-[0.9375rem]">
                 {isRegister
                   ? 'Join QuizoO and start learning'
-                  : 'Log in to continue your learning'}
+                  : isForgotPassword
+                    ? 'We will email you a code to set a new password'
+                    : 'Log in to continue your learning'}
               </p>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-12 w-12 shrink-0 rounded-2xl hover:text-(--primary-accent)"
-              aria-label={
-                theme === 'dark'
-                  ? 'Switch to light theme'
-                  : 'Switch to dark theme'
-              }
-              aria-pressed={theme === 'dark'}
-              onClick={toggle}
-            >
-              {theme === 'dark' ? (
-                <Sun className="size-4.5" strokeWidth={1.5} />
-              ) : (
-                <Moon className="size-4.5" strokeWidth={1.5} />
-              )}
-            </Button>
+
+            <div className="">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 shrink-0 rounded-2xl hover:text-(--primary-accent)"
+                aria-label={
+                  theme === 'dark'
+                    ? 'Switch to light theme'
+                    : 'Switch to dark theme'
+                }
+                aria-pressed={theme === 'dark'}
+                onClick={toggle}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="size-4.5" strokeWidth={1.5} />
+                ) : (
+                  <Moon className="size-4.5" strokeWidth={1.5} />
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 shrink-0 rounded-2xl hover:text-(--primary-accent)"
+                aria-label="Go back"
+              >
+                <Link to="/">
+                  <Home className="size-4.5" strokeWidth={1.5} />
+                </Link>
+              </Button>
+            </div>
           </header>
         ) : null}
 
@@ -160,8 +181,8 @@ export default function AuthLayout() {
           className={cn(
             'flex min-h-0 flex-1 flex-col',
             isAuthGate
-              ? 'overflow-y-auto overflow-x-hidden overscroll-contain'
-              : 'overflow-auto',
+              ? 'justify-start overflow-y-auto overflow-x-hidden overscroll-contain pt-1 pb-12 sm:pt-2 sm:pb-16'
+              : 'justify-center overflow-auto',
           )}
         >
           <Outlet />
