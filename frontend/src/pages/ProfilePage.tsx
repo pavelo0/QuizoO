@@ -1,23 +1,26 @@
+import { useAuthContext } from '@/auth/AuthContext';
 import { Button } from '@/components/ui';
-import { useClerk } from '@clerk/react';
+import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { apiClient } from '@/lib/api/client';
 import { LogOut } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 const ProfilePage = () => {
-  const { signOut } = useClerk();
+  const { refresh } = useAuthContext();
   const navigate = useNavigate();
   const [pending, setPending] = useState(false);
 
   const handleLogout = async () => {
     setPending(true);
     try {
-      await signOut();
+      await apiClient.post('/auth/logout');
+      await refresh();
       toast.success('You have signed out.', { duration: 3500 });
       navigate('/', { replace: true });
-    } catch {
-      toast.error('Could not sign out. Please try again.');
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setPending(false);
     }
