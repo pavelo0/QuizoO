@@ -1,15 +1,14 @@
+import { useAuthContext } from '@/auth/AuthContext';
 import { Button, Input } from '@/components/ui';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AppleIcon } from '@/components/ui/icons/AppleIcon';
 import { GoogleIcon } from '@/components/ui/icons/GoogleIcon';
 import { Label } from '@/components/ui/label';
-import { clerkErrorMessage } from '@/lib/clerkErrorMessage';
+import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { apiClient } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
-import { useAuth, useSignUp } from '@clerk/react';
-import type { SignUpFutureResource } from '@clerk/shared/types';
-
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -22,17 +21,6 @@ const fieldClass = cn(
   'dark:border-white/10 md:text-sm',
 );
 
-function splitDisplayName(full: string): {
-  firstName: string;
-  lastName?: string;
-} {
-  const t = full.trim();
-  const space = t.indexOf(' ');
-  if (space === -1) return { firstName: t };
-  const rest = t.slice(space + 1).trim();
-  return { firstName: t.slice(0, space), lastName: rest || undefined };
-}
-
 const RegisterPage = () => {
   const [step, setStep] = useState<'credentials' | 'verification'>(
     'credentials',
@@ -40,35 +28,20 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof RegisterFormValues, string>>
   >({});
   const [codeError, setCodeError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const { isLoaded } = useAuth();
-  const { signUp } = useSignUp();
+  const { refresh } = useAuthContext();
   const navigate = useNavigate();
-
-  const finalizeAndGoApp = async (su: SignUpFutureResource) => {
-    const { error } = await su.finalize({
-      navigate: ({ session, decorateUrl }) => {
-        if (session?.currentTask) return;
-        const url = decorateUrl('/app');
-        if (url.startsWith('http')) window.location.href = url;
-        else navigate(url);
-      },
-    });
-    if (error) {
-      toast.error(clerkErrorMessage(error));
-    }
-  };
 
   const handleCredentialsSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
-    if (!signUp) return;
 
     const formData = new FormData(e.target as HTMLFormElement);
     const validatedData = registerSchema.safeParse({
@@ -84,40 +57,30 @@ const RegisterPage = () => {
     }
     setFieldErrors({});
 
-    const { firstName, lastName } = splitDisplayName(validatedData.data.name);
-
     setPending(true);
     try {
-      const { error: pwError } = await signUp.password({
-        emailAddress: validatedData.data.email,
+      const { data } = await apiClient.post<{
+        message: string;
+        verificationCode?: string;
+      }>('/auth/register', {
+        email: validatedData.data.email,
         password: validatedData.data.password,
-        firstName,
-        lastName,
+        username: validatedData.data.name.trim(),
       });
-      if (pwError) {
-        toast.error(clerkErrorMessage(pwError));
-        return;
-      }
 
-      if (signUp.status === 'complete') {
-        await finalizeAndGoApp(signUp);
-        return;
+      setRegisterEmail(validatedData.data.email);
+      if (data.verificationCode) {
+        toast.success(`Verification code (lab): ${data.verificationCode}`);
+      } else {
+        toast.success(
+          'Account created. Check the API server console for the verification code.',
+        );
       }
-
-      if (signUp.unverifiedFields.includes('email_address')) {
-        const { error: sendError } = await signUp.verifications.sendEmailCode();
-        if (sendError) {
-          toast.error(clerkErrorMessage(sendError));
-          return;
-        }
-        toast.success('Check your email for a verification code.');
-        setStep('verification');
-        setVerificationCode('');
-        setCodeError(null);
-        return;
-      }
-
-      await finalizeAndGoApp(signUp);
+      setStep('verification');
+      setVerificationCode('');
+      setCodeError(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setPending(false);
     }
@@ -127,69 +90,53 @@ const RegisterPage = () => {
     e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
-    if (!signUp) return;
     const code = verificationCode.trim();
     if (!code) {
-      setCodeError('Enter the code from your email');
+      setCodeError('Enter the verification code');
       return;
     }
     setCodeError(null);
     setPending(true);
     try {
-      const { error: verifyError } = await signUp.verifications.verifyEmailCode(
-        { code },
-      );
-      if (verifyError) {
-        toast.error(clerkErrorMessage(verifyError));
-        return;
-      }
-
-      if (signUp.status === 'complete') {
-        await finalizeAndGoApp(signUp);
-      } else {
-        toast.error(
-          'Sign-up is not complete yet. Please try again or contact support.',
-        );
-      }
+      await apiClient.post('/auth/verify-email', {
+        email: registerEmail,
+        code,
+      });
+      await refresh();
+      toast.success('Email verified. You are signed in.');
+      navigate('/app', { replace: true });
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setPending(false);
     }
   };
 
   const handleResendCode = async () => {
-    if (!signUp || pending) return;
+    if (pending || !registerEmail) return;
     setPending(true);
     try {
-      const { error: sendError } = await signUp.verifications.sendEmailCode();
-      if (sendError) toast.error(clerkErrorMessage(sendError));
-      else toast.success('A new code was sent to your email.');
+      const { data } = await apiClient.post<{
+        message: string;
+        verificationCode?: string;
+      }>('/auth/resend-verification', { email: registerEmail });
+      if (data.verificationCode) {
+        toast.success(`New code (lab): ${data.verificationCode}`);
+      } else {
+        toast.success('A new code was logged on the server.');
+      }
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setPending(false);
     }
   };
 
-  const handleBackToCredentials = async () => {
-    if (!signUp) return;
-    setPending(true);
-    try {
-      await signUp.reset();
-      setStep('credentials');
-      setVerificationCode('');
-      setCodeError(null);
-    } finally {
-      setPending(false);
-    }
+  const handleBackToCredentials = () => {
+    setStep('credentials');
+    setVerificationCode('');
+    setCodeError(null);
   };
-
-  if (!isLoaded || !signUp) {
-    return (
-      <div className="flex w-full min-w-0 flex-col items-center justify-center py-16">
-        <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          Loading…
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex w-full min-w-0 flex-col pb-2">
@@ -205,7 +152,7 @@ const RegisterPage = () => {
                 Verify your email
               </h2>
               <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-                Enter the code we sent to your inbox.
+                Enter the code from the server log (lab mode).
               </p>
             </div>
             <div>
@@ -466,6 +413,7 @@ const RegisterPage = () => {
                 variant="outlineSoft"
                 size="outlineCompact"
                 className="w-full gap-2"
+                disabled
               >
                 <GoogleIcon />
                 Google
@@ -475,6 +423,7 @@ const RegisterPage = () => {
                 variant="outlineSoft"
                 size="outlineCompact"
                 className="w-full gap-2"
+                disabled
               >
                 <AppleIcon />
                 Apple

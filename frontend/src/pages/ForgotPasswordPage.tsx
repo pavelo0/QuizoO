@@ -1,5 +1,7 @@
+import { useAuthContext } from '@/auth/AuthContext';
 import { Button, Input } from '@/components/ui';
-import { clerkErrorMessage } from '@/lib/clerkErrorMessage';
+import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { apiClient } from '@/lib/api/client';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import { cn } from '@/lib/utils';
 import {
@@ -8,9 +10,6 @@ import {
   type ForgotPasswordEmailValues,
   type ResetPasswordFormValues,
 } from '@/schemas/auth';
-import { useAuth, useSignIn } from '@clerk/react';
-import type { SignInFutureResource } from '@clerk/shared/types';
-
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -36,29 +35,11 @@ const ForgotPasswordPage = () => {
   >({});
   const [pending, setPending] = useState(false);
 
-  const { isLoaded } = useAuth();
-  const { signIn } = useSignIn();
+  const { refresh } = useAuthContext();
   const navigate = useNavigate();
-
-  const finalizeSignedIn = async (si: SignInFutureResource) => {
-    const { error } = await si.finalize({
-      navigate: ({ session, decorateUrl }) => {
-        if (session?.currentTask) return;
-        const url = decorateUrl('/app');
-        if (url.startsWith('http')) window.location.href = url;
-        else navigate(url);
-      },
-    });
-    if (error) {
-      toast.error(clerkErrorMessage(error));
-    } else {
-      toast.success('Password updated. You are signed in.');
-    }
-  };
 
   const handleSendCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!signIn) return;
 
     const formData = new FormData(e.target as HTMLFormElement);
     const parsed = forgotPasswordEmailSchema.safeParse({
@@ -72,58 +53,29 @@ const ForgotPasswordPage = () => {
 
     setPending(true);
     try {
-      const { error: createError } = await signIn.create({
-        identifier: parsed.data.email,
-      });
-      if (createError) {
-        toast.error(clerkErrorMessage(createError));
-        return;
-      }
-
-      const { error: sendError } =
-        await signIn.resetPasswordEmailCode.sendCode();
-      if (sendError) {
-        toast.error(clerkErrorMessage(sendError));
-        return;
-      }
+      const { data } = await apiClient.post<{
+        message: string;
+        resetCode?: string;
+      }>('/auth/forgot-password', { email: parsed.data.email });
 
       setEmail(parsed.data.email);
       setCodeSent(true);
-      toast.success('Check your email for a reset code.');
+      if (data.resetCode) {
+        toast.success(`Reset code (lab): ${data.resetCode}`);
+      } else {
+        toast.success(
+          'If the account exists, a reset code was logged on the server.',
+        );
+      }
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setPending(false);
     }
   };
 
-  const handleVerifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!signIn) return;
-    const trimmed = code.trim();
-    if (!trimmed) {
-      toast.error('Enter the code from your email');
-      return;
-    }
-
-    setPending(true);
-    try {
-      const { error } = await signIn.resetPasswordEmailCode.verifyCode({
-        code: trimmed,
-      });
-      if (error) {
-        toast.error(clerkErrorMessage(error));
-        return;
-      }
-      if (signIn.status !== 'needs_new_password') {
-        toast.error('Unexpected sign-in state. Try again from the beginning.');
-      }
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const handleNewPassword = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!signIn) return;
 
     const formData = new FormData(e.target as HTMLFormElement);
     const parsed = resetPasswordFormSchema.safeParse({
@@ -136,56 +88,48 @@ const ForgotPasswordPage = () => {
     }
     setResetFieldErrors({});
 
+    const trimmedCode = code.trim();
+    if (!trimmedCode) {
+      toast.error('Enter the reset code');
+      return;
+    }
+
     setPending(true);
     try {
-      const { error } = await signIn.resetPasswordEmailCode.submitPassword({
-        password: parsed.data.password,
+      await apiClient.post('/auth/reset-password', {
+        email,
+        code: trimmedCode,
+        newPassword: parsed.data.password,
       });
-      if (error) {
-        toast.error(clerkErrorMessage(error));
-        return;
-      }
-
-      if (signIn.status === 'complete') {
-        await finalizeSignedIn(signIn);
-        return;
-      }
-
-      if (signIn.status === 'needs_second_factor') {
-        toast.error(
-          'Two-factor authentication is required. Complete 2FA in the Clerk Dashboard or disable MFA for this account to finish reset here.',
-          { duration: 8000 },
-        );
-        return;
-      }
-
-      toast.error('Could not finish password reset. Please try again.');
+      await refresh();
+      toast.success('Password updated. You are signed in.');
+      navigate('/app', { replace: true });
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setPending(false);
     }
   };
 
   const handleResendCode = async () => {
-    if (!signIn || pending) return;
+    if (pending || !email) return;
     setPending(true);
     try {
-      const { error } = await signIn.resetPasswordEmailCode.sendCode();
-      if (error) toast.error(clerkErrorMessage(error));
-      else toast.success('A new code was sent.');
+      const { data } = await apiClient.post<{
+        message: string;
+        resetCode?: string;
+      }>('/auth/forgot-password', { email });
+      if (data.resetCode) {
+        toast.success(`New code (lab): ${data.resetCode}`);
+      } else {
+        toast.success('A new code was logged on the server.');
+      }
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setPending(false);
     }
   };
-
-  if (!isLoaded || !signIn) {
-    return (
-      <div className="flex w-full min-w-0 flex-col items-center justify-center py-16">
-        <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          Loading…
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex w-full min-w-0 flex-col pb-2">
@@ -197,8 +141,8 @@ const ForgotPasswordPage = () => {
             noValidate
           >
             <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-              Enter the email for your account. We will send a one-time code to
-              reset your password.
+              Enter the email for your account. A one-time code is written to
+              the API server log (lab mode).
             </p>
             <div>
               <label
@@ -248,23 +192,23 @@ const ForgotPasswordPage = () => {
               </Link>
             </p>
           </form>
-        ) : signIn.status !== 'needs_new_password' ? (
+        ) : (
           <form
             className="flex flex-col gap-4 min-[480px]:gap-5 p-1"
-            onSubmit={handleVerifyCode}
+            onSubmit={handleResetPassword}
             noValidate
           >
             <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-              Enter the code we sent to{' '}
-              <span className="font-medium text-(--text-primary)">{email}</span>
-              .
+              Enter the code for{' '}
+              <span className="font-medium text-(--text-primary)">{email}</span>{' '}
+              and choose a new password.
             </p>
             <div>
               <label
                 htmlFor="forgot-code"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Verification code
+                Reset code
               </label>
               <Input
                 id="forgot-code"
@@ -278,47 +222,6 @@ const ForgotPasswordPage = () => {
                 className={fieldClass}
               />
             </div>
-            <Button
-              variant="cta"
-              size="cta"
-              className="w-full"
-              type="submit"
-              disabled={pending}
-            >
-              {pending ? 'Verifying…' : 'Verify code'}
-            </Button>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-              <button
-                type="button"
-                className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--primary-accent) transition-opacity hover:opacity-90 disabled:opacity-50"
-                onClick={handleResendCode}
-                disabled={pending}
-              >
-                Resend code
-              </button>
-              <button
-                type="button"
-                className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                onClick={() => {
-                  setCodeSent(false);
-                  setCode('');
-                  void signIn.reset();
-                }}
-                disabled={pending}
-              >
-                Use a different email
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form
-            className="flex flex-col gap-4 min-[480px]:gap-5 p-1"
-            onSubmit={handleNewPassword}
-            noValidate
-          >
-            <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-              Choose a new password for your account.
-            </p>
             <div>
               <label
                 htmlFor="forgot-new-password"
@@ -397,6 +300,27 @@ const ForgotPasswordPage = () => {
             >
               {pending ? 'Saving…' : 'Save password and sign in'}
             </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
+              <button
+                type="button"
+                className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--primary-accent) transition-opacity hover:opacity-90 disabled:opacity-50"
+                onClick={handleResendCode}
+                disabled={pending}
+              >
+                Resend code
+              </button>
+              <button
+                type="button"
+                className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary) transition-colors hover:text-(--text-primary)"
+                onClick={() => {
+                  setCodeSent(false);
+                  setCode('');
+                }}
+                disabled={pending}
+              >
+                Use a different email
+              </button>
+            </div>
           </form>
         )}
 

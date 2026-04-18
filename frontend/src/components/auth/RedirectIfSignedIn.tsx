@@ -1,6 +1,6 @@
-import { useAuth } from '@clerk/react';
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useAuthContext } from '@/auth/AuthContext';
 import { AuthLoadingState } from './AuthLoadingState';
 
 type Props = {
@@ -13,13 +13,13 @@ type Props = {
  * For guest-only areas (landing, login/register). Signed-in users are redirected away.
  */
 export function RedirectIfSignedIn({ children, to = '/app' }: Props) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { user, loading } = useAuthContext();
 
-  if (!isLoaded) {
+  if (loading) {
     return <AuthLoadingState />;
   }
 
-  if (isSignedIn) {
+  if (user) {
     return <Navigate to={to} replace />;
   }
 

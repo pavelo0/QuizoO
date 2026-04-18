@@ -1,15 +1,14 @@
+import { useAuthContext } from '@/auth/AuthContext';
 import { Button, Input } from '@/components/ui';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AppleIcon } from '@/components/ui/icons/AppleIcon';
 import { GoogleIcon } from '@/components/ui/icons/GoogleIcon';
 import { Label } from '@/components/ui/label';
-import { clerkErrorMessage } from '@/lib/clerkErrorMessage';
+import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { apiClient } from '@/lib/api/client';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import { cn } from '@/lib/utils';
 import { loginSchema, type LoginFormValues } from '@/schemas/auth';
-import { useAuth, useSignIn } from '@clerk/react';
-import type { SignInFutureResource } from '@clerk/shared/types';
-
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -30,27 +29,11 @@ const LoginPage = () => {
   >({});
   const [pending, setPending] = useState(false);
 
-  const { isLoaded } = useAuth();
-  const { signIn } = useSignIn();
+  const { refresh } = useAuthContext();
   const navigate = useNavigate();
-
-  const finalizeAndGoApp = async (si: SignInFutureResource) => {
-    const { error } = await si.finalize({
-      navigate: ({ session, decorateUrl }) => {
-        if (session?.currentTask) return;
-        const url = decorateUrl('/app');
-        if (url.startsWith('http')) window.location.href = url;
-        else navigate(url);
-      },
-    });
-    if (error) {
-      toast.error(clerkErrorMessage(error));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!signIn) return;
 
     const formData = new FormData(e.target as HTMLFormElement);
     const validatedData = loginSchema.safeParse({
@@ -66,46 +49,19 @@ const LoginPage = () => {
 
     setPending(true);
     try {
-      const { error: pwError } = await signIn.password({
-        emailAddress: validatedData.data.email,
+      await apiClient.post('/auth/login', {
+        email: validatedData.data.email,
         password: validatedData.data.password,
       });
-      if (pwError) {
-        toast.error(clerkErrorMessage(pwError));
-        return;
-      }
-
-      if (signIn.status === 'complete') {
-        await finalizeAndGoApp(signIn);
-        return;
-      }
-
-      if (signIn.status === 'needs_new_password') {
-        toast.error(
-          'You must set a new password. Use your organization’s password reset flow.',
-        );
-        return;
-      }
-
-      await signIn.reset();
-      toast.error(
-        'Sign-in expects an extra step (for example MFA or email verification). Use the Clerk Dashboard to disable user MFA and optional “Client Trust” email codes if you want only email + password.',
-        { duration: 8000 },
-      );
+      await refresh();
+      toast.success('Signed in.');
+      navigate('/app', { replace: true });
+    } catch (err) {
+      toast.error(apiErrorMessage(err));
     } finally {
       setPending(false);
     }
   };
-
-  if (!isLoaded || !signIn) {
-    return (
-      <div className="flex w-full min-w-0 flex-col items-center justify-center py-16">
-        <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          Loading…
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex w-full min-w-0 flex-col pb-2">
@@ -239,6 +195,7 @@ const LoginPage = () => {
               variant="outlineSoft"
               size="outlineCompact"
               className="w-full gap-2"
+              disabled
             >
               <GoogleIcon />
               Google
@@ -248,6 +205,7 @@ const LoginPage = () => {
               variant="outlineSoft"
               size="outlineCompact"
               className="w-full gap-2"
+              disabled
             >
               <AppleIcon />
               Apple

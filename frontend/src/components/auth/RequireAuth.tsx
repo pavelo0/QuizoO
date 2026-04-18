@@ -1,19 +1,19 @@
-import { useAuth } from '@clerk/react';
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useAuthContext } from '@/auth/AuthContext';
 import { AuthLoadingState } from './AuthLoadingState';
 
 type Props = { children: ReactNode };
 
 export function RequireAuth({ children }: Props) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { user, loading } = useAuthContext();
   const location = useLocation();
 
-  if (!isLoaded) {
+  if (loading) {
     return <AuthLoadingState />;
   }
 
-  if (!isSignedIn) {
+  if (!user) {
     return (
       <Navigate to="/auth/login" replace state={{ from: location.pathname }} />
     );
