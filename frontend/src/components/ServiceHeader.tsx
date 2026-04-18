@@ -24,7 +24,7 @@ const ServiceHeader = () => {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      'flex items-center rounded-2xl font-(family-name:--font-dm-sans) text-sm font-medium no-underline transition-colors',
+      'flex items-center rounded-2xl font-(family-name:--font-dm-sans) text-sm font-medium no-underline transition-colors cursor-pointer select-none [&_svg]:pointer-events-none',
       isCompact ? 'size-11 shrink-0 justify-center p-0' : 'gap-3 px-3 py-2.5',
       isActive
         ? 'bg-(--primary-accent)/12 text-(--primary-accent)'

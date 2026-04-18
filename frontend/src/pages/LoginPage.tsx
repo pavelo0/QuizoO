@@ -1,9 +1,18 @@
 import { Button, Input } from '@/components/ui';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AppleIcon } from '@/components/ui/icons/AppleIcon';
 import { GoogleIcon } from '@/components/ui/icons/GoogleIcon';
+import { Label } from '@/components/ui/label';
+import { clerkErrorMessage } from '@/lib/clerkErrorMessage';
+import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import { cn } from '@/lib/utils';
+import { loginSchema, type LoginFormValues } from '@/schemas/auth';
+import { useAuth, useSignIn } from '@clerk/react';
+import type { SignInFutureResource } from '@clerk/shared/types';
+
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 
 const fieldClass = cn(
@@ -15,19 +24,95 @@ const fieldClass = cn(
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof LoginFormValues, string>>
+  >({});
+  const [pending, setPending] = useState(false);
+
+  const { isLoaded } = useAuth();
+  const { signIn } = useSignIn();
   const navigate = useNavigate();
-  const handleSubmit = () => {
-    navigate('/app');
+
+  const finalizeAndGoApp = async (si: SignInFutureResource) => {
+    const { error } = await si.finalize({
+      navigate: ({ session, decorateUrl }) => {
+        if (session?.currentTask) return;
+        const url = decorateUrl('/app');
+        if (url.startsWith('http')) window.location.href = url;
+        else navigate(url);
+      },
+    });
+    if (error) {
+      toast.error(clerkErrorMessage(error));
+    }
   };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!signIn) return;
+
+    const formData = new FormData(e.target as HTMLFormElement);
+    const validatedData = loginSchema.safeParse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+      remember,
+    });
+    if (!validatedData.success) {
+      setFieldErrors(fieldErrorsFromZod(validatedData.error));
+      return;
+    }
+    setFieldErrors({});
+
+    setPending(true);
+    try {
+      const { error: pwError } = await signIn.password({
+        emailAddress: validatedData.data.email,
+        password: validatedData.data.password,
+      });
+      if (pwError) {
+        toast.error(clerkErrorMessage(pwError));
+        return;
+      }
+
+      if (signIn.status === 'complete') {
+        await finalizeAndGoApp(signIn);
+        return;
+      }
+
+      if (signIn.status === 'needs_new_password') {
+        toast.error(
+          'You must set a new password. Use your organization’s password reset flow.',
+        );
+        return;
+      }
+
+      await signIn.reset();
+      toast.error(
+        'Sign-in expects an extra step (for example MFA or email verification). Use the Clerk Dashboard to disable user MFA and optional “Client Trust” email codes if you want only email + password.',
+        { duration: 8000 },
+      );
+    } finally {
+      setPending(false);
+    }
+  };
+
+  if (!isLoaded || !signIn) {
+    return (
+      <div className="flex w-full min-w-0 flex-col items-center justify-center py-16">
+        <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
+          Loading…
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full min-w-0 flex-col pb-2">
       <div className="mx-auto flex w-full max-w-[420px] flex-col gap-4 px-0 py-6 pb-1 min-[480px]:gap-5">
         <form
           className="flex flex-col gap-4 min-[480px]:gap-5 p-1"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
+          onSubmit={handleSubmit}
           noValidate
         >
           <div>
@@ -43,8 +128,20 @@ const LoginPage = () => {
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
-              className={fieldClass}
+              aria-invalid={!!fieldErrors.email}
+              className={cn(
+                fieldClass,
+                fieldErrors.email && 'border-destructive',
+              )}
             />
+            {fieldErrors.email ? (
+              <p
+                className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                role="alert"
+              >
+                {fieldErrors.email}
+              </p>
+            ) : null}
           </div>
 
           <div>
@@ -55,12 +152,12 @@ const LoginPage = () => {
               >
                 Password
               </label>
-              <button
-                type="button"
+              <Link
+                to="/auth/forgot-password"
                 className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--primary-accent) transition-opacity hover:opacity-90"
               >
                 Forgot password?
-              </button>
+              </Link>
             </div>
             <div className="relative">
               <Input
@@ -69,7 +166,12 @@ const LoginPage = () => {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder="Your password here"
-                className={cn(fieldClass, 'pr-12')}
+                aria-invalid={!!fieldErrors.password}
+                className={cn(
+                  fieldClass,
+                  'pr-12',
+                  fieldErrors.password && 'border-destructive',
+                )}
               />
               <button
                 type="button"
@@ -84,15 +186,39 @@ const LoginPage = () => {
                 )}
               </button>
             </div>
+            {fieldErrors.password ? (
+              <p
+                className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                role="alert"
+              >
+                {fieldErrors.password}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Checkbox
+              id="login-remember"
+              checked={remember}
+              onCheckedChange={(v) => setRemember(v === true)}
+              className="size-[18px] rounded-md border-(--border-default) data-checked:border-(--primary-accent) data-checked:bg-(--primary-accent)"
+            />
+            <Label
+              htmlFor="login-remember"
+              className="cursor-pointer font-(family-name:--font-dm-sans) text-sm font-normal text-(--text-primary)"
+            >
+              Remember me
+            </Label>
           </div>
 
           <Button
             variant="cta"
             size="cta"
             className="w-full"
-            onClick={handleSubmit}
+            type="submit"
+            disabled={pending}
           >
-            Log in
+            {pending ? 'Signing in…' : 'Log in'}
           </Button>
 
           <div
