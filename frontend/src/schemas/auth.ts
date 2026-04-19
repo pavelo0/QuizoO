@@ -12,7 +12,7 @@ const emailSchema = z
   .email('Enter a valid email');
 
 /** One non-letter, non-digit (any common symbol allowed; not only @$!%*?&). */
-const passwordSchema = z
+export const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
   .max(64, 'Password is too long')
@@ -67,3 +67,45 @@ export const resetPasswordFormSchema = z
   });
 
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;
+
+/** Пустая строка (после trim) → сброс display name на сервере (null). */
+export const profileDisplayNameSchema = z.object({
+  displayName: z.preprocess(
+    (v) => (typeof v === 'string' ? v.trim() : v),
+    z.union([
+      z.literal(''),
+      z
+        .string()
+        .min(3, 'Display name is too short')
+        .max(80, 'Display name is too long'),
+    ]),
+  ),
+});
+
+export type ProfileDisplayNameValues = z.infer<typeof profileDisplayNameSchema>;
+
+export const profileChangePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: passwordSchema,
+    passwordConfirm: z.string(),
+  })
+  .refine((data) => data.newPassword === data.passwordConfirm, {
+    message: 'Passwords do not match',
+    path: ['passwordConfirm'],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'New password must be different from your current password',
+    path: ['newPassword'],
+  });
+
+export type ProfileChangePasswordValues = z.infer<
+  typeof profileChangePasswordSchema
+>;
+
+export const profileChangeEmailSchema = z.object({
+  newEmail: emailSchema,
+  currentPassword: z.string().min(1, 'Current password is required'),
+});
+
+export type ProfileChangeEmailValues = z.infer<typeof profileChangeEmailSchema>;

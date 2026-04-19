@@ -1,5 +1,10 @@
+import { useAuthContext } from '@/auth/AuthContext';
 import { Button } from '@/components/ui';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  profileAvatarBackground,
+  profileDisplayInitial,
+} from '@/lib/profileAvatar';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/theme/useTheme';
 import {
@@ -9,14 +14,26 @@ import {
   Moon,
   Settings,
   Sun,
-  UserRound,
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
 const ServiceHeader = () => {
+  const { user } = useAuthContext();
   const { theme, toggle } = useTheme();
   const [isCompact, setIsCompact] = useState(false);
+
+  const hasCustomAvatar = Boolean(user?.avatarMime);
+  const avatarSrc =
+    user && hasCustomAvatar
+      ? `/api/users/me/avatar?v=${encodeURIComponent(user.updatedAt)}`
+      : undefined;
+  const initial = user ? profileDisplayInitial(user.username, user.email) : '?';
+  const avatarInstanceKey = user
+    ? `${user.avatarMime ?? 'generated'}-${user.updatedAt}`
+    : 'guest';
+  const profileLabel =
+    user?.username?.trim() || user?.email?.split('@')[0] || 'Profile';
 
   const toggleCompact = useCallback(() => {
     setIsCompact((c) => !c);
@@ -88,10 +105,6 @@ const ServiceHeader = () => {
           <Settings className="size-4.5 shrink-0" strokeWidth={1.75} />
           <span className={cn(isCompact && 'sr-only')}>Settings</span>
         </NavLink>
-        <NavLink to="/app/profile" title="Profile" className={linkClass}>
-          <UserRound className="size-4.5 shrink-0" strokeWidth={1.75} />
-          <span className={cn(isCompact && 'sr-only')}>Profile</span>
-        </NavLink>
       </nav>
 
       <div
@@ -138,27 +151,40 @@ const ServiceHeader = () => {
             'flex items-center rounded-2xl transition-colors hover:bg-(--bg-color)',
             isCompact ? 'justify-center p-1' : 'gap-3 px-2 py-1.5',
           )}
-          aria-label="Profile"
+          aria-label="Open profile"
           title="Profile"
         >
           <Avatar
+            key={avatarInstanceKey}
             className={cn(
               'border border-(--border-default)',
               isCompact ? 'size-9' : 'size-10',
             )}
           >
-            <AvatarFallback className="bg-(--bg-color) text-(--text-primary)">
-              <span className="font-(family-name:--font-dm-sans) text-sm font-semibold">
-                Q
-              </span>
+            {avatarSrc ? (
+              <AvatarImage src={avatarSrc} alt="" className="object-cover" />
+            ) : null}
+            <AvatarFallback
+              delayMs={0}
+              className={cn(
+                'font-(family-name:--font-dm-sans) font-semibold text-white',
+                isCompact ? 'text-xs' : 'text-sm',
+              )}
+              style={
+                user
+                  ? { backgroundColor: profileAvatarBackground(user.id) }
+                  : undefined
+              }
+            >
+              {initial}
             </AvatarFallback>
           </Avatar>
           <div className={cn('min-w-0 flex-1', isCompact && 'sr-only')}>
             <p className="truncate font-(family-name:--font-dm-sans) text-sm font-semibold text-(--text-primary)">
-              Profile
+              {profileLabel}
             </p>
             <p className="truncate font-(family-name:--font-dm-sans) text-xs text-(--text-secondary)">
-              View account
+              {user?.email ?? 'View account'}
             </p>
           </div>
         </Link>

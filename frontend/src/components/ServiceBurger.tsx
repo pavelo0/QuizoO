@@ -1,14 +1,13 @@
+import { useAuthContext } from '@/auth/AuthContext';
 import { Button } from '@/components/ui';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  profileAvatarBackground,
+  profileDisplayInitial,
+} from '@/lib/profileAvatar';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/theme/useTheme';
-import {
-  LayoutDashboard,
-  Moon,
-  Settings,
-  Sun,
-  UserRound,
-  X,
-} from 'lucide-react';
+import { LayoutDashboard, Moon, Settings, Sun, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
@@ -25,6 +24,19 @@ const ServiceBurger = ({
 }: ServiceBurgerProps) => {
   const [visible, setVisible] = useState(false);
   const { theme, toggle } = useTheme();
+  const { user } = useAuthContext();
+
+  const hasCustomAvatar = Boolean(user?.avatarMime);
+  const avatarSrc =
+    user && hasCustomAvatar
+      ? `/api/users/me/avatar?v=${encodeURIComponent(user.updatedAt)}`
+      : undefined;
+  const initial = user ? profileDisplayInitial(user.username, user.email) : '?';
+  const avatarInstanceKey = user
+    ? `${user.avatarMime ?? 'generated'}-${user.updatedAt}`
+    : 'guest';
+  const profileLabel =
+    user?.username?.trim() || user?.email?.split('@')[0] || 'Profile';
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -118,10 +130,6 @@ const ServiceBurger = ({
             <Settings className="size-5 shrink-0" strokeWidth={1.75} />
             Settings
           </NavLink>
-          <NavLink to="/app/profile" onClick={onDismiss} className={linkClass}>
-            <UserRound className="size-5 shrink-0" strokeWidth={1.75} />
-            Profile
-          </NavLink>
         </nav>
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-(--border-default) p-5">
@@ -147,9 +155,49 @@ const ServiceBurger = ({
             {theme === 'dark' ? 'Light theme' : 'Dark theme'}
           </Button>
 
-          <Button variant="outlineSoft" size="cta" className="w-full" asChild>
-            <Link to="/app/profile" onClick={onDismiss}>
-              Profile
+          <Button
+            variant="outlineSoft"
+            size="cta"
+            className="w-full px-4"
+            asChild
+          >
+            <Link
+              to="/app/profile"
+              onClick={onDismiss}
+              className="inline-flex w-full items-center justify-start gap-3 no-underline"
+              aria-label="Open profile"
+            >
+              <Avatar
+                key={avatarInstanceKey}
+                className="size-10 shrink-0 border border-(--border-default)"
+              >
+                {avatarSrc ? (
+                  <AvatarImage
+                    src={avatarSrc}
+                    alt=""
+                    className="object-cover"
+                  />
+                ) : null}
+                <AvatarFallback
+                  delayMs={0}
+                  className="font-(family-name:--font-dm-sans) text-sm font-semibold text-white"
+                  style={
+                    user
+                      ? { backgroundColor: profileAvatarBackground(user.id) }
+                      : undefined
+                  }
+                >
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
+              <span className="min-w-0 flex-1 text-left">
+                <span className="block truncate font-(family-name:--font-dm-sans) text-sm font-semibold">
+                  {profileLabel}
+                </span>
+                <span className="block truncate font-(family-name:--font-dm-sans) text-xs font-normal text-(--text-secondary)">
+                  {user?.email ?? 'Account'}
+                </span>
+              </span>
             </Link>
           </Button>
         </div>

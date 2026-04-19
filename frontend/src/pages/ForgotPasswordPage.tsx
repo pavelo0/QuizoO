@@ -11,7 +11,7 @@ import {
   type ResetPasswordFormValues,
 } from '@/schemas/auth';
 import { Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -35,8 +35,15 @@ const ForgotPasswordPage = () => {
   >({});
   const [pending, setPending] = useState(false);
 
-  const { refresh } = useAuthContext();
+  const { user, refresh } = useAuthContext();
   const navigate = useNavigate();
+  const signedIn = Boolean(user);
+
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user?.email]);
 
   const handleSendCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -141,8 +148,21 @@ const ForgotPasswordPage = () => {
             noValidate
           >
             <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-              Enter the email for your account. A one-time code is written to
-              the API server log (lab mode).
+              {signedIn ? (
+                <>
+                  You&apos;re signed in. We&apos;ll send a one-time code to{' '}
+                  <span className="font-medium text-(--text-primary)">
+                    {user?.email}
+                  </span>
+                  . Use it below to set a new password — no need to know the old
+                  one. In lab mode the code is also in the API server log.
+                </>
+              ) : (
+                <>
+                  Enter the email for your account. A one-time code is written
+                  to the API server log (lab mode).
+                </>
+              )}
             </p>
             <div>
               <label
@@ -159,10 +179,13 @@ const ForgotPasswordPage = () => {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(ev) => setEmail(ev.target.value)}
+                readOnly={signedIn}
+                aria-readonly={signedIn}
                 aria-invalid={!!fieldErrors.email}
                 className={cn(
                   fieldClass,
                   fieldErrors.email && 'border-destructive',
+                  signedIn && 'cursor-not-allowed opacity-90',
                 )}
               />
               {fieldErrors.email ? (
@@ -184,12 +207,21 @@ const ForgotPasswordPage = () => {
               {pending ? 'Sending…' : 'Send reset code'}
             </Button>
             <p className="text-center font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-              <Link
-                to="/auth/login"
-                className="font-semibold text-(--primary-accent) transition-opacity hover:opacity-90"
-              >
-                Back to log in
-              </Link>
+              {signedIn ? (
+                <Link
+                  to="/app/profile"
+                  className="font-semibold text-(--primary-accent) transition-opacity hover:opacity-90"
+                >
+                  Back to profile
+                </Link>
+              ) : (
+                <Link
+                  to="/auth/login"
+                  className="font-semibold text-(--primary-accent) transition-opacity hover:opacity-90"
+                >
+                  Back to log in
+                </Link>
+              )}
             </p>
           </form>
         ) : (
@@ -309,17 +341,26 @@ const ForgotPasswordPage = () => {
               >
                 Resend code
               </button>
-              <button
-                type="button"
-                className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                onClick={() => {
-                  setCodeSent(false);
-                  setCode('');
-                }}
-                disabled={pending}
-              >
-                Use a different email
-              </button>
+              {signedIn ? (
+                <Link
+                  to="/app/profile"
+                  className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary) transition-colors hover:text-(--text-primary)"
+                >
+                  Back to profile
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary) transition-colors hover:text-(--text-primary)"
+                  onClick={() => {
+                    setCodeSent(false);
+                    setCode('');
+                  }}
+                  disabled={pending}
+                >
+                  Use a different email
+                </button>
+              )}
             </div>
           </form>
         )}

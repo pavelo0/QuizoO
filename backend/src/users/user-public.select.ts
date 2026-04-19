@@ -8,6 +8,7 @@ export const userPublicSelect = {
   role: true,
   isBlocked: true,
   emailVerified: true,
+  avatarMime: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;

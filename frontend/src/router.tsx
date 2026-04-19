@@ -1,3 +1,4 @@
+import { GuestOnlyOutlet } from '@/components/auth/GuestOnlyOutlet';
 import { RedirectIfSignedIn } from '@/components/auth/RedirectIfSignedIn';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import type { DataRouter } from 'react-router-dom';
@@ -6,8 +7,8 @@ import AuthLayout from './layouts/AuthLayout';
 import LandingLayout from './layouts/LandingLayout';
 import ServiceLayout from './layouts/ServiceLayout';
 import DashboardPage from './pages/DashboardPage';
-import LandingPage from './pages/LandingPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
 import ProfilePage from './pages/ProfilePage';
@@ -26,15 +27,16 @@ export const router: DataRouter = createBrowserRouter([
   },
   {
     path: '/auth',
-    element: (
-      <RedirectIfSignedIn>
-        <AuthLayout />
-      </RedirectIfSignedIn>
-    ),
+    element: <AuthLayout />,
     children: [
-      { path: 'login', element: <LoginPage /> },
-      { path: 'register', element: <RegisterPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      {
+        element: <GuestOnlyOutlet />,
+        children: [
+          { path: 'login', element: <LoginPage /> },
+          { path: 'register', element: <RegisterPage /> },
+        ],
+      },
     ],
   },
   {
