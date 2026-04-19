@@ -6,6 +6,8 @@ export type ApiPublicUser = {
   role: 'USER' | 'ADMIN';
   isBlocked: boolean;
   emailVerified: boolean;
+  /** Если задано, у пользователя загружено своё фото (`GET /users/me/avatar`). */
+  avatarMime: string | null;
   createdAt: string;
   updatedAt: string;
 };

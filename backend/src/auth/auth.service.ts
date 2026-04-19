@@ -221,6 +221,86 @@ export class AuthService {
     return updated;
   }
 
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<PublicUser> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.isBlocked) {
+      throw new UnauthorizedException('Invalid session');
+    }
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    this.assertPassword(newPassword);
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+      select: userPublicSelect,
+    });
+    return updated;
+  }
+
+  async changeEmail(
+    userId: string,
+    currentPassword: string,
+    newEmailRaw: string,
+  ): Promise<{ user: PublicUser; message: string; verificationCode?: string }> {
+    const newEmail = newEmailRaw.trim().toLowerCase();
+    if (!newEmail || !newEmail.includes('@')) {
+      throw new BadRequestException('Invalid email');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.isBlocked) {
+      throw new UnauthorizedException('Invalid session');
+    }
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) {
+      throw new UnauthorizedException('Password is incorrect');
+    }
+    if (user.email === newEmail) {
+      throw new BadRequestException('This is already your email');
+    }
+
+    const taken = await this.prisma.user.findUnique({
+      where: { email: newEmail },
+    });
+    if (taken) {
+      throw new ConflictException('This email is already in use');
+    }
+
+    const code = this.generateSixDigitCode();
+    const expires = new Date(Date.now() + CODE_TTL_MS);
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        email: newEmail,
+        emailVerified: false,
+        emailVerificationCode: code,
+        emailVerificationExpiresAt: expires,
+      },
+      select: userPublicSelect,
+    });
+
+    this.codes.emailVerification(newEmail, code);
+
+    const verificationCode = this.codes.includeCodeInApiResponse()
+      ? code
+      : undefined;
+
+    return {
+      user: updated,
+      message:
+        'Email updated. Confirm the new address with the code sent to your inbox (see server log in lab mode).',
+      ...(verificationCode !== undefined && { verificationCode }),
+    };
+  }
+
   async resendEmailVerification(
     emailRaw: string,
   ): Promise<{ message: string; verificationCode?: string }> {
