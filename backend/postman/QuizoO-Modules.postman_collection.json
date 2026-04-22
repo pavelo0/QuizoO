@@ -1,0 +1,283 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "QuizoO — Modules API",
+    "description": "Сначала выполни **Login** — Postman сохранит cookie `quizoo_access_token` для `localhost:3001`.\n\nПеременные коллекции: `baseUrl`, `email`, `password`. После **Create FLASHCARD module** / **Create QUIZ module** в тестах выставляются `flashModuleId` и `quizModuleId`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api" },
+    { "key": "email", "value": "you@example.com" },
+    { "key": "password", "value": "yourpassword" },
+    { "key": "flashModuleId", "value": "" },
+    { "key": "quizModuleId", "value": "" },
+    { "key": "cardId", "value": "" },
+    { "key": "questionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Нужен подтверждённый email. Cookie HttpOnly подхватывается Postman автоматически."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Modules",
+      "item": [
+        {
+          "name": "Dashboard summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/modules/summary"
+          }
+        },
+        {
+          "name": "List modules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/modules"
+          }
+        },
+        {
+          "name": "Create FLASHCARD module",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  if (j && j.id) pm.collectionVariables.set('flashModuleId', j.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Demo Flashcards\",\n  \"description\": \"Тест карточек\",\n  \"type\": \"FLASHCARD\"\n}"
+            },
+            "url": "{{baseUrl}}/modules"
+          }
+        },
+        {
+          "name": "Create QUIZ module",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  if (j && j.id) pm.collectionVariables.set('quizModuleId', j.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Demo Quiz\",\n  \"description\": \"Тест квиза\",\n  \"type\": \"QUIZ\"\n}"
+            },
+            "url": "{{baseUrl}}/modules"
+          }
+        },
+        {
+          "name": "Get module (flash)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/modules/{{flashModuleId}}"
+          }
+        },
+        {
+          "name": "Get module (quiz)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/modules/{{quizModuleId}}"
+          }
+        },
+        {
+          "name": "Patch module",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated title\",\n  \"description\": \"New description\"\n}"
+            },
+            "url": "{{baseUrl}}/modules/{{flashModuleId}}"
+          }
+        },
+        {
+          "name": "Delete module",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/modules/{{flashModuleId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cards (FLASHCARD module)",
+      "item": [
+        {
+          "name": "Create card",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  if (j && j.id) pm.collectionVariables.set('cardId', j.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Столица Франции?\",\n  \"answer\": \"Париж\",\n  \"orderIndex\": 0\n}"
+            },
+            "url": "{{baseUrl}}/modules/{{flashModuleId}}/cards"
+          }
+        },
+        {
+          "name": "Patch card",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Столица Франции (обновлено)?\",\n  \"answer\": \"Париж\"\n}"
+            },
+            "url": "{{baseUrl}}/modules/{{flashModuleId}}/cards/{{cardId}}"
+          }
+        },
+        {
+          "name": "Delete card",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/modules/{{flashModuleId}}/cards/{{cardId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Questions (QUIZ module)",
+      "item": [
+        {
+          "name": "Create question CHOICE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  if (j && j.id) pm.collectionVariables.set('questionId', j.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionText\": \"2 + 2 = ?\",\n  \"type\": \"CHOICE\",\n  \"orderIndex\": 0,\n  \"options\": [\n    { \"text\": \"3\", \"isCorrect\": false },\n    { \"text\": \"4\", \"isCorrect\": true },\n    { \"text\": \"5\", \"isCorrect\": false }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/modules/{{quizModuleId}}/questions"
+          }
+        },
+        {
+          "name": "Create question TEXT",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionText\": \"Назовите год основания Рима (легенда)\",\n  \"type\": \"TEXT\",\n  \"orderIndex\": 1\n}"
+            },
+            "url": "{{baseUrl}}/modules/{{quizModuleId}}/questions"
+          }
+        },
+        {
+          "name": "Create question MATCHING",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionText\": \"Сопоставьте\",\n  \"type\": \"MATCHING\",\n  \"orderIndex\": 2,\n  \"matchingPairs\": [\n    { \"leftItem\": \"H2O\", \"rightItem\": \"Вода\" },\n    { \"leftItem\": \"CO2\", \"rightItem\": \"Углекислый газ\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/modules/{{quizModuleId}}/questions"
+          }
+        },
+        {
+          "name": "Patch question",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionText\": \"2 + 2 = ? (обновлено)\"\n}"
+            },
+            "url": "{{baseUrl}}/modules/{{quizModuleId}}/questions/{{questionId}}"
+          }
+        },
+        {
+          "name": "Delete question",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/modules/{{quizModuleId}}/questions/{{questionId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
