@@ -1,16 +1,28 @@
 /**
- * Учебный модуль (курс / раздел с уроками или квизами).
+ * Модуль обучения (API `/modules`).
  */
 
 export type ModuleId = string;
 
-export interface Module {
+export type ModuleType = 'FLASHCARD' | 'QUIZ';
+
+/** Элемент списка из `GET /modules` */
+export interface ModuleListItem {
   id: ModuleId;
   title: string;
-  description?: string;
-  order: number;
-  courseId?: string;
-  lessonCount?: number;
+  description: string | null;
+  type: ModuleType;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
+  cardCount: number;
+  questionCount: number;
+  lastStudiedAt: string | null;
+}
+
+/** Ответ `GET /modules/summary` */
+export interface ModulesDashboardSummary {
+  totalModules: number;
+  activeModules: number;
+  cardsStudied: number;
+  averageQuizScore: number | null;
 }
