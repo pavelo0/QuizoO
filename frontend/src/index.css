@@ -18,6 +18,19 @@
   --text-secondary: #5c6378;
   --border-default: #dfe3ee;
   --purple-glow: rgba(87, 79, 214, 0.18);
+  /* Пилюли меток модуля (tone-on-tone, светлая тема) */
+  --module-badge-mint-bg: color-mix(
+    in srgb,
+    var(--secondary-accent) 14%,
+    var(--surface-color)
+  );
+  --module-badge-mint-fg: #006b56;
+  --module-badge-violet-bg: color-mix(
+    in srgb,
+    var(--primary-accent) 12%,
+    var(--surface-color)
+  );
+  --module-badge-violet-fg: var(--primary-accent);
 
   --font-syne: 'Syne', system-ui, sans-serif;
   --font-dm-sans: 'DM Sans', system-ui, sans-serif;
@@ -153,6 +166,11 @@ button:not(:disabled) {
   --text-secondary: #8b8fa8;
   --border-default: #2e3250;
   --purple-glow: rgba(108, 99, 255, 0.3);
+  /* Пилюли меток модуля (tone-on-tone, тёмная тема — как на макете) */
+  --module-badge-mint-bg: #0a1f1c;
+  --module-badge-mint-fg: var(--secondary-accent);
+  --module-badge-violet-bg: #1a1528;
+  --module-badge-violet-fg: var(--primary-accent);
 
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -221,4 +239,28 @@ button:not(:disabled) {
     animation: none;
     transform: rotate(var(--auth-stat-rotate, 0deg));
   }
+}
+
+/* Create module dialog — затемнение с «ореолом» и акцентами по углам (techDesign halo) */
+.create-module-dialog-overlay {
+  will-change: opacity;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  background:
+    radial-gradient(
+      ellipse 120% 90% at 50% -35%,
+      var(--purple-glow) 0%,
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse 65% 52% at 100% 100%,
+      color-mix(in srgb, var(--primary-accent) 35%, transparent) 0%,
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse 62% 48% at 0% 100%,
+      color-mix(in srgb, var(--secondary-accent) 28%, transparent) 0%,
+      transparent 52%
+    ),
+    rgba(12, 10, 22, 0.88);
 }
