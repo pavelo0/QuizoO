@@ -29,7 +29,10 @@ model User {
   username      String?
   role          UserRole @default(USER)
   isBlocked     Boolean  @default(false)
-  emailVerified Boolean  @default(false)
+  oauthProvider String?
+  oauthId       String?
+
+  emailVerified Boolean @default(false)
 
   emailVerificationCode      String?
   emailVerificationExpiresAt DateTime?
@@ -46,6 +49,7 @@ model User {
   flashcardSessions   FlashcardSession[]
   quizSessions        QuizSession[]
 
+  @@unique([oauthProvider, oauthId])
   @@map("users")
 }
 
@@ -179,6 +183,7 @@ model QuizAnswer {
   session  QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
+  @@unique([sessionId, questionId])
   @@index([sessionId])
   @@index([questionId])
   @@map("quiz_answers")
