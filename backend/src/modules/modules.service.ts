@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { ModuleType, Prisma, QuestionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateModuleDto } from './dto/create-module.dto';
+import { UpdateModuleDto } from './dto/update-module.dto';
 
 function isModuleType(v: unknown): v is ModuleType {
   return v === ModuleType.FLASHCARD || v === ModuleType.QUIZ;
@@ -23,8 +25,14 @@ export class ModulesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getDashboardSummary(userId: string) {
-    const [totalModules, flashAgg, quizAgg] = await Promise.all([
+    const [totalModules, activeModules, flashAgg, quizAgg] = await Promise.all([
       this.prisma.module.count({ where: { userId } }),
+      this.prisma.module.count({
+        where: {
+          userId,
+          OR: [{ cards: { some: {} } }, { questions: { some: {} } }],
+        },
+      }),
       this.prisma.flashcardSession.aggregate({
         where: { userId, completedAt: { not: null } },
         _sum: {
@@ -48,9 +56,87 @@ export class ModulesService {
 
     return {
       totalModules,
+      activeModules,
       cardsStudied,
       averageQuizScore,
     };
+  }
+
+  async getRecentActivity(userId: string, limit = 10) {
+    const take = Math.min(Math.max(limit, 1), 30);
+    const [flash, quiz] = await Promise.all([
+      this.prisma.flashcardSession.findMany({
+        where: { userId, completedAt: { not: null } },
+        orderBy: { completedAt: 'desc' },
+        take,
+        include: {
+          module: { select: { id: true, title: true, type: true } },
+        },
+      }),
+      this.prisma.quizSession.findMany({
+        where: { userId, completedAt: { not: null } },
+        orderBy: { completedAt: 'desc' },
+        take,
+        include: {
+          module: { select: { id: true, title: true, type: true } },
+        },
+      }),
+    ]);
+
+    type Row =
+      | {
+          kind: 'FLASHCARD_SESSION';
+          at: Date;
+          moduleId: string;
+          moduleTitle: string;
+          moduleType: ModuleType;
+          knownCount: number;
+          unknownCount: number;
+          totalCards: number;
+        }
+      | {
+          kind: 'QUIZ_SESSION';
+          at: Date;
+          moduleId: string;
+          moduleTitle: string;
+          moduleType: ModuleType;
+          scorePercent: number;
+          correctCount: number;
+          totalQuestions: number;
+        };
+
+    const items: Row[] = [
+      ...flash.map(
+        (s): Row => ({
+          kind: 'FLASHCARD_SESSION',
+          at: s.completedAt!,
+          moduleId: s.moduleId,
+          moduleTitle: s.module.title,
+          moduleType: s.module.type,
+          knownCount: s.knownCount,
+          unknownCount: s.unknownCount,
+          totalCards: s.totalCards,
+        }),
+      ),
+      ...quiz.map(
+        (s): Row => ({
+          kind: 'QUIZ_SESSION',
+          at: s.completedAt!,
+          moduleId: s.moduleId,
+          moduleTitle: s.module.title,
+          moduleType: s.module.type,
+          scorePercent: s.scorePercent,
+          correctCount: s.correctCount,
+          totalQuestions: s.totalQuestions,
+        }),
+      ),
+    ];
+
+    items.sort((a, b) => b.at.getTime() - a.at.getTime());
+    return items.slice(0, take).map((i) => ({
+      ...i,
+      at: i.at.toISOString(),
+    }));
   }
 
   async listModules(userId: string) {
@@ -141,15 +227,9 @@ export class ModulesService {
     };
   }
 
-  async createModule(
-    userId: string,
-    body: {
-      title?: string;
-      description?: string | null;
-      type?: string;
-    },
-  ) {
-    if (!body.title?.trim()) {
+  async createModule(userId: string, body: CreateModuleDto) {
+    const title = body.title.trim();
+    if (!title) {
       throw new BadRequestException('title is required');
     }
     if (!isModuleType(body.type)) {
@@ -158,7 +238,7 @@ export class ModulesService {
     return this.prisma.module.create({
       data: {
         userId,
-        title: body.title.trim(),
+        title,
         description:
           body.description === undefined || body.description === null
             ? null
@@ -168,15 +248,7 @@ export class ModulesService {
     });
   }
 
-  async updateModule(
-    userId: string,
-    moduleId: string,
-    body: {
-      title?: string;
-      description?: string | null;
-      type?: string;
-    },
-  ) {
+  async updateModule(userId: string, moduleId: string, body: UpdateModuleDto) {
     const existing = await this.prisma.module.findFirst({
       where: { id: moduleId, userId },
     });
@@ -188,7 +260,8 @@ export class ModulesService {
       if (!isModuleType(body.type)) {
         throw new BadRequestException('type must be FLASHCARD or QUIZ');
       }
-      if (body.type !== existing.type) {
+      const nextType = body.type;
+      if (nextType !== existing.type) {
         const counts = await this.prisma.module.findFirst({
           where: { id: moduleId },
           include: {
