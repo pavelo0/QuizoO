@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "QuizoO — Modules API",
-    "description": "Сначала выполни **Login** — Postman сохранит cookie `quizoo_access_token` для `localhost:3001`.\n\nПеременные коллекции: `baseUrl`, `email`, `password`. После **Create FLASHCARD module** / **Create QUIZ module** в тестах выставляются `flashModuleId` и `quizModuleId`.",
+    "description": "Сначала выполни **Login** — Postman сохранит cookie `quizoo_access_token` для `localhost:3001`.\n\n**Dashboard summary** (`GET /modules/summary`): `totalModules`, `activeModules` (модули с хотя бы одной карточкой или вопросом), `cardsStudied`, `averageQuizScore`.\n\n**Recent activity** (`GET /modules/activity?limit=10`) — завершённые сессии флеш-карт и квизов, отсортированные по времени.\n\n**Create module** (`POST /modules`) — ответ **201 Created** с телом созданного модуля.\n\nПеременные коллекции: `baseUrl`, `email`, `password`. После **Create FLASHCARD module** / **Create QUIZ module** в тестах выставляются `flashModuleId` и `quizModuleId`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -64,13 +64,27 @@
           }
         },
         {
+          "name": "Recent activity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/modules/activity?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["modules", "activity"],
+              "query": [{ "key": "limit", "value": "10" }]
+            }
+          }
+        },
+        {
           "name": "Create FLASHCARD module",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
                   "  const j = pm.response.json();",
                   "  if (j && j.id) pm.collectionVariables.set('flashModuleId', j.id);",
                   "}"
@@ -96,7 +110,8 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
                   "  const j = pm.response.json();",
                   "  if (j && j.id) pm.collectionVariables.set('quizModuleId', j.id);",
                   "}"

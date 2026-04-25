@@ -3,11 +3,17 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CurrentUserId } from '../auth/current-user.decorator';
+import { CreateModuleDto } from './dto/create-module.dto';
+import { UpdateModuleDto } from './dto/update-module.dto';
 import { ModulesService } from './modules.service';
 
 @Controller('modules')
@@ -19,21 +25,22 @@ export class ModulesController {
     return this.modules.getDashboardSummary(userId);
   }
 
+  @Get('activity')
+  getActivity(
+    @CurrentUserId() userId: string,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+  ) {
+    return this.modules.getRecentActivity(userId, limit);
+  }
+
   @Get()
   list(@CurrentUserId() userId: string) {
     return this.modules.listModules(userId);
   }
 
   @Post()
-  create(
-    @CurrentUserId() userId: string,
-    @Body()
-    body: {
-      title?: string;
-      description?: string | null;
-      type?: string;
-    },
-  ) {
+  @HttpCode(HttpStatus.CREATED)
+  create(@CurrentUserId() userId: string, @Body() body: CreateModuleDto) {
     return this.modules.createModule(userId, body);
   }
 
@@ -46,12 +53,7 @@ export class ModulesController {
   update(
     @CurrentUserId() userId: string,
     @Param('moduleId') moduleId: string,
-    @Body()
-    body: {
-      title?: string;
-      description?: string | null;
-      type?: string;
-    },
+    @Body() body: UpdateModuleDto,
   ) {
     return this.modules.updateModule(userId, moduleId, body);
   }
