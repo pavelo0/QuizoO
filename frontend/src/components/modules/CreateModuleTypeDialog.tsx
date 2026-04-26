@@ -38,9 +38,9 @@ const FormatCard = memo(function FormatCard({
     <article
       className={cn(
         'flex flex-col gap-4 rounded-2xl border border-(--border-default) bg-(--surface-color) p-6 shadow-sm',
-        'transition-[box-shadow,border-color] duration-300 ease-out',
+        'transition-[box-shadow,border-color] duration-200 ease-out',
         'hover:border-(--primary-accent)/28',
-        'hover:shadow-[0_6px_22px_rgba(108,99,255,0.14)]',
+        'hover:shadow-[0_4px_14px_rgba(108,99,255,0.12)]',
       )}
     >
       <div
@@ -90,21 +90,21 @@ function CreateModuleTypeDialogInner({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className={cn(
-            'create-module-dialog-overlay fixed inset-0 z-50',
+            'fixed inset-0 z-50 bg-[rgba(12,10,22,0.78)]',
             'data-[state=open]:motion-safe:animate-in data-[state=closed]:motion-safe:animate-out',
             'data-[state=open]:motion-safe:fade-in-0 data-[state=closed]:motion-safe:fade-out-0',
-            'duration-300 ease-in-out',
+            'duration-150 ease-linear',
           )}
         />
         <DialogPrimitive.Content
           className={cn(
             'fixed top-1/2 left-1/2 z-100 w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2',
             'rounded-3xl border border-(--border-default) bg-(--surface-color) p-6 shadow-xl md:p-8',
-            'text-(--text-primary) outline-none',
+            'text-(--text-primary) outline-none will-change-transform',
             'data-[state=open]:motion-safe:animate-in data-[state=closed]:motion-safe:animate-out',
             'data-[state=open]:motion-safe:fade-in-0 data-[state=closed]:motion-safe:fade-out-0',
             'data-[state=open]:motion-safe:zoom-in-95 data-[state=closed]:motion-safe:zoom-out-95',
-            'duration-300 ease-in-out',
+            'duration-150 ease-out',
           )}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
@@ -150,5 +150,11 @@ function CreateModuleTypeDialogInner({
   );
 }
 
-export const CreateModuleTypeDialog = memo(CreateModuleTypeDialogInner);
+export const CreateModuleTypeDialog = memo(
+  CreateModuleTypeDialogInner,
+  (prev, next) =>
+    prev.open === next.open &&
+    prev.onOpenChange === next.onOpenChange &&
+    prev.onContinue === next.onContinue,
+);
 CreateModuleTypeDialog.displayName = 'CreateModuleTypeDialog';
