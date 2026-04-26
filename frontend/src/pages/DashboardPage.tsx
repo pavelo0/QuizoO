@@ -85,6 +85,10 @@ const DashboardPage = () => {
     }
   }, []);
 
+  const handleModuleDeleted = useCallback(async () => {
+    await load();
+  }, [load]);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -176,6 +180,7 @@ const DashboardPage = () => {
         loading={loading}
         search={search}
         onSearchChange={handleSearchChange}
+        onModuleDeleted={handleModuleDeleted}
       />
     </div>
   );

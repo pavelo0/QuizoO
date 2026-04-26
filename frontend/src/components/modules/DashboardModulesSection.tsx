@@ -15,19 +15,14 @@ export type DashboardModulesSectionProps = {
   loading: boolean;
   search: string;
   onSearchChange: (value: string) => void;
+  onModuleDeleted: (moduleId: string) => Promise<void> | void;
 };
 
 /**
- * Секция «My Modules»: поиск, сетка и диалог создания.
- * Состояние открытия попапа живёт здесь — при открытии/закрытии не ре-рендерится родительский DashboardPage.
+ * Кнопка «New Module» + диалог — локальное состояние `open` только здесь.
+ * Открытие/закрытие не триггерит ре-рендер соседнего поиска и сетки карточек.
  */
-function DashboardModulesSectionInner({
-  modules,
-  filteredModules,
-  loading,
-  search,
-  onSearchChange,
-}: DashboardModulesSectionProps) {
+const NewModuleButtonWithDialog = memo(function NewModuleButtonWithDialog() {
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -39,10 +34,40 @@ function DashboardModulesSectionInner({
     [navigate],
   );
 
-  const openDialog = useCallback(() => {
-    setDialogOpen(true);
-  }, []);
+  return (
+    <>
+      <Button
+        type="button"
+        variant="cta"
+        size="outlineCompact"
+        className="h-11 shrink-0 rounded-xl px-5"
+        onClick={() => setDialogOpen(true)}
+      >
+        <Plus className="size-4" strokeWidth={2.5} aria-hidden />
+        New Module
+      </Button>
+      <CreateModuleTypeDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onContinue={handleContinue}
+      />
+    </>
+  );
+});
+NewModuleButtonWithDialog.displayName = 'NewModuleButtonWithDialog';
 
+/**
+ * Секция «My Modules»: поиск, сетка. Диалог создания вынесен в
+ * `NewModuleButtonWithDialog`, чтобы не перерисовывать сетку при `open` диалога.
+ */
+function DashboardModulesSectionInner({
+  modules,
+  filteredModules,
+  loading,
+  search,
+  onSearchChange,
+  onModuleDeleted,
+}: DashboardModulesSectionProps) {
   return (
     <section aria-labelledby="modules-heading">
       <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -52,16 +77,7 @@ function DashboardModulesSectionInner({
         >
           My Modules
         </h2>
-        <Button
-          type="button"
-          variant="cta"
-          size="outlineCompact"
-          className="h-11 shrink-0 rounded-xl px-5"
-          onClick={openDialog}
-        >
-          <Plus className="size-4" strokeWidth={2.5} aria-hidden />
-          New Module
-        </Button>
+        <NewModuleButtonWithDialog />
       </div>
 
       <div className="relative mb-8">
@@ -121,16 +137,14 @@ function DashboardModulesSectionInner({
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filteredModules.map((m) => (
-            <DashboardModuleCard key={m.id} module={m} />
+            <DashboardModuleCard
+              key={m.id}
+              module={m}
+              onModuleDeleted={onModuleDeleted}
+            />
           ))}
         </div>
       )}
-
-      <CreateModuleTypeDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onContinue={handleContinue}
-      />
     </section>
   );
 }
