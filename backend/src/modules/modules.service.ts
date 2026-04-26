@@ -438,9 +438,9 @@ export class ModulesService {
 
     if (body.type === QuestionType.MATCHING) {
       const pairs = body.matchingPairs ?? [];
-      if (pairs.length < 1) {
+      if (pairs.length < 2) {
         throw new BadRequestException(
-          'MATCHING questions require at least one pair',
+          'MATCHING questions require at least two pairs',
         );
       }
       for (const p of pairs) {
@@ -467,11 +467,54 @@ export class ModulesService {
       });
     }
 
+    if (body.type === QuestionType.TEXT) {
+      const opts = body.options ?? [];
+      if (opts.length < 1) {
+        throw new BadRequestException(
+          'TEXT questions require one correct text answer',
+        );
+      }
+      const normalized = opts.map((o) => ({
+        text: o.text?.trim() ?? '',
+        isCorrect: Boolean(o.isCorrect),
+      }));
+      if (normalized.length !== 1) {
+        throw new BadRequestException(
+          'TEXT questions require exactly one answer option',
+        );
+      }
+      if (!normalized[0].text) {
+        throw new BadRequestException('TEXT answer cannot be empty');
+      }
+      if (!normalized[0].isCorrect) {
+        throw new BadRequestException(
+          'TEXT answer option must be marked as correct',
+        );
+      }
+      return this.prisma.question.create({
+        data: {
+          moduleId,
+          questionText,
+          type: QuestionType.TEXT,
+          orderIndex,
+          questionOptions: {
+            create: [
+              {
+                text: normalized[0].text,
+                isCorrect: true,
+              },
+            ],
+          },
+        },
+        include: { questionOptions: true, matchingPairs: true },
+      });
+    }
+
     return this.prisma.question.create({
       data: {
         moduleId,
         questionText,
-        type: QuestionType.TEXT,
+        type: body.type,
         orderIndex,
       },
       include: { questionOptions: true, matchingPairs: true },
@@ -515,6 +558,11 @@ export class ModulesService {
       ) {
         throw new BadRequestException(
           'When changing type to MATCHING, matchingPairs are required',
+        );
+      }
+      if (body.type === QuestionType.TEXT && body.options === undefined) {
+        throw new BadRequestException(
+          'When changing type to TEXT, one correct answer option is required',
         );
       }
       await this.prisma.questionOption.deleteMany({ where: { questionId } });
@@ -575,9 +623,9 @@ export class ModulesService {
       body.matchingPairs !== undefined
     ) {
       const pairs = body.matchingPairs;
-      if (pairs.length < 1) {
+      if (pairs.length < 2) {
         throw new BadRequestException(
-          'MATCHING questions require at least one pair',
+          'MATCHING questions require at least two pairs',
         );
       }
       for (const p of pairs) {
@@ -599,8 +647,34 @@ export class ModulesService {
     }
 
     if (nextType === QuestionType.TEXT) {
-      if (body.options !== undefined || body.matchingPairs !== undefined) {
+      if (body.options !== undefined) {
+        const normalized = body.options.map((o) => ({
+          text: o.text?.trim() ?? '',
+          isCorrect: Boolean(o.isCorrect),
+        }));
+        if (normalized.length !== 1) {
+          throw new BadRequestException(
+            'TEXT questions require exactly one answer option',
+          );
+        }
+        if (!normalized[0].text) {
+          throw new BadRequestException('TEXT answer cannot be empty');
+        }
+        if (!normalized[0].isCorrect) {
+          throw new BadRequestException(
+            'TEXT answer option must be marked as correct',
+          );
+        }
         await this.prisma.questionOption.deleteMany({ where: { questionId } });
+        await this.prisma.matchingPair.deleteMany({ where: { questionId } });
+        await this.prisma.questionOption.create({
+          data: {
+            questionId,
+            text: normalized[0].text,
+            isCorrect: true,
+          },
+        });
+      } else if (body.matchingPairs !== undefined) {
         await this.prisma.matchingPair.deleteMany({ where: { questionId } });
       }
     }
