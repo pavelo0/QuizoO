@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { getOrCreateQuizDraftId } from '@/lib/quizModuleDraft';
 import { getOrCreateFlashcardDraftId } from '@/lib/flashcardModuleDraft';
 import type { ModuleType } from '@/types/module';
 import { useCallback, useEffect, useState } from 'react';
@@ -8,8 +9,8 @@ import { toast } from 'react-hot-toast';
 type Phase = 'working' | 'error';
 
 /**
- * Старт сценария «новый модуль»: по типу создаёт черновик (флешкарточки) и ведёт на
- * страницу редактирования, либо показывает заглушку для квиза.
+ * Старт сценария «новый модуль»: по типу создаёт черновик и ведёт
+ * на соответствующую страницу редактирования.
  */
 const CreateModulePage = () => {
   const [params] = useSearchParams();
@@ -20,44 +21,31 @@ const CreateModulePage = () => {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>('working');
 
-  const goFlash = useCallback(async () => {
+  const goCreate = useCallback(async () => {
+    if (!type) return;
     try {
-      const id = await getOrCreateFlashcardDraftId();
-      void navigate(`/app/modules/${id}/edit`, { replace: true });
+      const id =
+        type === 'FLASHCARD'
+          ? await getOrCreateFlashcardDraftId()
+          : await getOrCreateQuizDraftId();
+      const target =
+        type === 'FLASHCARD'
+          ? `/app/modules/${id}/edit`
+          : `/app/modules/${id}/quiz-edit`;
+      void navigate(target, { replace: true });
     } catch {
       setPhase('error');
       toast.error('Could not create a module. Try again.');
     }
-  }, [navigate]);
+  }, [navigate, type]);
 
   useEffect(() => {
-    if (type !== 'FLASHCARD') return;
+    if (!type) return;
     const t = window.setTimeout(() => {
-      void goFlash();
+      void goCreate();
     }, 0);
     return () => window.clearTimeout(t);
-  }, [type, goFlash]);
-
-  if (type === 'QUIZ') {
-    return (
-      <div className="mx-auto max-w-lg">
-        <h1 className="font-(family-name:--font-syne) text-2xl font-bold tracking-[0.02em] text-(--text-primary)">
-          Create quiz
-        </h1>
-        <p className="mt-2 text-sm text-(--text-secondary)">
-          The quiz editor is not available yet. Please go back to the dashboard.
-        </p>
-        <Button
-          asChild
-          variant="outline"
-          className="mt-6 rounded-xl"
-          size="outlineCompact"
-        >
-          <Link to="/app">Back to dashboard</Link>
-        </Button>
-      </div>
-    );
-  }
+  }, [type, goCreate]);
 
   if (type === null) {
     return (
@@ -77,7 +65,7 @@ const CreateModulePage = () => {
     );
   }
 
-  if (phase === 'error' && type === 'FLASHCARD') {
+  if (phase === 'error' && type) {
     return (
       <div className="mx-auto max-w-lg text-center">
         <h1 className="font-(family-name:--font-syne) text-2xl font-bold text-(--text-primary)">
@@ -93,7 +81,7 @@ const CreateModulePage = () => {
           size="outlineCompact"
           onClick={() => {
             setPhase('working');
-            void goFlash();
+            void goCreate();
           }}
         >
           Try again
@@ -117,7 +105,9 @@ const CreateModulePage = () => {
         className="size-9 animate-spin rounded-full border-2 border-(--border-default) border-t-(--primary-accent)"
         aria-hidden
       />
-      <p className="text-sm">Creating your module…</p>
+      <p className="text-sm">
+        Creating your {type === 'QUIZ' ? 'quiz' : 'flashcard'} module…
+      </p>
     </div>
   );
 };

@@ -5,8 +5,10 @@ import type {
   ModuleDetail,
   ModuleId,
   ModuleListItem,
+  ModuleQuestion,
   ModuleType,
   ModulesDashboardSummary,
+  QuestionType,
 } from '@/types/module';
 
 export async function fetchModulesDashboardSummary() {
@@ -77,4 +79,43 @@ export async function updateCard(
 
 export async function deleteCard(moduleId: ModuleId, cardId: string) {
   await apiClient.delete(`/modules/${moduleId}/cards/${cardId}`);
+}
+
+export async function createQuestion(
+  moduleId: ModuleId,
+  body: {
+    questionText: string;
+    type: QuestionType;
+    orderIndex?: number;
+    options?: Array<{ text: string; isCorrect: boolean }>;
+    matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+  },
+) {
+  const { data } = await apiClient.post<ModuleQuestion>(
+    `/modules/${moduleId}/questions`,
+    body,
+  );
+  return data;
+}
+
+export async function updateQuestion(
+  moduleId: ModuleId,
+  questionId: string,
+  body: {
+    questionText?: string;
+    type?: QuestionType;
+    orderIndex?: number;
+    options?: Array<{ text: string; isCorrect: boolean }>;
+    matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+  },
+) {
+  const { data } = await apiClient.patch<ModuleQuestion>(
+    `/modules/${moduleId}/questions/${questionId}`,
+    body,
+  );
+  return data;
+}
+
+export async function deleteQuestion(moduleId: ModuleId, questionId: string) {
+  await apiClient.delete(`/modules/${moduleId}/questions/${questionId}`);
 }

@@ -5,6 +5,7 @@
 export type ModuleId = string;
 
 export type ModuleType = 'FLASHCARD' | 'QUIZ';
+export type QuestionType = 'CHOICE' | 'TEXT' | 'MATCHING';
 
 /** Карточка модуля (флешкарточки) */
 export interface ModuleCard {
@@ -14,6 +15,31 @@ export interface ModuleCard {
   answer: string;
   orderIndex: number;
   createdAt: string;
+}
+
+export interface ModuleQuestionOption {
+  id: string;
+  questionId: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface ModuleMatchingPair {
+  id: string;
+  questionId: string;
+  leftItem: string;
+  rightItem: string;
+}
+
+export interface ModuleQuestion {
+  id: string;
+  moduleId: string;
+  questionText: string;
+  type: QuestionType;
+  orderIndex: number;
+  createdAt: string;
+  questionOptions: ModuleQuestionOption[];
+  matchingPairs: ModuleMatchingPair[];
 }
 
 /** Детали модуля из `GET /modules/:id` */
@@ -28,7 +54,7 @@ export interface ModuleDetail {
   cardCount: number;
   questionCount: number;
   cards: ModuleCard[];
-  questions: unknown[];
+  questions: ModuleQuestion[];
 }
 
 export interface CreateModuleResult {

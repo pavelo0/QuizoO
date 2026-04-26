@@ -46,7 +46,9 @@ function DashboardModuleCardInner({
   const count = isFlash ? module.cardCount : module.questionCount;
   const canStart = count > 0;
   const titleId = `module-title-${module.id}`;
-  const settingsHref = `/app/modules/${encodeURIComponent(module.id)}/edit`;
+  const settingsHref = isFlash
+    ? `/app/modules/${encodeURIComponent(module.id)}/edit`
+    : `/app/modules/${encodeURIComponent(module.id)}/quiz-edit`;
 
   const openSettings = useCallback(() => {
     void navigate(settingsHref);
@@ -175,7 +177,7 @@ function DashboardModuleCardInner({
             </AlertDialogTitle>
             <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
               This will permanently remove <strong>{module.title}</strong> and
-              all its cards.
+              all its {isFlash ? 'cards' : 'questions'}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:flex-col sm:gap-2">
