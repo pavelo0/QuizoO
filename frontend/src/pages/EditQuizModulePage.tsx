@@ -121,7 +121,9 @@ function labelByType(type: QuestionType) {
 
 function summarizeQuestion(q: ModuleQuestion) {
   if (q.type === 'CHOICE') {
-    return q.questionOptions.map((o) => o.text).join(' · ') || 'No options yet';
+    const mode = q.allowMultipleAnswers ? 'Multiple answers' : 'Single answer';
+    const options = q.questionOptions.map((o) => o.text).join(' · ');
+    return options ? `${mode}: ${options}` : `${mode}: No options yet`;
   }
   if (q.type === 'TEXT') {
     const correct = q.questionOptions.find((o) => o.isCorrect)?.text?.trim();
@@ -145,6 +147,7 @@ type QuestionDialogProps = {
   onCreateQuestion: (payload: {
     questionText: string;
     type: QuestionType;
+    allowMultipleAnswers?: boolean;
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
   }) => Promise<void>;
@@ -153,6 +156,7 @@ type QuestionDialogProps = {
     payload: {
       questionText: string;
       type: QuestionType;
+      allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
     },
@@ -170,6 +174,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
   const [type, setType] = useState<QuestionType>('CHOICE');
   const [questionText, setQuestionText] = useState('');
   const [textAnswer, setTextAnswer] = useState('');
+  const [allowMultipleAnswers, setAllowMultipleAnswers] = useState(false);
   const [options, setOptions] = useState([
     { text: '', isCorrect: false },
     { text: '', isCorrect: false },
@@ -192,6 +197,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       setType('CHOICE');
       setQuestionText('');
       setTextAnswer('');
+      setAllowMultipleAnswers(false);
       setOptions([
         { text: '', isCorrect: false },
         { text: '', isCorrect: false },
@@ -201,6 +207,11 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     }
     setType(editingQuestion.type);
     setQuestionText(editingQuestion.questionText);
+    setAllowMultipleAnswers(
+      editingQuestion.type === 'CHOICE'
+        ? editingQuestion.allowMultipleAnswers
+        : false,
+    );
     setTextAnswer(
       editingQuestion.questionOptions.find((o) => o.isCorrect)?.text ?? '',
     );
@@ -265,6 +276,12 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
         nextErrors.options = 'Option text cannot be empty.';
       } else if (cleanOptions.filter((o) => o.isCorrect).length < 1) {
         nextErrors.options = 'Mark at least one correct option.';
+      } else if (
+        !allowMultipleAnswers &&
+        cleanOptions.filter((o) => o.isCorrect).length !== 1
+      ) {
+        nextErrors.options =
+          'Single-answer mode requires exactly one correct option.';
       }
     }
 
@@ -293,11 +310,13 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     const payload: {
       questionText: string;
       type: QuestionType;
+      allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
     } = { questionText: question, type };
 
     if (type === 'CHOICE') {
+      payload.allowMultipleAnswers = allowMultipleAnswers;
       payload.options = cleanOptions;
     }
     if (type === 'TEXT') {
@@ -332,6 +351,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     textAnswer,
     questionsCount,
     type,
+    allowMultipleAnswers,
   ]);
 
   return (
@@ -377,6 +397,9 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                     )}
                     onClick={() => {
                       setType(t.value);
+                      if (t.value !== 'CHOICE') {
+                        setAllowMultipleAnswers(false);
+                      }
                       setErrors((prev) => ({
                         ...prev,
                         textAnswer: undefined,
@@ -462,6 +485,24 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
 
             {type === 'CHOICE' ? (
               <div>
+                <div className="mb-3 flex items-center justify-between rounded-xl border border-(--border-default) bg-(--input-bg)/45 px-3 py-2">
+                  <p className="text-xs text-(--text-secondary)">Answer mode</p>
+                  <label className="flex items-center gap-2 text-xs text-(--text-primary)">
+                    <input
+                      type="checkbox"
+                      checked={allowMultipleAnswers}
+                      onChange={(e) => {
+                        setAllowMultipleAnswers(e.target.checked);
+                        setErrors((prev) => ({
+                          ...prev,
+                          options: undefined,
+                          form: undefined,
+                        }));
+                      }}
+                    />
+                    Allow multiple answers
+                  </label>
+                </div>
                 <p className={labelClass}>Options</p>
                 <div className="space-y-2.5">
                   {options.map((opt, idx) => (
@@ -786,6 +827,7 @@ export default function EditQuizModulePage() {
     async (payload: {
       questionText: string;
       type: QuestionType;
+      allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
     }) => {
@@ -807,6 +849,7 @@ export default function EditQuizModulePage() {
       payload: {
         questionText: string;
         type: QuestionType;
+        allowMultipleAnswers?: boolean;
         options?: Array<{ text: string; isCorrect: boolean }>;
         matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
       },
@@ -853,6 +896,10 @@ export default function EditQuizModulePage() {
     } finally {
       setDeleteModulePending(false);
     }
+  }, [moduleId, navigate]);
+
+  const openStudy = useCallback(() => {
+    void navigate(`/app/modules/${encodeURIComponent(moduleId)}/quiz-study`);
   }, [moduleId, navigate]);
 
   const finishLeaveSave = useCallback(async () => {
@@ -1021,6 +1068,7 @@ export default function EditQuizModulePage() {
                 type="button"
                 disabled={questions.length === 0}
                 className="h-12 w-full min-w-56 gap-2 rounded-[12px] border-0 bg-(--primary-accent) font-(family-name:--font-syne) text-base font-bold text-white shadow-[0_4px_15px_rgba(108,99,255,0.2)] transition-all duration-300 ease-in-out hover:bg-(--primary-accent)/90 sm:w-auto"
+                onClick={openStudy}
               >
                 <ListChecks className="size-4" strokeWidth={2} aria-hidden />
                 Start quiz

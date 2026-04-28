@@ -8,6 +8,8 @@ import type {
   ModuleQuestion,
   ModuleType,
   ModulesDashboardSummary,
+  QuizQuestionsPage,
+  QuizSessionDetail,
   QuestionType,
 } from '@/types/module';
 
@@ -97,11 +99,49 @@ export async function createFlashcardSession(
   return data;
 }
 
+export async function fetchQuizQuestionsPage(
+  moduleId: ModuleId,
+  params?: { take?: number; cursor?: string | null },
+) {
+  const { data } = await apiClient.get<QuizQuestionsPage>(
+    `/modules/${moduleId}/quiz-questions`,
+    { params },
+  );
+  return data;
+}
+
+export async function createQuizSession(
+  moduleId: ModuleId,
+  body: {
+    answers: Array<{
+      questionId: string;
+      choiceOptionId?: string | null;
+      choiceOptionIds?: string[] | null;
+      textAnswer?: string | null;
+      matchingAnswer?: Record<string, string> | null;
+    }>;
+  },
+) {
+  const { data } = await apiClient.post<QuizSessionDetail>(
+    `/modules/${moduleId}/quiz-sessions`,
+    body,
+  );
+  return data;
+}
+
+export async function fetchQuizSession(moduleId: ModuleId, sessionId: string) {
+  const { data } = await apiClient.get<QuizSessionDetail>(
+    `/modules/${moduleId}/quiz-sessions/${sessionId}`,
+  );
+  return data;
+}
+
 export async function createQuestion(
   moduleId: ModuleId,
   body: {
     questionText: string;
     type: QuestionType;
+    allowMultipleAnswers?: boolean;
     orderIndex?: number;
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
@@ -120,6 +160,7 @@ export async function updateQuestion(
   body: {
     questionText?: string;
     type?: QuestionType;
+    allowMultipleAnswers?: boolean;
     orderIndex?: number;
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;

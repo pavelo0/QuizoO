@@ -49,7 +49,9 @@ function DashboardModuleCardInner({
   const settingsHref = isFlash
     ? `/app/modules/${encodeURIComponent(module.id)}/edit`
     : `/app/modules/${encodeURIComponent(module.id)}/quiz-edit`;
-  const studyHref = `/app/modules/${encodeURIComponent(module.id)}/flash-study`;
+  const studyHref = isFlash
+    ? `/app/modules/${encodeURIComponent(module.id)}/flash-study`
+    : `/app/modules/${encodeURIComponent(module.id)}/quiz-study`;
 
   const openSettings = useCallback(() => {
     void navigate(settingsHref);
@@ -143,11 +145,7 @@ function DashboardModuleCardInner({
             disabled={!canStart}
             onClick={(e) => {
               e.stopPropagation();
-              if (isFlash) {
-                openStudy();
-              } else {
-                openSettings();
-              }
+              openStudy();
             }}
             title={
               !canStart
