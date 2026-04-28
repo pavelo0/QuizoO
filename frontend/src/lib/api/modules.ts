@@ -81,6 +81,22 @@ export async function deleteCard(moduleId: ModuleId, cardId: string) {
   await apiClient.delete(`/modules/${moduleId}/cards/${cardId}`);
 }
 
+export async function createFlashcardSession(
+  moduleId: ModuleId,
+  body: { totalCards: number; knownCount: number; unknownCount: number },
+) {
+  const { data } = await apiClient.post<{
+    id: string;
+    moduleId: string;
+    userId: string;
+    totalCards: number;
+    knownCount: number;
+    unknownCount: number;
+    completedAt: string | null;
+  }>(`/modules/${moduleId}/flashcard-sessions`, body);
+  return data;
+}
+
 export async function createQuestion(
   moduleId: ModuleId,
   body: {

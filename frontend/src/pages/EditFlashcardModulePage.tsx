@@ -498,6 +498,10 @@ export default function EditFlashcardModulePage() {
     }
   }, [moduleId, navigate]);
 
+  const openStudy = useCallback(() => {
+    void navigate(`/app/modules/${encodeURIComponent(moduleId)}/flash-study`);
+  }, [moduleId, navigate]);
+
   const finishLeaveSave = useCallback(async () => {
     const t = title.trim();
     if (!t) {
@@ -663,6 +667,7 @@ export default function EditFlashcardModulePage() {
                 type="button"
                 disabled={cards.length === 0}
                 className="h-12 w-full min-w-56 gap-2 rounded-[12px] border-0 bg-(--secondary-accent) font-(family-name:--font-syne) text-base font-bold text-white shadow-[0_4px_15px_rgba(0,212,170,0.2)] transition-all duration-300 ease-in-out hover:bg-(--secondary-accent)/90 sm:w-auto"
+                onClick={openStudy}
               >
                 <Layers className="size-4" strokeWidth={2} aria-hidden />
                 Study with flashcards

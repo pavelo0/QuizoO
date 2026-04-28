@@ -49,10 +49,15 @@ function DashboardModuleCardInner({
   const settingsHref = isFlash
     ? `/app/modules/${encodeURIComponent(module.id)}/edit`
     : `/app/modules/${encodeURIComponent(module.id)}/quiz-edit`;
+  const studyHref = `/app/modules/${encodeURIComponent(module.id)}/flash-study`;
 
   const openSettings = useCallback(() => {
     void navigate(settingsHref);
   }, [navigate, settingsHref]);
+
+  const openStudy = useCallback(() => {
+    void navigate(studyHref);
+  }, [navigate, studyHref]);
 
   const handleDelete = useCallback(async () => {
     setDeletePending(true);
@@ -138,7 +143,11 @@ function DashboardModuleCardInner({
             disabled={!canStart}
             onClick={(e) => {
               e.stopPropagation();
-              openSettings();
+              if (isFlash) {
+                openStudy();
+              } else {
+                openSettings();
+              }
             }}
             title={
               !canStart

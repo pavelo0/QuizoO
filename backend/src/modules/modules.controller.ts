@@ -91,6 +91,17 @@ export class ModulesController {
     return this.modules.deleteCard(userId, moduleId, cardId);
   }
 
+  @Post(':moduleId/flashcard-sessions')
+  @HttpCode(HttpStatus.CREATED)
+  completeFlashcardSession(
+    @CurrentUserId() userId: string,
+    @Param('moduleId') moduleId: string,
+    @Body()
+    body: { totalCards?: number; knownCount?: number; unknownCount?: number },
+  ) {
+    return this.modules.createFlashcardSession(userId, moduleId, body);
+  }
+
   @Post(':moduleId/questions')
   addQuestion(
     @CurrentUserId() userId: string,
