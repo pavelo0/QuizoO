@@ -36,6 +36,7 @@ export interface ModuleQuestion {
   moduleId: string;
   questionText: string;
   type: QuestionType;
+  allowMultipleAnswers: boolean;
   orderIndex: number;
   createdAt: string;
   questionOptions: ModuleQuestionOption[];
@@ -86,4 +87,44 @@ export interface ModulesDashboardSummary {
   activeModules: number;
   cardsStudied: number;
   averageQuizScore: number | null;
+}
+
+export type QuizChoiceUserAnswer = {
+  choiceOptionId?: string;
+  choiceOptionIds?: string[];
+};
+export type QuizTextUserAnswer = { textAnswer: string };
+export type QuizMatchingUserAnswer = { matchingAnswer: Record<string, string> };
+
+export type QuizUserAnswer =
+  | QuizChoiceUserAnswer
+  | QuizTextUserAnswer
+  | QuizMatchingUserAnswer;
+
+export interface QuizSessionAnswerDetail {
+  id: string;
+  questionId: string;
+  isCorrect: boolean;
+  userAnswer: QuizUserAnswer | null;
+  question: ModuleQuestion;
+}
+
+export interface QuizSessionDetail {
+  id: string;
+  userId: string;
+  moduleId: string;
+  moduleTitle: string;
+  totalQuestions: number;
+  correctCount: number;
+  scorePercent: number;
+  completedAt: string | null;
+  answers: QuizSessionAnswerDetail[];
+}
+
+export interface QuizQuestionsPage {
+  moduleId: string;
+  moduleTitle: string;
+  total: number;
+  items: ModuleQuestion[];
+  nextCursor: string | null;
 }
