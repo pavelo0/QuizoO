@@ -9,6 +9,7 @@ import ServiceLayout from './layouts/ServiceLayout';
 import CreateModulePage from './pages/CreateModulePage';
 import EditFlashcardModulePage from './pages/EditFlashcardModulePage';
 import EditQuizModulePage from './pages/EditQuizModulePage';
+import FlashcardStudyPage from './pages/FlashcardStudyPage';
 import DashboardPage from './pages/DashboardPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import LandingPage from './pages/LandingPage';
@@ -53,6 +54,10 @@ export const router: DataRouter = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: 'modules/create', element: <CreateModulePage /> },
       { path: 'modules/:moduleId/edit', element: <EditFlashcardModulePage /> },
+      {
+        path: 'modules/:moduleId/flash-study',
+        element: <FlashcardStudyPage />,
+      },
       { path: 'modules/:moduleId/quiz-edit', element: <EditQuizModulePage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'profile', element: <ProfilePage /> },

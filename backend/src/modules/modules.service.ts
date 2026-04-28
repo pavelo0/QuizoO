@@ -379,6 +379,45 @@ export class ModulesService {
     return { ok: true as const };
   }
 
+  async createFlashcardSession(
+    userId: string,
+    moduleId: string,
+    body: { totalCards?: number; knownCount?: number; unknownCount?: number },
+  ) {
+    await this.assertFlashcardModule(moduleId, userId);
+    const totalCards = Number(body.totalCards ?? 0);
+    const knownCount = Number(body.knownCount ?? 0);
+    const unknownCount = Number(body.unknownCount ?? 0);
+
+    if (![totalCards, knownCount, unknownCount].every(Number.isFinite)) {
+      throw new BadRequestException('Session counters must be valid numbers');
+    }
+    if (totalCards < 1) {
+      throw new BadRequestException('totalCards must be greater than zero');
+    }
+    if (knownCount < 0 || unknownCount < 0) {
+      throw new BadRequestException(
+        'knownCount and unknownCount cannot be negative',
+      );
+    }
+    if (knownCount + unknownCount !== totalCards) {
+      throw new BadRequestException(
+        'knownCount + unknownCount must equal totalCards',
+      );
+    }
+
+    return this.prisma.flashcardSession.create({
+      data: {
+        userId,
+        moduleId,
+        totalCards,
+        knownCount,
+        unknownCount,
+        completedAt: new Date(),
+      },
+    });
+  }
+
   async createQuestion(
     userId: string,
     moduleId: string,
