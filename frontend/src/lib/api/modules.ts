@@ -6,6 +6,7 @@ import type {
   ModuleId,
   ModuleListItem,
   ModuleQuestion,
+  ModuleSessionActivity,
   ModuleType,
   ModulesDashboardSummary,
   QuizQuestionsPage,
@@ -16,6 +17,16 @@ import type {
 export async function fetchModulesDashboardSummary() {
   const { data } =
     await apiClient.get<ModulesDashboardSummary>('/modules/summary');
+  return data;
+}
+
+export async function fetchRecentModuleActivity(limit?: number) {
+  const { data } = await apiClient.get<ModuleSessionActivity[]>(
+    '/modules/activity',
+    {
+      params: limit ? { limit } : undefined,
+    },
+  );
   return data;
 }
 

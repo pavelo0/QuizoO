@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/theme/useTheme';
 import {
+  BarChart3,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
@@ -100,6 +101,10 @@ const ServiceHeader = () => {
         <NavLink to="/app" end title="Dashboard" className={linkClass}>
           <LayoutDashboard className="size-4.5 shrink-0" strokeWidth={1.75} />
           <span className={cn(isCompact && 'sr-only')}>Dashboard</span>
+        </NavLink>
+        <NavLink to="/app/statistics" title="Statistics" className={linkClass}>
+          <BarChart3 className="size-4.5 shrink-0" strokeWidth={1.75} />
+          <span className={cn(isCompact && 'sr-only')}>Statistics</span>
         </NavLink>
         <NavLink to="/app/settings" title="Settings" className={linkClass}>
           <Settings className="size-4.5 shrink-0" strokeWidth={1.75} />

@@ -16,8 +16,10 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
+import NotFoundPage from './pages/NotFoundPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
+import StatisticsPage from './pages/statistics';
 import SettingsPage from './pages/SettingsPage';
 
 export const router: DataRouter = createBrowserRouter([
@@ -61,9 +63,12 @@ export const router: DataRouter = createBrowserRouter([
       },
       { path: 'modules/:moduleId/quiz-study', element: <QuizStudyPage /> },
       { path: 'modules/:moduleId/quiz-edit', element: <EditQuizModulePage /> },
+      { path: 'statistics', element: <StatisticsPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'onboarding', element: <OnboardingPage /> },
+      { path: '*', element: <NotFoundPage inService /> },
     ],
   },
+  { path: '*', element: <NotFoundPage /> },
 ]);

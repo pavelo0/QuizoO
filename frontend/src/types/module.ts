@@ -89,6 +89,31 @@ export interface ModulesDashboardSummary {
   averageQuizScore: number | null;
 }
 
+type SessionActivityBase = {
+  moduleId: string;
+  moduleTitle: string;
+  moduleType: ModuleType;
+  at: string;
+};
+
+export type FlashcardSessionActivity = SessionActivityBase & {
+  kind: 'FLASHCARD_SESSION';
+  knownCount: number;
+  unknownCount: number;
+  totalCards: number;
+};
+
+export type QuizSessionActivity = SessionActivityBase & {
+  kind: 'QUIZ_SESSION';
+  scorePercent: number;
+  correctCount: number;
+  totalQuestions: number;
+};
+
+export type ModuleSessionActivity =
+  | FlashcardSessionActivity
+  | QuizSessionActivity;
+
 export type QuizChoiceUserAnswer = {
   choiceOptionId?: string;
   choiceOptionIds?: string[];
