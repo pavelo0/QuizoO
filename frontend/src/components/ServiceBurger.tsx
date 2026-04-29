@@ -7,7 +7,14 @@ import {
 } from '@/lib/profileAvatar';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/theme/useTheme';
-import { LayoutDashboard, Moon, Settings, Sun, X } from 'lucide-react';
+import {
+  BarChart3,
+  LayoutDashboard,
+  Moon,
+  Settings,
+  Sun,
+  X,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
@@ -125,6 +132,14 @@ const ServiceBurger = ({
           <NavLink to="/app" end onClick={onDismiss} className={linkClass}>
             <LayoutDashboard className="size-5 shrink-0" strokeWidth={1.75} />
             Dashboard
+          </NavLink>
+          <NavLink
+            to="/app/statistics"
+            onClick={onDismiss}
+            className={linkClass}
+          >
+            <BarChart3 className="size-5 shrink-0" strokeWidth={1.75} />
+            Statistics
           </NavLink>
           <NavLink to="/app/settings" onClick={onDismiss} className={linkClass}>
             <Settings className="size-5 shrink-0" strokeWidth={1.75} />

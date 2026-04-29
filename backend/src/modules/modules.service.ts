@@ -20,6 +20,35 @@ function isQuestionType(v: unknown): v is QuestionType {
   );
 }
 
+function validateChoiceOptions(
+  options: Array<{ text?: string; isCorrect?: boolean }>,
+  allowMultipleAnswers: boolean,
+) {
+  if (options.length < 2) {
+    throw new BadRequestException(
+      'CHOICE questions require at least two options',
+    );
+  }
+
+  const correct = options.filter((o) => o.isCorrect).length;
+  if (correct < 1) {
+    throw new BadRequestException(
+      'CHOICE questions require at least one correct option',
+    );
+  }
+  if (!allowMultipleAnswers && correct !== 1) {
+    throw new BadRequestException(
+      'Single-choice questions require exactly one correct option',
+    );
+  }
+
+  for (const o of options) {
+    if (!o.text?.trim()) {
+      throw new BadRequestException('Each option needs non-empty text');
+    }
+  }
+}
+
 @Injectable()
 export class ModulesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -227,6 +256,38 @@ export class ModulesService {
     };
   }
 
+  async getQuizQuestionsPage(
+    userId: string,
+    moduleId: string,
+    args: { take?: number; cursor?: string },
+  ) {
+    const module = await this.assertQuizModule(moduleId, userId);
+    const take = Math.min(Math.max(args.take ?? 20, 1), 50);
+    const cursor = args.cursor?.trim() ? args.cursor.trim() : null;
+
+    const total = await this.prisma.question.count({ where: { moduleId } });
+    const items = await this.prisma.question.findMany({
+      where: { moduleId },
+      orderBy: [{ orderIndex: 'asc' }, { id: 'asc' }],
+      take,
+      ...(cursor
+        ? {
+            cursor: { id: cursor },
+            skip: 1,
+          }
+        : {}),
+      include: { questionOptions: true, matchingPairs: true },
+    });
+
+    return {
+      moduleId: module.id,
+      moduleTitle: module.title,
+      total,
+      items,
+      nextCursor: items.length === take ? items[items.length - 1]!.id : null,
+    };
+  }
+
   async createModule(userId: string, body: CreateModuleDto) {
     const title = body.title.trim();
     if (!title) {
@@ -418,12 +479,213 @@ export class ModulesService {
     });
   }
 
+  async createQuizSession(
+    userId: string,
+    moduleId: string,
+    body: {
+      answers?: Array<{
+        questionId?: string;
+        choiceOptionId?: string | null;
+        choiceOptionIds?: string[] | null;
+        textAnswer?: string | null;
+        matchingAnswer?: Record<string, string> | null;
+      }>;
+    },
+  ) {
+    await this.assertQuizModule(moduleId, userId);
+    const answers = body.answers ?? [];
+    if (!Array.isArray(answers)) {
+      throw new BadRequestException('answers must be an array');
+    }
+    if (answers.length < 1) {
+      throw new BadRequestException('answers cannot be empty');
+    }
+
+    const questionIds = Array.from(
+      new Set(
+        answers
+          .map((a) => (a.questionId ?? '').trim())
+          .filter((id) => id.length > 0),
+      ),
+    );
+    if (questionIds.length !== answers.length) {
+      throw new BadRequestException('Each answer must have a questionId');
+    }
+
+    const questions = await this.prisma.question.findMany({
+      where: { moduleId, id: { in: questionIds } },
+      include: { questionOptions: true, matchingPairs: true },
+    });
+    if (questions.length !== questionIds.length) {
+      throw new BadRequestException(
+        'Some questions do not belong to this module',
+      );
+    }
+    const questionById = new Map(questions.map((q) => [q.id, q]));
+
+    const normalizedAnswers = answers.map((a) => {
+      const q = questionById.get(a.questionId!);
+      if (!q) {
+        throw new BadRequestException('Invalid questionId');
+      }
+
+      let isCorrect = false;
+      let userAnswer: string | null = null;
+
+      if (q.type === QuestionType.CHOICE) {
+        const optionIds = Array.isArray(a.choiceOptionIds)
+          ? a.choiceOptionIds
+          : a.choiceOptionId
+            ? [a.choiceOptionId]
+            : [];
+        const selectedIds = Array.from(
+          new Set(
+            optionIds
+              .map((id) => String(id ?? '').trim())
+              .filter((id) => id.length > 0),
+          ),
+        );
+
+        if (selectedIds.length < 1) {
+          isCorrect = false;
+          userAnswer = null;
+        } else {
+          const optionsById = new Map(q.questionOptions.map((o) => [o.id, o]));
+          if (selectedIds.some((id) => !optionsById.has(id))) {
+            throw new BadRequestException(
+              'choiceOptionId must belong to the question',
+            );
+          }
+
+          const correctIds = q.questionOptions
+            .filter((o) => o.isCorrect)
+            .map((o) => o.id);
+
+          if (q.allowMultipleAnswers) {
+            const selectedSorted = [...selectedIds].sort();
+            const correctSorted = [...correctIds].sort();
+            isCorrect =
+              selectedSorted.length === correctSorted.length &&
+              selectedSorted.every((id, idx) => id === correctSorted[idx]);
+            userAnswer = JSON.stringify({ choiceOptionIds: selectedSorted });
+          } else {
+            const selected = selectedIds[0] ?? '';
+            isCorrect =
+              selectedIds.length === 1 && correctIds.includes(selected);
+            userAnswer = JSON.stringify({ choiceOptionId: selected });
+          }
+        }
+      } else if (q.type === QuestionType.TEXT) {
+        const raw = a.textAnswer ?? '';
+        const t = String(raw).trim();
+        const correct = q.questionOptions.find((o) => o.isCorrect)?.text ?? '';
+        const norm = (s: string) => s.trim().toLowerCase();
+        isCorrect = t.length > 0 && norm(t) === norm(correct);
+        userAnswer = JSON.stringify({ textAnswer: t });
+      } else if (q.type === QuestionType.MATCHING) {
+        const map = a.matchingAnswer ?? null;
+        if (!map || typeof map !== 'object') {
+          isCorrect = false;
+          userAnswer = null;
+        } else {
+          const allPairs = q.matchingPairs;
+          const entries = allPairs.map(
+            (p) => [p.id, String((map as any)[p.id] ?? '')] as const,
+          );
+          const allAnswered = entries.every(([, v]) => v.length > 0);
+          isCorrect =
+            allAnswered &&
+            entries.every(([leftId, rightId]) => rightId === leftId);
+          userAnswer = JSON.stringify({
+            matchingAnswer: Object.fromEntries(entries),
+          });
+        }
+      } else {
+        throw new BadRequestException('Unsupported question type');
+      }
+
+      return {
+        questionId: q.id,
+        userAnswer,
+        isCorrect,
+      };
+    });
+
+    const correctCount = normalizedAnswers.filter((a) => a.isCorrect).length;
+    const totalQuestions = normalizedAnswers.length;
+    const scorePercent =
+      totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+
+    const session = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.quizSession.create({
+        data: {
+          userId,
+          moduleId,
+          totalQuestions,
+          correctCount,
+          scorePercent,
+          completedAt: new Date(),
+          answers: {
+            create: normalizedAnswers.map((a) => ({
+              questionId: a.questionId,
+              userAnswer: a.userAnswer,
+              isCorrect: a.isCorrect,
+            })),
+          },
+        },
+      });
+      return created;
+    });
+
+    return this.getQuizSession(userId, moduleId, session.id);
+  }
+
+  async getQuizSession(userId: string, moduleId: string, sessionId: string) {
+    await this.assertQuizModule(moduleId, userId);
+    const sess = await this.prisma.quizSession.findFirst({
+      where: { id: sessionId, userId, moduleId },
+      include: {
+        answers: {
+          include: {
+            question: {
+              include: { questionOptions: true, matchingPairs: true },
+            },
+          },
+          orderBy: { questionId: 'asc' },
+        },
+        module: { select: { id: true, title: true } },
+      },
+    });
+    if (!sess) {
+      throw new NotFoundException('Quiz session not found');
+    }
+
+    return {
+      id: sess.id,
+      userId: sess.userId,
+      moduleId: sess.moduleId,
+      moduleTitle: sess.module.title,
+      totalQuestions: sess.totalQuestions,
+      correctCount: sess.correctCount,
+      scorePercent: Math.round(sess.scorePercent * 10) / 10,
+      completedAt: sess.completedAt?.toISOString() ?? null,
+      answers: sess.answers.map((a) => ({
+        id: a.id,
+        questionId: a.questionId,
+        isCorrect: a.isCorrect,
+        userAnswer: a.userAnswer ? JSON.parse(a.userAnswer) : null,
+        question: a.question,
+      })),
+    };
+  }
+
   async createQuestion(
     userId: string,
     moduleId: string,
     body: {
       questionText?: string;
       type?: string;
+      allowMultipleAnswers?: boolean;
       orderIndex?: number;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
@@ -442,27 +704,14 @@ export class ModulesService {
 
     if (body.type === QuestionType.CHOICE) {
       const opts = body.options ?? [];
-      if (opts.length < 2) {
-        throw new BadRequestException(
-          'CHOICE questions require at least two options',
-        );
-      }
-      const correct = opts.filter((o) => o.isCorrect).length;
-      if (correct < 1) {
-        throw new BadRequestException(
-          'CHOICE questions require at least one correct option',
-        );
-      }
-      for (const o of opts) {
-        if (!o.text?.trim()) {
-          throw new BadRequestException('Each option needs non-empty text');
-        }
-      }
+      const allowMultipleAnswers = Boolean(body.allowMultipleAnswers);
+      validateChoiceOptions(opts, allowMultipleAnswers);
       return this.prisma.question.create({
         data: {
           moduleId,
           questionText,
           type: QuestionType.CHOICE,
+          allowMultipleAnswers,
           orderIndex,
           questionOptions: {
             create: opts.map((o) => ({
@@ -494,6 +743,7 @@ export class ModulesService {
           moduleId,
           questionText,
           type: QuestionType.MATCHING,
+          allowMultipleAnswers: false,
           orderIndex,
           matchingPairs: {
             create: pairs.map((p) => ({
@@ -535,6 +785,7 @@ export class ModulesService {
           moduleId,
           questionText,
           type: QuestionType.TEXT,
+          allowMultipleAnswers: false,
           orderIndex,
           questionOptions: {
             create: [
@@ -554,6 +805,7 @@ export class ModulesService {
         moduleId,
         questionText,
         type: body.type,
+        allowMultipleAnswers: false,
         orderIndex,
       },
       include: { questionOptions: true, matchingPairs: true },
@@ -568,6 +820,7 @@ export class ModulesService {
       questionText?: string;
       orderIndex?: number;
       type?: string;
+      allowMultipleAnswers?: boolean;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
     },
@@ -575,12 +828,17 @@ export class ModulesService {
     await this.assertQuizModule(moduleId, userId);
     const q = await this.prisma.question.findFirst({
       where: { id: questionId, moduleId },
+      include: { questionOptions: true },
     });
     if (!q) {
       throw new NotFoundException('Question not found');
     }
 
     const nextType = body.type !== undefined ? body.type : q.type;
+    const nextAllowMultipleAnswers =
+      nextType === QuestionType.CHOICE
+        ? (body.allowMultipleAnswers ?? q.allowMultipleAnswers)
+        : false;
     if (body.type !== undefined && !isQuestionType(body.type)) {
       throw new BadRequestException('type must be CHOICE, TEXT, or MATCHING');
     }
@@ -620,6 +878,9 @@ export class ModulesService {
     if (body.type !== undefined) {
       data.type = body.type;
     }
+    if (body.allowMultipleAnswers !== undefined || body.type !== undefined) {
+      data.allowMultipleAnswers = nextAllowMultipleAnswers;
+    }
 
     if (Object.keys(data).length > 0) {
       await this.prisma.question.update({
@@ -630,22 +891,7 @@ export class ModulesService {
 
     if (nextType === QuestionType.CHOICE && body.options !== undefined) {
       const opts = body.options;
-      if (opts.length < 2) {
-        throw new BadRequestException(
-          'CHOICE questions require at least two options',
-        );
-      }
-      const correct = opts.filter((o) => o.isCorrect).length;
-      if (correct < 1) {
-        throw new BadRequestException(
-          'CHOICE questions require at least one correct option',
-        );
-      }
-      for (const o of opts) {
-        if (!o.text?.trim()) {
-          throw new BadRequestException('Each option needs non-empty text');
-        }
-      }
+      validateChoiceOptions(opts, nextAllowMultipleAnswers);
       await this.prisma.questionOption.deleteMany({ where: { questionId } });
       await this.prisma.matchingPair.deleteMany({ where: { questionId } });
       await this.prisma.questionOption.createMany({
@@ -655,6 +901,15 @@ export class ModulesService {
           isCorrect: Boolean(o.isCorrect),
         })),
       });
+    } else if (
+      nextType === QuestionType.CHOICE &&
+      body.allowMultipleAnswers !== undefined
+    ) {
+      const existingOptions = q.questionOptions.map((o) => ({
+        text: o.text,
+        isCorrect: o.isCorrect,
+      }));
+      validateChoiceOptions(existingOptions, nextAllowMultipleAnswers);
     }
 
     if (
@@ -753,6 +1008,7 @@ export class ModulesService {
   private async assertQuizModule(moduleId: string, userId: string) {
     const m = await this.prisma.module.findFirst({
       where: { id: moduleId, userId },
+      select: { id: true, title: true, type: true },
     });
     if (!m) {
       throw new NotFoundException('Module not found');
@@ -762,5 +1018,6 @@ export class ModulesService {
         'Questions can only be managed in QUIZ modules',
       );
     }
+    return m;
   }
 }

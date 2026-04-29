@@ -1,14 +1,10 @@
-# QuizoO — Детальный чеклист (правильная хронология)
+# QuizoO — чеклист
 
-> **Обновлено:** 4 апреля 2026  
-> **Стек фронтенда:** React Router, Redux Toolkit + RTK Query, axios, Tailwind, shadcn/ui (без TanStack Router / Query и без Zustand).  
-> **Принцип:** Сначала UI и структура, потом бэкенд, потом связываем
+Обновлено: 29 апреля 2026. Фронт: React Router, Redux Toolkit + RTK Query, axios, Tailwind, shadcn/ui.
 
 ---
 
-# 📋 КРАТКИЙ ЧЕКЛИСТ (для быстрого трекинга)
-
-> Галочки для отслеживания прогресса. Детальные инструкции с кодом — ниже в разделе "Детальный план".
+# Краткий чеклист
 
 ---
 
@@ -35,6 +31,15 @@
 - [x] Структура папок
 - [x] Утилита cn.ts
 - [x] .env файлы
+
+### Квиз — прохождение и результаты
+
+- [x] Prisma: вопросы, варианты, пары, `allowMultipleAnswers`, `QuizSession`, `QuizAnswer`, миграции
+- [x] Backend: API модуля и квиза (вопросы с пагинацией, создание и получение сессии)
+- [x] Frontend: `QuizStudyPage`, роут `/app/modules/:moduleId/quiz-study`
+- [x] Конструктор: режим один / несколько ответов для CHOICE
+- [ ] `components/quiz/*`
+- [ ] Модуль `sessions/`, пошаговая отправка ответов
 
 ---
 
@@ -198,65 +203,65 @@
 ### ЭТАП 19: Backend — Questions для квизов
 
 - [ ] 19.1 Создать структуру папок (questions/, entities/, dto/)
-- [ ] 19.2 Добавить модели `Question`, `QuestionOption`, `MatchingPair` в `prisma/schema.prisma`
-- [ ] 19.5 Создать `questions.service.ts`
-- [ ] 19.6 Создать `questions.controller.ts`
-- [ ] 19.7 Создать DTO для каждого типа вопроса
-- [ ] 19.8 Создать `questions.module.ts`
-- [ ] 19.9 Добавить в `app.module.ts`
+- [x] 19.2 Добавить модели `Question`, `QuestionOption`, `MatchingPair`, `allowMultipleAnswers` в `prisma/schema.prisma`
+- [x] 19.5 Создать `questions.service.ts`
+- [x] 19.6 Создать `questions.controller.ts`
+- [x] 19.7 Создать DTO для каждого типа вопроса
+- [x] 19.8 Создать `questions.module.ts`
+- [x] 19.9 Добавить в `app.module.ts`
 - [ ] 19.10 Протестировать через curl
 
 ### ЭТАП 20: Frontend — Компоненты вопросов квиза
 
-- [ ] 20.1 Создать `components/quiz/SingleChoiceQuestion.tsx`
-  - [ ] 4 варианта ответа
-  - [ ] Выбор одного варианта
-  - [ ] Подсветка правильного/неправильного
-- [ ] 20.2 Создать `components/quiz/TextInputQuestion.tsx`
-  - [ ] Поле ввода
+- [x] 20.1 Создать `components/quiz/SingleChoiceQuestion.tsx`
+  - [x] Варианты ответа
+  - [x] Выбор одного или нескольких
+  - [ ] Подсветка правильного/неправильного во время прохождения
+- [x] 20.2 Создать `components/quiz/TextInputQuestion.tsx`
+  - [x] Поле ввода
   - [ ] Кнопка "Ответить"
-  - [ ] Показ правильного ответа
-- [ ] 20.3 Создать `components/quiz/MatchingQuestion.tsx`
-  - [ ] Две колонки (левая и правая)
-  - [ ] Логика соединения пар
-  - [ ] Проверка правильности
+  - [x] Показ правильного ответа
+- [x] 20.3 Создать `components/quiz/MatchingQuestion.tsx`
+  - [x] Две колонки (левая и правая)
+  - [ ] Соединение пар кликом (линии)
+  - [x] Проверка правильности
 
 ### ЭТАП 21: Frontend — Режим квиза
 
 - [ ] 21.1 Создать `hooks/useQuestions.ts`
-- [ ] 21.2 Создать `pages/modules/$id.quiz.tsx`
-  - [ ] Загрузка вопросов
-  - [ ] Перемешивание
-  - [ ] Показ текущего вопроса
-  - [ ] Рендер компонента по типу вопроса
-  - [ ] Прогресс-бар
-  - [ ] Сохранение ответов
-  - [ ] Финальный экран с результатами
+- [x] 21.2 Создать `pages/modules/$id.quiz.tsx`
+  - [x] Загрузка вопросов
+  - [x] Перемешивание
+  - [x] Показ текущего вопроса
+  - [x] Рендер компонента по типу вопроса
+  - [x] Прогресс-бар
+  - [x] Сохранение ответов
+  - [x] Финальный экран с результатами
 
 ### ЭТАП 22: Backend — Sessions (результаты)
 
 - [ ] 22.1 Создать структуру папок (sessions/, dto/)
-- [ ] 22.2 Добавить модели `QuizSession`, `QuizAnswer` в `prisma/schema.prisma` и миграции
-- [ ] 22.3 Создать `sessions.service.ts`
+- [x] 22.2 Добавить модели `QuizSession`, `QuizAnswer` в `prisma/schema.prisma` и миграции
+- [x] 22.3 Создать `sessions.service.ts`
   - [ ] Метод startSession
   - [ ] Метод submitAnswer
-  - [ ] Метод completeSession
-  - [ ] Метод getResults
+  - [x] Метод completeSession
+  - [x] Метод getResults
   - [ ] Метод getHistory
 - [ ] 22.4 Создать `sessions.controller.ts`
 - [ ] 22.5 Создать DTO
 - [ ] 22.6 Создать `sessions.module.ts`
-- [ ] 22.7 Добавить в `app.module.ts`
+- [x] 22.7 Добавить в `app.module.ts`
 - [ ] 22.8 Протестировать через curl
 
 ### ЭТАП 23: Frontend — Статистика
 
-- [ ] 23.1 Создать `hooks/useSessions.ts`
-- [ ] 23.2 Создать `pages/statistics.tsx`
-  - [ ] История всех сессий (таблица)
-  - [ ] Средний балл
-  - [ ] Фильтры по модулю
-  - [ ] Графики прогресса (опционально: recharts)
+- [x] 23.1 Создать `hooks/useSessions.ts`
+- [x] 23.2 Создать `pages/statistics.tsx`
+  - [x] История всех сессий (таблица)
+  - [x] Средний балл
+  - [x] Фильтры по модулю
+  - [x] Графики прогресса (опционально: recharts)
 
 ### ЭТАП 24: Backend — Admin панель
 
@@ -377,18 +382,13 @@
 - [x] Утилита `cn.ts` готова
 - [x] .env файлы созданы
 
-### Что НЕ готово (пустые файлы)
+### Остальное по плану
 
-- [ ] `lib/api/client.ts` — пустой
-- [ ] `store/index.ts` / `store/hooks.ts` — не заполнены
-- [ ] `app/providers/StoreProvider.tsx` — пустой
-- [ ] `App.tsx` — нет `Routes` / `BrowserRouter`
-- [ ] `pages/Home.tsx` — пустой
-- [ ] `main.tsx` — без Redux `Provider` и роутера
+- [ ] См. раздел «Задачи для выполнения» и «План разработки» ниже.
 
 ---
 
-# 🎯 ПЛАН РАЗРАБОТКИ (ПРАВИЛЬНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ)
+# План разработки
 
 ---
 
@@ -1815,367 +1815,66 @@ touch questions.module.ts questions.controller.ts questions.service.ts
 
 ---
 
-## ЭТАП 19: Frontend — Режим квиза
+## ЭТАП 19: Frontend — режим квиза
 
-**Цель:** Прохождение квиза с разными типами вопросов.
-
-### 19.1 ✏️ Создать компоненты вопросов
-
-**`components/quiz/SingleChoiceQuestion.tsx`:**
-
-- 4 варианта ответа
-- Выбор одного
-- Подсветка правильного/неправильного после ответа
-
-**`components/quiz/TextInputQuestion.tsx`:**
-
-- Поле ввода
-- Кнопка "Ответить"
-- Сравнение с эталоном (без учёта регистра)
-
-**`components/quiz/MatchingQuestion.tsx`:**
-
-- Две колонки
-- Соединение пар кликом
-
----
-
-### 19.2 ✏️ Создать `pages/modules/$id.quiz.tsx`
-
-**Логика:**
-
-- Загрузить вопросы
-- Перемешать
-- Показывать по одному
-- Рендерить компонент в зависимости от типа
-- Сохранять ответы
-- Финальный экран с результатами
+- [x] Страница прохождения: CHOICE, TEXT, MATCHING
+- [x] Пагинация, перемешивание, экран результатов с разбором
+- [x] Одиночный и множественный верный ответ (флаг из конструктора)
+- [ ] Вынести в `components/quiz/*`
+- [ ] Подсветка верно/неверно сразу после ответа
+- [ ] Matching: связь пар линиями / drag (сейчас селекты)
 
 ---
 
 ## ЭТАП 20: Backend — Sessions (результаты)
 
-**Цель:** Сохранение результатов прохождений.
-
-### 20.1 ✏️ Создать Session entity
-
-**Поля:**
-
-- id, userId, moduleId, mode, score, completed, createdAt, completedAt
+- [x] Модели и сохранение сессии квиза (`QuizSession`, ответы), эндпоинты в `Modules`
+- [ ] Отдельный модуль `sessions/`, REST как в учебном плане (`POST /sessions`, пошаговые ответы)
 
 ---
 
-### 20.2 ✏️ Создать SessionsService и Controller
+## ЭТАП 21: Frontend — статистика
 
-**Эндпоинты:**
-
-- POST /sessions — начать сессию
-- POST /sessions/:id/answer — отправить ответ
-- PATCH /sessions/:id/complete — завершить
-- GET /sessions/history — история
-- GET /sessions/:id/results — результаты
+- [ ] Страница истории сессий, средний балл, графики (например recharts)
 
 ---
 
-## ЭТАП 21: Frontend — Статистика
+## ЭТАП 22: Backend — admin
 
-**Цель:** История прохождений и графики.
-
-### 21.1 ✏️ Создать `pages/statistics.tsx`
-
-**Что показывать:**
-
-- История всех сессий (таблица)
-- Средний балл
-- Графики прогресса (можно использовать recharts)
+- [ ] `RolesGuard`, только admin
+- [ ] `GET /admin/users`, `PATCH /admin/users/:id/block`
+- [ ] `GET /admin/modules`, `DELETE /admin/modules/:id`
 
 ---
 
-## ЭТАП 22: Backend — Admin панель
+## ЭТАП 23: Frontend — admin
 
-**Цель:** Управление пользователями и модулями.
-
-### 22.1 ✏️ Создать RolesGuard
-
-**`auth/guards/roles.guard.ts`:**
-
-Проверка роли (только admin).
-
----
-
-### 22.2 ✏️ Создать Admin контроллер
-
-**Эндпоинты:**
-
-- GET /admin/users — все пользователи
-- PATCH /admin/users/:id/block — блокировка
-- GET /admin/modules — все модули
-- DELETE /admin/modules/:id — удаление
-
----
-
-## ЭТАП 23: Frontend — Admin панель
-
-**Цель:** Страницы для администратора.
-
-### 23.1 ✏️ Создать `pages/admin/index.tsx`
-
-**Таблица пользователей с кнопками блокировки**
-
----
-
-### 23.2 ✏️ Создать `pages/admin/modules.tsx`
-
-**Таблица всех модулей с кнопками удаления**
+- [ ] `pages/admin/index.tsx` — пользователи и блокировка
+- [ ] `pages/admin/modules.tsx` — модули и удаление
 
 ---
 
 ## ЭТАП 24: Docker и Nginx
 
-**Цель:** Контейнеризация и деплой.
-
-### 24.1 ✏️ Создать `frontend/Dockerfile`
-
-**Multi-stage build:**
-
-1. Stage 1: сборка (npm install, npm run build)
-2. Stage 2: nginx с статикой
-
----
-
-### 24.2 ✏️ Создать `backend/Dockerfile`
-
-**Multi-stage build:**
-
-1. Stage 1: установка зависимостей
-2. Stage 2: сборка TypeScript
-3. Stage 3: production image (только dist и node_modules prod)
-
----
-
-### 24.3 ✏️ Создать `docker-compose.yml`
-
-**Сервисы:**
-
-- frontend (порт 3000)
-- backend (порт 3001)
-- postgres (порт 5432)
-- nginx (порт 80)
-
----
-
-### 24.4 ✏️ Настроить `nginx/nginx.conf`
-
-**Маршрутизация:**
-
-- `/api/*` → backend:3001
-- `/*` → frontend:3000
-
----
-
-### 24.5 ✅ Проверить полную сборку
-
-```bash
-docker-compose up --build
-```
+- [ ] `frontend/Dockerfile` (multi-stage)
+- [ ] `backend/Dockerfile` (multi-stage)
+- [ ] `docker-compose.yml` (frontend, backend, postgres, nginx)
+- [ ] `nginx/nginx.conf`: `/api/*` → backend, остальное → frontend
+- [ ] `docker-compose up --build`
 
 ---
 
 ## ЭТАП 25: Тестирование
 
-**Цель:** Убедиться что всё работает.
-
-### 25.1 ✏️ Написать unit-тесты (backend)
-
-**Для сервисов:**
-
-- AuthService (register, login)
-- ModulesService (CRUD)
-- CardsService (CRUD)
+- [ ] Unit: AuthService, ModulesService, CardsService
+- [ ] E2E: регистрация → модуль → карточки; карточки → результат; квиз → результаты
+- [ ] Ручная проверка: регистрация/логин, модули обоих типов, карточки, квиз, статистика, админка, адаптив
 
 ---
 
-### 25.2 ✏️ Написать e2e тесты (backend)
+## ЭТАП 26: Документация
 
-**Сценарии:**
-
-- Регистрация → логин → создание модуля → добавление карточек
-- Прохождение карточек → сохранение результата
-- Прохождение квиза → результаты
+- [ ] README: проект, стек, запуск (локально + Docker), структура, API, скриншоты
+- [ ] Swagger в backend (опционально)
 
 ---
-
-### 25.3 ✅ Ручное тестирование
-
-**Проверить все сценарии:**
-
-- [ ] Регистрация и логин
-- [ ] Создание модуля (оба типа)
-- [ ] Добавление карточек
-- [ ] Режим карточек
-- [ ] Режим квиза
-- [ ] Статистика
-- [ ] Админка
-- [ ] Адаптивность (мобила, планшет, десктоп)
-
----
-
-## ЭТАП 26: Документация и финализация
-
-### 26.1 ✏️ Обновить README.md
-
-**Что добавить:**
-
-- Описание проекта
-- Стек технологий
-- Инструкция по запуску (локально и через Docker)
-- Структура проекта
-- API эндпоинты
-- Скриншоты
-
----
-
-### 26.2 ✏️ Добавить Swagger (опционально)
-
-```bash
-cd backend
-npm install @nestjs/swagger
-```
-
-**В `main.ts` настроить Swagger UI:**
-
-```typescript
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-
-const config = new DocumentBuilder()
-  .setTitle('QuizOo API')
-  .setVersion('1.0')
-  .addBearerAuth()
-  .build();
-
-const document = SwaggerModule.createDocument(app, config);
-SwaggerModule.setup('api/docs', app, document);
-```
-
-**Доступ:** http://localhost:3001/api/docs
-
----
-
-# 📝 КРАТКИЙ ЧЕКЛИСТ ДЛЯ УТРА
-
-## Прямо сейчас (базовая настройка):
-
-- [ ] Заполнить `lib/api/client.ts` (простая версия без токенов)
-- [ ] Настроить `store/` и Redux `Provider`
-- [ ] Собрать `App.tsx` с маршрутами и `pages/Home.tsx` (лендинг)
-- [ ] Обновить `main.tsx` (Redux + `BrowserRouter`)
-- [ ] Запустить `npm run dev` и проверить
-
-## Потом (UI — shadcn):
-
-- [ ] Добавить примитивы shadcn под дизайн-систему
-- [ ] Обновить лендинг с `Button` и ссылками
-- [ ] Проверить внешний вид по `techDesign.md`
-
-## Затем (типы):
-
-- [ ] Создать types/api.ts, user.ts, module.ts, session.ts
-- [ ] Создать types/index.ts (реэкспорт)
-
-## Дальше (бэкенд):
-
-- [ ] Установить зависимости для БД
-- [ ] Запустить PostgreSQL
-- [ ] Настроить Prisma (schema, PrismaModule)
-- [ ] Добавить модель User и UsersModule
-- [ ] Установить зависимости для JWT
-- [ ] Создать Auth модуль
-- [ ] Протестировать регистрацию и логин
-
-## После (фронтенд с авторизацией):
-
-- [ ] Создать `authSlice` и подключить к store
-- [ ] Реализовать login / register (thunk или RTK Query) и селекторы сессии
-- [ ] Создать страницы `pages/Login.tsx` и `pages/Register.tsx`
-- [ ] Протестировать флоу авторизации
-- [ ] **ТОЛЬКО ТЕПЕРЬ** обновить `client.ts` с interceptors для токенов
-
-## Основная функциональность:
-
-- [ ] Backend: Modules и Cards
-- [ ] Frontend: хуки для модулей
-- [ ] Frontend: dashboard со списком модулей
-- [ ] Frontend: создание модуля
-- [ ] Frontend: страница модуля
-- [ ] Frontend: редактор карточек
-- [ ] Frontend: режим карточек
-- [ ] Backend: Questions для квизов
-- [ ] Frontend: режим квиза
-- [ ] Backend: Sessions (результаты)
-- [ ] Frontend: статистика
-
-## Финал:
-
-- [ ] Админка (бэк + фронт)
-- [ ] Docker и docker-compose
-- [ ] Тестирование
-- [ ] Документация
-
----
-
-# 🎓 ЧТО ИЗУЧАТЬ ПО ХОДУ
-
-## Сейчас (этапы 1-3):
-
-- **react-router-dom:** BrowserRouter, Routes, Route, Outlet, Link, Navigate, useNavigate
-- **Redux Toolkit:** configureStore, createSlice, createAsyncThunk; **RTK Query:** createApi, endpoints, generated hooks
-- **React:** forwardRef, useState, useEffect
-- **Tailwind CSS + shadcn/ui:** утилитные классы, `cn`, responsive design
-
-## Потом (этапы 4-10):
-
-- **Prisma:** `schema.prisma`, `PrismaClient`, связи, `prisma migrate`
-- **NestJS:** modules, controllers, services, dependency injection
-- **JWT:** access/refresh токены, payload, interceptors
-- **bcrypt:** хеширование паролей
-- **Axios:** interceptors, request/response
-
-## Дальше (этапы 11-19):
-
-- **RTK Query:** `providesTags` / `invalidatesTags`, кэш, `refetch`, мутации
-- **Redux Toolkit:** слайсы, селекторы, `redux-persist` (по необходимости)
-- **TypeScript:** generics, union types, utility types
-- **React:** controlled components, forms, conditional rendering
-
-## В конце (этапы 20-26):
-
-- **Docker:** Dockerfile, multi-stage build, docker-compose
-- **Nginx:** reverse proxy, static files
-- **Testing:** Jest, Supertest, e2e tests
-- **Swagger:** документирование API
-
----
-
-# 🚀 РЕКОМЕНДУЕМЫЙ ТЕМП
-
-**Неделя 1:** Этапы 1-10 (настройка фронта, БД, авторизация)  
-**Неделя 2:** Этапы 11-16 (модули, карточки, редакторы)  
-**Неделя 3:** Этапы 17-21 (режимы обучения, статистика)  
-**Неделя 4:** Этапы 22-26 (админка, Docker, тесты, документация)
-
----
-
-# 💡 ВАЖНЫЕ ПРИНЦИПЫ
-
-1. **Сначала UI, потом бэкенд** — так видишь результат быстрее
-2. **Один модуль за раз** — не прыгай между задачами
-3. **Тестируй после каждого этапа** — не накапливай баги
-4. **Коммить часто** — маленькие коммиты проще откатить
-5. **Читай доки** — не гадай, как работает библиотека
-6. **Не усложняй** — если можно проще, делай проще
-
----
-
-**Успехов! 🎉**
-
-**Начинай с этапа 1.1 — заполнения `lib/api/client.ts` и скелета `store/` + роутера (`docs/frontend-setup-from-step4.md`).**

@@ -49,6 +49,19 @@ export class ModulesController {
     return this.modules.getModule(userId, moduleId);
   }
 
+  @Get(':moduleId/quiz-questions')
+  getQuizQuestionsPage(
+    @CurrentUserId() userId: string,
+    @Param('moduleId') moduleId: string,
+    @Query('take', new ParseIntPipe({ optional: true })) take?: number,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.modules.getQuizQuestionsPage(userId, moduleId, {
+      take,
+      cursor,
+    });
+  }
+
   @Patch(':moduleId')
   update(
     @CurrentUserId() userId: string,
@@ -102,6 +115,34 @@ export class ModulesController {
     return this.modules.createFlashcardSession(userId, moduleId, body);
   }
 
+  @Post(':moduleId/quiz-sessions')
+  @HttpCode(HttpStatus.CREATED)
+  completeQuizSession(
+    @CurrentUserId() userId: string,
+    @Param('moduleId') moduleId: string,
+    @Body()
+    body: {
+      answers?: Array<{
+        questionId?: string;
+        choiceOptionId?: string | null;
+        choiceOptionIds?: string[] | null;
+        textAnswer?: string | null;
+        matchingAnswer?: Record<string, string> | null;
+      }>;
+    },
+  ) {
+    return this.modules.createQuizSession(userId, moduleId, body);
+  }
+
+  @Get(':moduleId/quiz-sessions/:sessionId')
+  getQuizSession(
+    @CurrentUserId() userId: string,
+    @Param('moduleId') moduleId: string,
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.modules.getQuizSession(userId, moduleId, sessionId);
+  }
+
   @Post(':moduleId/questions')
   addQuestion(
     @CurrentUserId() userId: string,
@@ -110,6 +151,7 @@ export class ModulesController {
     body: {
       questionText?: string;
       type?: string;
+      allowMultipleAnswers?: boolean;
       orderIndex?: number;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
@@ -128,6 +170,7 @@ export class ModulesController {
       questionText?: string;
       orderIndex?: number;
       type?: string;
+      allowMultipleAnswers?: boolean;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
     },
