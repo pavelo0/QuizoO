@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { apiErrorMessage } from '@/lib/apiErrorMessage';
 import { apiClient } from '@/lib/api/client';
+import { useI18n } from '@/i18n/useI18n';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import {
   PROFILE_AVATAR_ACCEPT,
@@ -61,6 +62,7 @@ const sectionClass =
 
 const ProfilePage = () => {
   const { user, refresh } = useAuthContext();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,7 +108,7 @@ const ProfilePage = () => {
     return (
       <div className="flex items-center gap-2 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
         <Loader2 className="size-4 animate-spin" aria-hidden />
-        Loading profile…
+        {t('profile.loading')}
       </div>
     );
   }
@@ -314,11 +316,10 @@ const ProfilePage = () => {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="font-(family-name:--font-syne) text-3xl font-extrabold tracking-[-0.02em] text-(--text-primary)">
-          Profile
+          {t('profile.title')}
         </h1>
         <p className="mt-2 max-w-lg font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          Photo, display name, email, and password. Sign out when you are done
-          on this device.
+          {t('profile.subtitle')}
         </p>
       </div>
 
@@ -345,7 +346,7 @@ const ProfilePage = () => {
           id="profile-identity-heading"
           className="font-(family-name:--font-dm-sans) text-sm font-semibold text-(--text-primary)"
         >
-          Identity
+          {t('profile.identity')}
         </h2>
         <p className="mt-1 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
           Your photo defaults to your initial and a unique color. You can upload
@@ -394,7 +395,7 @@ const ProfilePage = () => {
                 ) : (
                   <ImageUp className="size-4" strokeWidth={1.75} />
                 )}
-                Upload photo
+                {t('profile.uploadPhoto')}
               </Button>
               {hasCustomAvatar ? (
                 <Button
@@ -406,7 +407,7 @@ const ProfilePage = () => {
                   onClick={() => void handleRemoveAvatar()}
                 >
                   <Trash2 className="size-4" strokeWidth={1.75} />
-                  Remove
+                  {t('profile.remove')}
                 </Button>
               ) : null}
             </div>
@@ -418,7 +419,7 @@ const ProfilePage = () => {
                 htmlFor="profile-nickname"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Display name
+                {t('profile.displayName')}
               </Label>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <Input
@@ -429,7 +430,7 @@ const ProfilePage = () => {
                     setDisplayNameError(null);
                   }}
                   autoComplete="nickname"
-                  placeholder="How others see you"
+                  placeholder={t('profile.howOthersSeeYou')}
                   aria-invalid={!!displayNameError}
                   className={cn(
                     fieldClass,
@@ -446,7 +447,7 @@ const ProfilePage = () => {
                   disabled={nicknamePending}
                   onClick={() => void handleSaveNickname()}
                 >
-                  {nicknamePending ? 'Saving…' : 'Save'}
+                  {nicknamePending ? t('auth.saving') : t('common.save')}
                 </Button>
               </div>
               {displayNameError ? (
@@ -482,7 +483,7 @@ const ProfilePage = () => {
                 }}
               >
                 <Mail className="size-4" strokeWidth={1.75} />
-                Change email
+                {t('profile.changeEmail')}
               </Button>
             </div>
           </div>
@@ -497,7 +498,7 @@ const ProfilePage = () => {
           id="profile-security-heading"
           className="font-(family-name:--font-dm-sans) text-sm font-semibold text-(--text-primary)"
         >
-          Security
+          {t('profile.security')}
         </h2>
         <p className="mt-1 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
           Update your password regularly. You will need your current password to
@@ -514,7 +515,7 @@ const ProfilePage = () => {
           }}
         >
           <KeyRound className="size-4" strokeWidth={1.75} />
-          Change password
+          {t('profile.changePassword')}
         </Button>
       </section>
 
@@ -526,7 +527,7 @@ const ProfilePage = () => {
           id="profile-session-heading"
           className="font-(family-name:--font-dm-sans) text-sm font-semibold text-(--text-primary)"
         >
-          Session
+          {t('profile.session')}
         </h2>
         <p className="mt-1 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
           Sign out and return to the home page. Your session will end on this
@@ -541,7 +542,7 @@ const ProfilePage = () => {
           disabled={logoutPending}
         >
           <LogOut className="size-4" strokeWidth={1.75} />
-          Log out
+          {t('profile.logOut')}
         </Button>
       </section>
 
@@ -549,16 +550,15 @@ const ProfilePage = () => {
         <AlertDialogContent className="border-(--border-default) bg-(--bg-color) text-(--text-primary)">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
-              Sign out?
+              {t('profile.signOutQuestion')}
             </AlertDialogTitle>
             <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
-              You will need to sign in again to access your modules and
-              progress.
+              {t('profile.signOutDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-(--border-default)">
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               className="bg-(--primary-accent) text-white hover:bg-(--primary-accent)/90"
@@ -568,7 +568,7 @@ const ProfilePage = () => {
               }}
               disabled={logoutPending}
             >
-              {logoutPending ? 'Signing out…' : 'Sign out'}
+              {logoutPending ? t('profile.signingOut') : t('profile.signOut')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -586,7 +586,7 @@ const ProfilePage = () => {
         <DialogContent className="border-(--border-default) bg-(--bg-color) text-(--text-primary) sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-(family-name:--font-syne) text-base">
-              Change password
+              {t('profile.changePassword')}
             </DialogTitle>
             <DialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
               8–64 characters, with uppercase, lowercase, number, and a special
@@ -794,7 +794,7 @@ const ProfilePage = () => {
         <DialogContent className="border-(--border-default) bg-(--bg-color) text-(--text-primary) sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-(family-name:--font-syne) text-base">
-              Change email
+              {t('profile.changeEmail')}
             </DialogTitle>
             <DialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
               Your account email is updated immediately. We send a verification
