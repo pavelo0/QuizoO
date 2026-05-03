@@ -6,9 +6,12 @@ import { GoogleIcon } from '@/components/ui/icons/GoogleIcon';
 import { Label } from '@/components/ui/label';
 import { apiClient } from '@/lib/api/client';
 import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { getHomeRouteByRole } from '@/lib/authRoute';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
+import type { ApiPublicUser } from '@/types/api-user';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -36,6 +39,7 @@ const RegisterPage = () => {
   const [pending, setPending] = useState(false);
 
   const { refresh } = useAuthContext();
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   const handleCredentialsSubmit = async (
@@ -98,13 +102,16 @@ const RegisterPage = () => {
     setCodeError(null);
     setPending(true);
     try {
-      await apiClient.post('/auth/verify-email', {
-        email: registerEmail,
-        code,
-      });
+      const { data: verifiedUser } = await apiClient.post<ApiPublicUser>(
+        '/auth/verify-email',
+        {
+          email: registerEmail,
+          code,
+        },
+      );
       await refresh();
       toast.success('Email verified. You are signed in.');
-      navigate('/app', { replace: true });
+      navigate(getHomeRouteByRole(verifiedUser.role), { replace: true });
     } catch (err) {
       toast.error(apiErrorMessage(err));
     } finally {
@@ -160,7 +167,7 @@ const RegisterPage = () => {
                 htmlFor="register-verification-code"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Verification code
+                {t('auth.verificationCode')}
               </label>
               <Input
                 id="register-verification-code"
@@ -193,7 +200,7 @@ const RegisterPage = () => {
               type="submit"
               disabled={pending}
             >
-              {pending ? 'Verifying…' : 'Verify and continue'}
+              {pending ? 'Verifying...' : t('auth.verifyAndContinue')}
             </Button>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <button
@@ -202,7 +209,7 @@ const RegisterPage = () => {
                 onClick={handleResendCode}
                 disabled={pending}
               >
-                Resend code
+                {t('auth.resendCode')}
               </button>
               <button
                 type="button"
@@ -210,7 +217,7 @@ const RegisterPage = () => {
                 onClick={handleBackToCredentials}
                 disabled={pending}
               >
-                Change email
+                {t('auth.changeEmail')}
               </button>
             </div>
           </form>
@@ -431,12 +438,12 @@ const RegisterPage = () => {
             </div>
 
             <p className="text-center font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-              Already have an account?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <Link
                 to="/auth/login"
                 className="font-semibold text-(--primary-accent) transition-opacity hover:opacity-90"
               >
-                Log in
+                {t('auth.logIn')}
               </Link>
             </p>
           </form>

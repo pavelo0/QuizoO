@@ -2,6 +2,8 @@ import { useAuthContext } from '@/auth/AuthContext';
 import { Button, Input } from '@/components/ui';
 import { apiErrorMessage } from '@/lib/apiErrorMessage';
 import { apiClient } from '@/lib/api/client';
+import { getHomeRouteByRole } from '@/lib/authRoute';
+import { useI18n } from '@/i18n/useI18n';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import { cn } from '@/lib/utils';
 import {
@@ -10,6 +12,7 @@ import {
   type ForgotPasswordEmailValues,
   type ResetPasswordFormValues,
 } from '@/schemas/auth';
+import type { ApiPublicUser } from '@/types/api-user';
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -36,6 +39,7 @@ const ForgotPasswordPage = () => {
   const [pending, setPending] = useState(false);
 
   const { user, refresh } = useAuthContext();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const signedIn = Boolean(user);
 
@@ -103,14 +107,17 @@ const ForgotPasswordPage = () => {
 
     setPending(true);
     try {
-      await apiClient.post('/auth/reset-password', {
-        email,
-        code: trimmedCode,
-        newPassword: parsed.data.password,
-      });
+      const { data: signedInUser } = await apiClient.post<ApiPublicUser>(
+        '/auth/reset-password',
+        {
+          email,
+          code: trimmedCode,
+          newPassword: parsed.data.password,
+        },
+      );
       await refresh();
       toast.success('Password updated. You are signed in.');
-      navigate('/app', { replace: true });
+      navigate(getHomeRouteByRole(signedInUser.role), { replace: true });
     } catch (err) {
       toast.error(apiErrorMessage(err));
     } finally {
@@ -204,7 +211,7 @@ const ForgotPasswordPage = () => {
               type="submit"
               disabled={pending}
             >
-              {pending ? 'Sending…' : 'Send reset code'}
+              {pending ? 'Sending...' : t('auth.sendResetCode')}
             </Button>
             <p className="text-center font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
               {signedIn ? (
@@ -212,14 +219,14 @@ const ForgotPasswordPage = () => {
                   to="/app/profile"
                   className="font-semibold text-(--primary-accent) transition-opacity hover:opacity-90"
                 >
-                  Back to profile
+                  {t('auth.backToProfile')}
                 </Link>
               ) : (
                 <Link
                   to="/auth/login"
                   className="font-semibold text-(--primary-accent) transition-opacity hover:opacity-90"
                 >
-                  Back to log in
+                  {t('auth.backToLogin')}
                 </Link>
               )}
             </p>
@@ -330,7 +337,7 @@ const ForgotPasswordPage = () => {
               type="submit"
               disabled={pending}
             >
-              {pending ? 'Saving…' : 'Save password and sign in'}
+              {pending ? t('auth.saving') : t('auth.savePasswordAndSignIn')}
             </Button>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
               <button
