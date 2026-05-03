@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   OnModuleInit,
@@ -111,5 +112,141 @@ export class UsersService implements OnModuleInit {
       path: this.avatarFilePath(userId),
       mime: user.avatarMime,
     };
+  }
+
+  async getAdminOverview(adminUserId: string) {
+    await this.assertAdmin(adminUserId);
+    const startToday = new Date();
+    startToday.setHours(0, 0, 0, 0);
+
+    const [totalUsers, totalModules, blockedUsers, flashToday, quizToday] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.module.count(),
+        this.prisma.user.count({ where: { isBlocked: true } }),
+        this.prisma.flashcardSession.count({
+          where: { completedAt: { gte: startToday } },
+        }),
+        this.prisma.quizSession.count({
+          where: { completedAt: { gte: startToday } },
+        }),
+      ]);
+
+    return {
+      totalUsers,
+      totalModules,
+      sessionsToday: flashToday + quizToday,
+      blockedUsers,
+    };
+  }
+
+  async listUsersForAdmin(adminUserId: string) {
+    await this.assertAdmin(adminUserId);
+    const users = await this.prisma.user.findMany({
+      select: {
+        ...userPublicSelect,
+        _count: { select: { modules: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return users.map((user) => ({
+      ...user,
+      moduleCount: user._count.modules,
+    }));
+  }
+
+  async listModulesForAdmin(adminUserId: string) {
+    await this.assertAdmin(adminUserId);
+    const modules = await this.prisma.module.findMany({
+      include: {
+        user: {
+          select: { id: true, email: true, username: true, isBlocked: true },
+        },
+        _count: { select: { cards: true, questions: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const moduleIds = modules.map((m) => m.id);
+    if (moduleIds.length < 1) {
+      return [];
+    }
+
+    const [flashByModule, quizByModule] = await Promise.all([
+      this.prisma.flashcardSession.groupBy({
+        by: ['moduleId'],
+        where: { moduleId: { in: moduleIds }, completedAt: { not: null } },
+        _count: { _all: true },
+      }),
+      this.prisma.quizSession.groupBy({
+        by: ['moduleId'],
+        where: { moduleId: { in: moduleIds }, completedAt: { not: null } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const sessionCountMap = new Map<string, number>();
+    for (const row of flashByModule) {
+      sessionCountMap.set(row.moduleId, row._count._all);
+    }
+    for (const row of quizByModule) {
+      const current = sessionCountMap.get(row.moduleId) ?? 0;
+      sessionCountMap.set(row.moduleId, current + row._count._all);
+    }
+
+    return modules.map((m) => ({
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      type: m.type,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+      cardCount: m._count.cards,
+      questionCount: m._count.questions,
+      sessionCount: sessionCountMap.get(m.id) ?? 0,
+      owner: {
+        id: m.user.id,
+        email: m.user.email,
+        username: m.user.username,
+        isBlocked: m.user.isBlocked,
+      },
+    }));
+  }
+
+  async setUserBlockedForAdmin(
+    adminUserId: string,
+    targetUserId: string,
+    isBlocked: boolean,
+  ) {
+    await this.assertAdmin(adminUserId);
+    if (adminUserId === targetUserId) {
+      throw new BadRequestException('You cannot block your own account');
+    }
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, role: true },
+    });
+    if (!target) {
+      throw new NotFoundException('User not found');
+    }
+    if (target.role === 'ADMIN') {
+      throw new BadRequestException('Admin accounts cannot be blocked');
+    }
+    return this.prisma.user.update({
+      where: { id: targetUserId },
+      data: { isBlocked },
+      select: userPublicSelect,
+    });
+  }
+
+  private async assertAdmin(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (!user || user.role !== 'ADMIN') {
+      throw new ForbiddenException('Admin access required');
+    }
   }
 }
