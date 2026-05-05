@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui';
+import { useI18n } from '@/i18n/useI18n';
 import { Home, LayoutDashboard, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -7,6 +8,7 @@ type NotFoundPageProps = {
 };
 
 export default function NotFoundPage({ inService = false }: NotFoundPageProps) {
+  const { t } = useI18n();
   return (
     <div className="flex min-h-[60dvh] items-center justify-center">
       <section className="w-full max-w-2xl rounded-3xl border border-(--border-default) bg-(--surface-color) p-8 shadow-sm">
@@ -16,14 +18,13 @@ export default function NotFoundPage({ inService = false }: NotFoundPageProps) {
           </div>
 
           <p className="font-(family-name:--font-jetbrains-mono) text-xs font-semibold uppercase tracking-[0.14em] text-(--text-secondary)">
-            Error 404
+            {t('notFound.error')}
           </p>
           <h1 className="mt-2 font-(family-name:--font-syne) text-4xl font-extrabold tracking-[-0.03em] text-(--text-primary) sm:text-5xl">
-            Page not found
+            {t('notFound.title')}
           </h1>
           <p className="mt-3 text-sm text-(--text-secondary) sm:text-base">
-            The page you are looking for does not exist, was moved, or the URL
-            is incorrect.
+            {t('notFound.subtitle')}
           </p>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -35,7 +36,7 @@ export default function NotFoundPage({ inService = false }: NotFoundPageProps) {
             >
               <Link to="/">
                 <Home className="size-4" strokeWidth={1.75} />
-                Go home
+                {t('notFound.goHome')}
               </Link>
             </Button>
 
@@ -47,7 +48,7 @@ export default function NotFoundPage({ inService = false }: NotFoundPageProps) {
             >
               <Link to="/app">
                 <LayoutDashboard className="size-4" strokeWidth={1.75} />
-                Go to dashboard
+                {t('notFound.goDashboard')}
               </Link>
             </Button>
           </div>

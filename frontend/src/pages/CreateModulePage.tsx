@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { getOrCreateQuizDraftId } from '@/lib/quizModuleDraft';
 import { getOrCreateFlashcardDraftId } from '@/lib/flashcardModuleDraft';
+import { useI18n } from '@/i18n/useI18n';
 import type { ModuleType } from '@/types/module';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -13,6 +14,7 @@ type Phase = 'working' | 'error';
  * на соответствующую страницу редактирования.
  */
 const CreateModulePage = () => {
+  const { t } = useI18n();
   const [params] = useSearchParams();
   const raw = (params.get('type') || '').toUpperCase();
   const type = (
@@ -35,9 +37,9 @@ const CreateModulePage = () => {
       void navigate(target, { replace: true });
     } catch {
       setPhase('error');
-      toast.error('Could not create a module. Try again.');
+      toast.error(t('createModule.toastCreateFailed'));
     }
-  }, [navigate, type]);
+  }, [navigate, t, type]);
 
   useEffect(() => {
     if (!type) return;
@@ -51,7 +53,7 @@ const CreateModulePage = () => {
     return (
       <div className="mx-auto max-w-lg">
         <p className="text-sm text-(--text-secondary)">
-          Missing or invalid module type.
+          {t('createModule.invalidType')}
         </p>
         <Button
           asChild
@@ -59,7 +61,7 @@ const CreateModulePage = () => {
           className="mt-6 rounded-xl"
           size="outlineCompact"
         >
-          <Link to="/app">Back to dashboard</Link>
+          <Link to="/app">{t('common.backToDashboard')}</Link>
         </Button>
       </div>
     );
@@ -69,10 +71,10 @@ const CreateModulePage = () => {
     return (
       <div className="mx-auto max-w-lg text-center">
         <h1 className="font-(family-name:--font-syne) text-2xl font-bold text-(--text-primary)">
-          Could not start
+          {t('createModule.couldNotStart')}
         </h1>
         <p className="mt-2 text-sm text-(--text-secondary)">
-          Something went wrong while creating the module.
+          {t('createModule.couldNotCreate')}
         </p>
         <Button
           type="button"
@@ -84,11 +86,11 @@ const CreateModulePage = () => {
             void goCreate();
           }}
         >
-          Try again
+          {t('createModule.tryAgain')}
         </Button>
         <div className="mt-3">
           <Button asChild variant="ghost" size="sm" className="rounded-xl">
-            <Link to="/app">Back to dashboard</Link>
+            <Link to="/app">{t('common.backToDashboard')}</Link>
           </Button>
         </div>
       </div>
@@ -106,7 +108,12 @@ const CreateModulePage = () => {
         aria-hidden
       />
       <p className="text-sm">
-        Creating your {type === 'QUIZ' ? 'quiz' : 'flashcard'} module…
+        {t('createModule.creating', {
+          kind:
+            type === 'QUIZ'
+              ? t('createModule.kindQuiz')
+              : t('createModule.kindFlashcard'),
+        })}
       </p>
     </div>
   );

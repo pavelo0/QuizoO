@@ -6,15 +6,19 @@ import {
   profileDisplayInitial,
 } from '@/lib/profileAvatar';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/i18n/useI18n';
 import { useTheme } from '@/theme/useTheme';
 import {
+  BarChart2,
   BarChart3,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
   Moon,
   Settings,
   Sun,
+  Users,
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -22,6 +26,7 @@ import { Link, NavLink } from 'react-router-dom';
 const ServiceHeader = () => {
   const { user } = useAuthContext();
   const { theme, toggle } = useTheme();
+  const { locale, setLocale, t } = useI18n();
   const [isCompact, setIsCompact] = useState(false);
 
   const hasCustomAvatar = Boolean(user?.avatarMime);
@@ -34,7 +39,8 @@ const ServiceHeader = () => {
     ? `${user.avatarMime ?? 'generated'}-${user.updatedAt}`
     : 'guest';
   const profileLabel =
-    user?.username?.trim() || user?.email?.split('@')[0] || 'Profile';
+    user?.username?.trim() || user?.email?.split('@')[0] || t('common.profile');
+  const isAdmin = user?.role === 'ADMIN';
 
   const toggleCompact = useCallback(() => {
     setIsCompact((c) => !c);
@@ -46,7 +52,7 @@ const ServiceHeader = () => {
       isCompact ? 'size-11 shrink-0 justify-center p-0' : 'gap-3 px-3 py-2.5',
       isActive
         ? 'bg-(--primary-accent)/12 text-(--primary-accent)'
-        : 'text-(--text-primary) hover:bg-(--bg-color)',
+        : 'text-(--text-primary) hover:bg-(--primary-accent)/12',
     );
 
   return (
@@ -61,7 +67,7 @@ const ServiceHeader = () => {
           <Link
             to="/app"
             className="font-(family-name:--font-syne) flex size-10 shrink-0 items-center justify-center rounded-2xl text-base font-extrabold leading-none tracking-[-0.04em] text-(--text-primary) no-underline transition-opacity hover:opacity-70"
-            title="QuizoO — Home"
+            title={t('common.dashboard')}
           >
             Q
           </Link>
@@ -70,7 +76,7 @@ const ServiceHeader = () => {
             variant="ghost"
             size="icon"
             className="size-9 shrink-0 rounded-xl text-(--text-secondary) hover:bg-(--bg-color) hover:text-(--text-primary)"
-            aria-label="Expand sidebar"
+            aria-label={t('nav.expandSidebar')}
             onClick={toggleCompact}
           >
             <ChevronRight className="size-4" strokeWidth={2} />
@@ -89,7 +95,7 @@ const ServiceHeader = () => {
             variant="ghost"
             size="icon"
             className="size-10 shrink-0 rounded-2xl text-(--text-primary)"
-            aria-label="Compact menu (icons only)"
+            aria-label={t('nav.compactMenu')}
             onClick={toggleCompact}
           >
             <ChevronLeft className="size-4.5" strokeWidth={1.75} />
@@ -97,18 +103,74 @@ const ServiceHeader = () => {
         </div>
       )}
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-2" aria-label="App">
-        <NavLink to="/app" end title="Dashboard" className={linkClass}>
+      <nav
+        className="flex min-h-0 flex-1 flex-col gap-2"
+        aria-label={t('aria.appNavigation')}
+      >
+        <NavLink
+          to={isAdmin ? '/app/admin' : '/app'}
+          end={!isAdmin}
+          title={t('common.dashboard')}
+          className={linkClass}
+        >
           <LayoutDashboard className="size-4.5 shrink-0" strokeWidth={1.75} />
-          <span className={cn(isCompact && 'sr-only')}>Dashboard</span>
+          <span className={cn(isCompact && 'sr-only')}>
+            {t('common.dashboard')}
+          </span>
         </NavLink>
-        <NavLink to="/app/statistics" title="Statistics" className={linkClass}>
+        {isAdmin ? (
+          <>
+            <NavLink
+              to="/app/admin/users"
+              title={t('common.users')}
+              className={linkClass}
+            >
+              <Users className="size-4.5 shrink-0" strokeWidth={1.75} />
+              <span className={cn(isCompact && 'sr-only')}>
+                {t('common.users')}
+              </span>
+            </NavLink>
+            <NavLink
+              to="/app/admin/modules"
+              title={t('common.modules')}
+              className={linkClass}
+            >
+              <BookOpen className="size-4.5 shrink-0" strokeWidth={1.75} />
+              <span className={cn(isCompact && 'sr-only')}>
+                {t('common.modules')}
+              </span>
+            </NavLink>
+            <NavLink
+              to="/app/admin/analytics"
+              title={t('common.analytics')}
+              className={linkClass}
+            >
+              <BarChart2 className="size-4.5 shrink-0" strokeWidth={1.75} />
+              <span className={cn(isCompact && 'sr-only')}>
+                {t('common.analytics')}
+              </span>
+            </NavLink>
+          </>
+        ) : null}
+        <NavLink
+          to="/app/statistics"
+          title={t('common.statistics')}
+          className={linkClass}
+        >
           <BarChart3 className="size-4.5 shrink-0" strokeWidth={1.75} />
-          <span className={cn(isCompact && 'sr-only')}>Statistics</span>
+          <span className={cn(isCompact && 'sr-only')}>
+            {t('common.statistics')}
+          </span>
         </NavLink>
-        <NavLink to="/app/settings" title="Settings" className={linkClass}>
+        <NavLink
+          to="/app/settings"
+          title={t('common.settings')}
+          className={linkClass}
+        >
           <Settings className="size-4.5 shrink-0" strokeWidth={1.75} />
-          <span className={cn(isCompact && 'sr-only')}>Settings</span>
+          <span className={cn(isCompact && 'sr-only')}>
+            {t('common.settings')}
+          </span>
         </NavLink>
       </nav>
 
@@ -123,16 +185,18 @@ const ServiceHeader = () => {
           variant="ghost"
           size="icon"
           className={cn(
-            'text-(--text-primary) hover:bg-(--bg-color)',
+            'text-(--text-primary) hover:bg-(--primary-accent)/12! dark:hover:bg-(--primary-accent)/12!',
             isCompact
               ? 'size-11 rounded-2xl'
               : 'h-11 w-full justify-start gap-3 rounded-2xl px-3',
           )}
           aria-label={
-            theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
+            theme === 'dark' ? t('common.lightMode') : t('common.darkMode')
           }
           aria-pressed={theme === 'dark'}
-          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          title={
+            theme === 'dark' ? t('common.lightMode') : t('common.darkMode')
+          }
           onClick={toggle}
         >
           {theme === 'dark' ? (
@@ -146,18 +210,43 @@ const ServiceHeader = () => {
               isCompact && 'sr-only',
             )}
           >
-            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            {theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}
+          </span>
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn(
+            'text-(--text-primary) hover:bg-(--primary-accent)/12! dark:hover:bg-(--primary-accent)/12!',
+            isCompact
+              ? 'size-11 rounded-2xl'
+              : 'h-11 w-full justify-start gap-3 rounded-2xl px-3',
+          )}
+          aria-label={t('common.language')}
+          title={t('common.language')}
+          onClick={() => setLocale(locale === 'en' ? 'ru' : 'en')}
+        >
+          <span className="text-xs font-semibold uppercase">{locale}</span>
+          <span
+            className={cn(
+              'font-(family-name:--font-dm-sans) text-sm font-medium',
+              isCompact && 'sr-only',
+            )}
+          >
+            {t('common.language')}
           </span>
         </Button>
 
         <Link
           to="/app/profile"
           className={cn(
-            'flex items-center rounded-2xl transition-colors hover:bg-(--bg-color)',
+            'flex items-center rounded-2xl transition-colors hover:bg-(--primary-accent)/12',
             isCompact ? 'justify-center p-1' : 'gap-3 px-2 py-1.5',
           )}
-          aria-label="Open profile"
-          title="Profile"
+          aria-label={t('nav.openProfile')}
+          title={t('common.profile')}
         >
           <Avatar
             key={avatarInstanceKey}
@@ -189,7 +278,7 @@ const ServiceHeader = () => {
               {profileLabel}
             </p>
             <p className="truncate font-(family-name:--font-dm-sans) text-xs text-(--text-secondary)">
-              {user?.email ?? 'View account'}
+              {user?.email ?? t('service.viewAccount')}
             </p>
           </div>
         </Link>

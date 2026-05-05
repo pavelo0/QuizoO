@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { deleteModule } from '@/lib/api/modules';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type { ModuleListItem } from '@/types/module';
 import { ClipboardList, Clock, Layers, Trash2 } from 'lucide-react';
@@ -18,12 +19,16 @@ import { memo, useCallback, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-function formatLastStudied(iso: string | null): string {
-  if (!iso) return 'Not studied yet';
+function formatLastStudied(
+  iso: string | null,
+  locale: 'en' | 'ru',
+  t: (key: string) => string,
+): string {
+  if (!iso) return t('modules.notStudiedYet');
   const diffSec = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
-  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const abs = Math.abs(diffSec);
-  if (abs < 45) return 'Just now';
+  if (abs < 45) return t('modules.justNow');
   if (abs < 3600) return rtf.format(Math.floor(diffSec / 60), 'minute');
   if (abs < 86400) return rtf.format(Math.floor(diffSec / 3600), 'hour');
   if (abs < 604800) return rtf.format(Math.floor(diffSec / 86400), 'day');
@@ -40,6 +45,7 @@ function DashboardModuleCardInner({
   onModuleDeleted,
 }: DashboardModuleCardProps) {
   const navigate = useNavigate();
+  const { locale, t } = useI18n();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePending, setDeletePending] = useState(false);
   const isFlash = module.type === 'FLASHCARD';
@@ -67,13 +73,13 @@ function DashboardModuleCardInner({
       await deleteModule(module.id);
       await onModuleDeleted(module.id);
       setDeleteOpen(false);
-      toast.success('Module deleted');
+      toast.success(t('modules.moduleDeleted'));
     } catch {
-      toast.error('Could not delete module.');
+      toast.error(t('modules.moduleDeleteFailed'));
     } finally {
       setDeletePending(false);
     }
-  }, [module.id, onModuleDeleted]);
+  }, [module.id, onModuleDeleted, t]);
 
   return (
     <>
@@ -99,10 +105,14 @@ function DashboardModuleCardInner({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="flex flex-wrap gap-2">
               <ModuleBadge variant="mint">
-                {isFlash ? 'Flashcards' : 'Quiz'}
+                {isFlash
+                  ? t('modules.moduleTypeFlashcards')
+                  : t('modules.moduleTypeQuiz')}
               </ModuleBadge>
               <ModuleBadge variant="violet">
-                {count} {isFlash ? 'cards' : 'questions'}
+                {isFlash
+                  ? t('modules.cards', { count })
+                  : t('modules.questions', { count })}
               </ModuleBadge>
             </div>
             <Button
@@ -110,8 +120,8 @@ function DashboardModuleCardInner({
               variant="outlineSoft"
               size="icon-sm"
               className="size-8 rounded-lg text-(--text-secondary)"
-              aria-label={`Delete module ${module.title}`}
-              title="Delete module"
+              aria-label={t('aria.deleteModule')}
+              title={t('aria.deleteModule')}
               onKeyDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -128,7 +138,7 @@ function DashboardModuleCardInner({
             {module.title}
           </h3>
           <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-(--text-secondary)">
-            {module.description?.trim() || 'No description yet.'}
+            {module.description?.trim() || t('modules.noDescription')}
           </p>
           <div className="mt-4 flex items-center gap-1.5 text-xs text-(--text-secondary)">
             <Clock
@@ -136,7 +146,11 @@ function DashboardModuleCardInner({
               strokeWidth={2}
               aria-hidden
             />
-            <span>Last studied: {formatLastStudied(module.lastStudiedAt)}</span>
+            <span>
+              {t('modules.lastStudied', {
+                value: formatLastStudied(module.lastStudiedAt, locale, t),
+              })}
+            </span>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col border-0 px-5 pt-5 pb-5">
@@ -150,8 +164,8 @@ function DashboardModuleCardInner({
             title={
               !canStart
                 ? isFlash
-                  ? 'Add flashcards to start studying'
-                  : 'Add questions to start the quiz'
+                  ? t('modules.addFlashcardsToStart')
+                  : t('modules.addQuestionsToStart')
                 : undefined
             }
             className={cn(
@@ -164,12 +178,12 @@ function DashboardModuleCardInner({
             {isFlash ? (
               <>
                 <Layers className="size-4" strokeWidth={2} aria-hidden />
-                Study flashcards
+                {t('modules.studyFlashcards')}
               </>
             ) : (
               <>
                 <ClipboardList className="size-4" strokeWidth={2} aria-hidden />
-                Start quiz
+                {t('modules.startQuiz')}
               </>
             )}
           </Button>
@@ -180,11 +194,15 @@ function DashboardModuleCardInner({
         <AlertDialogContent className="max-w-sm border-(--border-default) bg-(--bg-color) text-(--text-primary)">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
-              Delete module?
+              {t('modules.deleteTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
-              This will permanently remove <strong>{module.title}</strong> and
-              all its {isFlash ? 'cards' : 'questions'}.
+              {t('modules.deleteDescription', {
+                title: module.title,
+                items: isFlash
+                  ? t('modules.cards', { count })
+                  : t('modules.questions', { count }),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:flex-col sm:gap-2">
@@ -192,7 +210,7 @@ function DashboardModuleCardInner({
               className="w-full border-(--border-default) sm:w-full"
               disabled={deletePending}
             >
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <Button
               type="button"
@@ -201,7 +219,9 @@ function DashboardModuleCardInner({
               disabled={deletePending}
               onClick={() => void handleDelete()}
             >
-              {deletePending ? 'Deleting…' : 'Delete module'}
+              {deletePending
+                ? t('common.deleting')
+                : t('edit.common.deleteAction')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

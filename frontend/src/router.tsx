@@ -1,4 +1,5 @@
 import { GuestOnlyOutlet } from '@/components/auth/GuestOnlyOutlet';
+import { RequireAdmin } from '@/components/auth/RequireAdmin';
 import { RedirectIfSignedIn } from '@/components/auth/RedirectIfSignedIn';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import type { DataRouter } from 'react-router-dom';
@@ -6,6 +7,10 @@ import { createBrowserRouter } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
 import LandingLayout from './layouts/LandingLayout';
 import ServiceLayout from './layouts/ServiceLayout';
+import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminModulesPage from './pages/AdminModulesPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 import CreateModulePage from './pages/CreateModulePage';
 import EditFlashcardModulePage from './pages/EditFlashcardModulePage';
 import EditQuizModulePage from './pages/EditQuizModulePage';
@@ -67,6 +72,38 @@ export const router: DataRouter = createBrowserRouter([
       { path: 'settings', element: <SettingsPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'onboarding', element: <OnboardingPage /> },
+      {
+        path: 'admin',
+        element: (
+          <RequireAdmin>
+            <AdminDashboardPage />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: 'admin/users',
+        element: (
+          <RequireAdmin>
+            <AdminUsersPage />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: 'admin/modules',
+        element: (
+          <RequireAdmin>
+            <AdminModulesPage />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: 'admin/analytics',
+        element: (
+          <RequireAdmin>
+            <AdminAnalyticsPage />
+          </RequireAdmin>
+        ),
+      },
       { path: '*', element: <NotFoundPage inService /> },
     ],
   },

@@ -6,9 +6,12 @@ import { GoogleIcon } from '@/components/ui/icons/GoogleIcon';
 import { Label } from '@/components/ui/label';
 import { apiClient } from '@/lib/api/client';
 import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { getHomeRouteByRole } from '@/lib/authRoute';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import { registerSchema, type RegisterFormValues } from '@/schemas/auth';
+import type { ApiPublicUser } from '@/types/api-user';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -36,6 +39,7 @@ const RegisterPage = () => {
   const [pending, setPending] = useState(false);
 
   const { refresh } = useAuthContext();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
 
   const handleCredentialsSubmit = async (
@@ -70,10 +74,16 @@ const RegisterPage = () => {
 
       setRegisterEmail(validatedData.data.email);
       if (data.verificationCode) {
-        toast.success(`Verification code (lab): ${data.verificationCode}`);
+        toast.success(
+          locale === 'ru'
+            ? `Код подтверждения (lab): ${data.verificationCode}`
+            : `Verification code (lab): ${data.verificationCode}`,
+        );
       } else {
         toast.success(
-          'Account created. Check the API server console for the verification code.',
+          locale === 'ru'
+            ? 'Аккаунт создан. Проверьте консоль API-сервера для кода подтверждения.'
+            : 'Account created. Check the API server console for the verification code.',
         );
       }
       setStep('verification');
@@ -92,19 +102,30 @@ const RegisterPage = () => {
     e.preventDefault();
     const code = verificationCode.trim();
     if (!code) {
-      setCodeError('Enter the verification code');
+      setCodeError(
+        locale === 'ru'
+          ? 'Введите код подтверждения'
+          : 'Enter the verification code',
+      );
       return;
     }
     setCodeError(null);
     setPending(true);
     try {
-      await apiClient.post('/auth/verify-email', {
-        email: registerEmail,
-        code,
-      });
+      const { data: verifiedUser } = await apiClient.post<ApiPublicUser>(
+        '/auth/verify-email',
+        {
+          email: registerEmail,
+          code,
+        },
+      );
       await refresh();
-      toast.success('Email verified. You are signed in.');
-      navigate('/app', { replace: true });
+      toast.success(
+        locale === 'ru'
+          ? 'Email подтвержден. Вы вошли в систему.'
+          : 'Email verified. You are signed in.',
+      );
+      navigate(getHomeRouteByRole(verifiedUser.role), { replace: true });
     } catch (err) {
       toast.error(apiErrorMessage(err));
     } finally {
@@ -121,9 +142,17 @@ const RegisterPage = () => {
         verificationCode?: string;
       }>('/auth/resend-verification', { email: registerEmail });
       if (data.verificationCode) {
-        toast.success(`New code (lab): ${data.verificationCode}`);
+        toast.success(
+          locale === 'ru'
+            ? `Новый код (lab): ${data.verificationCode}`
+            : `New code (lab): ${data.verificationCode}`,
+        );
       } else {
-        toast.success('A new code was logged on the server.');
+        toast.success(
+          locale === 'ru'
+            ? 'Новый код записан в лог сервера.'
+            : 'A new code was logged on the server.',
+        );
       }
     } catch (err) {
       toast.error(apiErrorMessage(err));
@@ -149,10 +178,12 @@ const RegisterPage = () => {
           >
             <div>
               <h2 className="mb-1 font-(family-name:--font-dm-sans) text-lg font-semibold text-(--text-primary)">
-                Verify your email
+                {locale === 'ru' ? 'Подтвердите email' : 'Verify your email'}
               </h2>
               <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-                Enter the code from the server log (lab mode).
+                {locale === 'ru'
+                  ? 'Введите код из лога сервера (режим lab).'
+                  : 'Enter the code from the server log (lab mode).'}
               </p>
             </div>
             <div>
@@ -160,7 +191,7 @@ const RegisterPage = () => {
                 htmlFor="register-verification-code"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Verification code
+                {t('auth.verificationCode')}
               </label>
               <Input
                 id="register-verification-code"
@@ -193,7 +224,11 @@ const RegisterPage = () => {
               type="submit"
               disabled={pending}
             >
-              {pending ? 'Verifying…' : 'Verify and continue'}
+              {pending
+                ? locale === 'ru'
+                  ? 'Проверка...'
+                  : 'Verifying...'
+                : t('auth.verifyAndContinue')}
             </Button>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <button
@@ -202,7 +237,7 @@ const RegisterPage = () => {
                 onClick={handleResendCode}
                 disabled={pending}
               >
-                Resend code
+                {t('auth.resendCode')}
               </button>
               <button
                 type="button"
@@ -210,7 +245,7 @@ const RegisterPage = () => {
                 onClick={handleBackToCredentials}
                 disabled={pending}
               >
-                Change email
+                {t('auth.changeEmail')}
               </button>
             </div>
           </form>
@@ -225,14 +260,14 @@ const RegisterPage = () => {
                 htmlFor="register-name"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Name
+                {locale === 'ru' ? 'Имя' : 'Name'}
               </label>
               <Input
                 id="register-name"
                 name="name"
                 type="text"
                 autoComplete="name"
-                placeholder="Pavelo_0"
+                placeholder={locale === 'ru' ? 'Ваше имя' : 'Pavelo_0'}
                 aria-invalid={!!fieldErrors.name}
                 className={cn(
                   fieldClass,
@@ -254,7 +289,7 @@ const RegisterPage = () => {
                 htmlFor="register-email"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Email
+                {t('auth.email')}
               </label>
               <Input
                 id="register-email"
@@ -284,7 +319,7 @@ const RegisterPage = () => {
                   htmlFor="register-password"
                   className="font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
                 >
-                  Password
+                  {t('auth.password')}
                 </label>
               </div>
               <div className="relative">
@@ -293,7 +328,9 @@ const RegisterPage = () => {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  placeholder="New password"
+                  placeholder={
+                    locale === 'ru' ? 'Новый пароль' : 'New password'
+                  }
                   aria-invalid={!!fieldErrors.password}
                   className={cn(
                     fieldClass,
@@ -304,7 +341,15 @@ const RegisterPage = () => {
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showPassword
+                      ? locale === 'ru'
+                        ? 'Скрыть пароль'
+                        : 'Hide password'
+                      : locale === 'ru'
+                        ? 'Показать пароль'
+                        : 'Show password'
+                  }
                   onClick={() => setShowPassword((v) => !v)}
                 >
                   {showPassword ? (
@@ -330,7 +375,7 @@ const RegisterPage = () => {
                   htmlFor="register-password-confirm"
                   className="font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
                 >
-                  Confirm password
+                  {locale === 'ru' ? 'Подтвердите пароль' : 'Confirm password'}
                 </label>
               </div>
               <div className="relative">
@@ -339,7 +384,11 @@ const RegisterPage = () => {
                   name="passwordConfirm"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  placeholder="Password confirmation here"
+                  placeholder={
+                    locale === 'ru'
+                      ? 'Подтверждение пароля'
+                      : 'Password confirmation here'
+                  }
                   aria-invalid={!!fieldErrors.passwordConfirm}
                   className={cn(
                     fieldClass,
@@ -350,7 +399,15 @@ const RegisterPage = () => {
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showPassword
+                      ? locale === 'ru'
+                        ? 'Скрыть пароль'
+                        : 'Hide password'
+                      : locale === 'ru'
+                        ? 'Показать пароль'
+                        : 'Show password'
+                  }
                   onClick={() => setShowPassword((v) => !v)}
                 >
                   {showPassword ? (
@@ -381,7 +438,7 @@ const RegisterPage = () => {
                 htmlFor="register-remember"
                 className="cursor-pointer font-(family-name:--font-dm-sans) text-sm font-normal text-(--text-primary)"
               >
-                Remember me
+                {t('auth.rememberMe')}
               </Label>
             </div>
 
@@ -392,7 +449,11 @@ const RegisterPage = () => {
               type="submit"
               disabled={pending}
             >
-              {pending ? 'Please wait…' : 'Sign up'}
+              {pending
+                ? locale === 'ru'
+                  ? 'Подождите...'
+                  : 'Please wait...'
+                : t('auth.signUp')}
             </Button>
 
             <div
@@ -402,7 +463,7 @@ const RegisterPage = () => {
             >
               <span className="h-px flex-1 bg-(--border-default)" aria-hidden />
               <span className="font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-(--text-secondary)">
-                or
+                {locale === 'ru' ? 'или' : 'or'}
               </span>
               <span className="h-px flex-1 bg-(--border-default)" aria-hidden />
             </div>
@@ -431,12 +492,12 @@ const RegisterPage = () => {
             </div>
 
             <p className="text-center font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-              Already have an account?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <Link
                 to="/auth/login"
                 className="font-semibold text-(--primary-accent) transition-opacity hover:opacity-90"
               >
-                Log in
+                {t('auth.logIn')}
               </Link>
             </p>
           </form>

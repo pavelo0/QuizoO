@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useSessions, type SessionsRange } from '@/hooks/useSessions';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type { ModuleSessionActivity } from '@/types/module';
 import {
@@ -18,10 +19,11 @@ import {
   Sparkles,
   Target,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-US', {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -29,22 +31,32 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function formatDay(value: string) {
-  return new Intl.DateTimeFormat('en-US', {
+function formatDay(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: '2-digit',
   }).format(new Date(value));
 }
 
-function formatRelative(value: string) {
+function formatRelative(
+  value: string,
+  t: (
+    key:
+      | 'statistics.justNow'
+      | 'statistics.hoursAgo'
+      | 'statistics.yesterday'
+      | 'statistics.daysAgo',
+    vars?: Record<string, string | number>,
+  ) => string,
+) {
   const date = new Date(value);
   const ms = Date.now() - date.getTime();
   const hours = Math.floor(ms / (1000 * 60 * 60));
-  if (hours < 1) return 'just now';
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 1) return t('statistics.justNow');
+  if (hours < 24) return t('statistics.hoursAgo', { count: hours });
   const days = Math.floor(hours / 24);
-  if (days === 1) return 'yesterday';
-  return `${days}d ago`;
+  if (days === 1) return t('statistics.yesterday');
+  return t('statistics.daysAgo', { count: days });
 }
 
 function scoreColor(score: number | null) {
@@ -80,15 +92,44 @@ function ActivityMetric({ session }: { session: ModuleSessionActivity }) {
   );
 }
 
+function MetricCard({
+  icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string | number;
+  helper: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-(--border-default) bg-(--bg-color) p-4">
+      <div className="mb-3 flex items-center justify-between text-xs text-(--text-secondary)">
+        {icon}
+      </div>
+      <p className="text-sm text-(--text-secondary)">{label}</p>
+      <p className="mt-1 text-4xl font-semibold text-(--text-primary)">
+        {value}
+      </p>
+      <p className="mt-2 text-xs text-(--text-secondary)">{helper}</p>
+    </article>
+  );
+}
+
 function ProgressChart({
   points,
+  locale,
+  t,
 }: {
   points: Array<{ date: string; score: number }>;
+  locale: string;
+  t: (key: 'statistics.emptyQuizSeries') => string;
 }) {
   if (points.length < 1) {
     return (
       <div className="grid h-56 place-items-center text-sm text-(--text-secondary)">
-        No quiz sessions yet for selected filters.
+        {t('statistics.emptyQuizSeries')}
       </div>
     );
   }
@@ -191,7 +232,7 @@ function ProgressChart({
               fontSize="10"
               textAnchor="middle"
             >
-              {formatDay(point.date)}
+              {formatDay(point.date, locale)}
             </text>
           );
         })}
@@ -201,6 +242,7 @@ function ProgressChart({
 }
 
 export default function StatisticsPage() {
+  const { locale, t } = useI18n();
   const {
     loading,
     error,
@@ -223,10 +265,10 @@ export default function StatisticsPage() {
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-(family-name:--font-syne) text-3xl font-extrabold tracking-[-0.03em] text-(--text-primary)">
-              Your Progress
+              {t('statistics.title')}
             </h1>
             <p className="mt-1 text-sm text-(--text-secondary)">
-              Track how your knowledge grows over time.
+              {t('statistics.subtitle')}
             </p>
           </div>
           <Button
@@ -237,74 +279,67 @@ export default function StatisticsPage() {
             className="gap-2"
           >
             <RefreshCcw className="size-4" />
-            Refresh
+            {t('common.refresh')}
           </Button>
         </header>
 
+        {error ? (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-(--text-primary)">
+            {t('statistics.overview')}
+          </h2>
+          <p className="text-xs text-(--text-secondary)">
+            {t('statistics.scopeHint')}
+          </p>
+        </div>
         <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <article className="rounded-2xl border border-(--border-default) bg-(--bg-color) p-4">
-            <div className="mb-3 flex items-center justify-between text-xs text-(--text-secondary)">
-              <BookOpenCheck className="size-4 text-(--primary-accent)" />
-              <span className="rounded-full bg-(--primary-accent)/15 px-2 py-1 text-(--primary-accent)">
-                sessions
-              </span>
-            </div>
-            <p className="text-sm text-(--text-secondary)">Total Sessions</p>
-            <p className="mt-1 text-4xl font-semibold text-(--text-primary)">
-              {stats.totalSessions}
-            </p>
-          </article>
-
-          <article className="rounded-2xl border border-(--border-default) bg-(--bg-color) p-4">
-            <div className="mb-3 flex items-center justify-between text-xs text-(--text-secondary)">
-              <Sparkles className="size-4 text-(--secondary-accent)" />
-              <span className="rounded-full bg-(--secondary-accent)/15 px-2 py-1 text-(--secondary-accent)">
-                cards
-              </span>
-            </div>
-            <p className="text-sm text-(--text-secondary)">Cards Studied</p>
-            <p className="mt-1 text-4xl font-semibold text-(--text-primary)">
-              {stats.cardsStudied}
-            </p>
-          </article>
-
-          <article className="rounded-2xl border border-(--border-default) bg-(--bg-color) p-4">
-            <div className="mb-3 flex items-center justify-between text-xs text-(--text-secondary)">
-              <Target className="size-4 text-(--secondary-accent)" />
-              <span className="rounded-full bg-(--secondary-accent)/15 px-2 py-1 text-(--secondary-accent)">
-                quality
-              </span>
-            </div>
-            <p className="text-sm text-(--text-secondary)">Avg Quiz Score</p>
-            <p className="mt-1 text-4xl font-semibold text-(--text-primary)">
-              {stats.averageQuizScore == null
+          <MetricCard
+            icon={<BookOpenCheck className="size-4 text-(--primary-accent)" />}
+            label={t('statistics.sessions')}
+            value={stats.totalSessions}
+            helper={t('statistics.sessionsHint')}
+          />
+          <MetricCard
+            icon={<Sparkles className="size-4 text-(--secondary-accent)" />}
+            label={t('statistics.cardsStudied')}
+            value={stats.cardsStudied}
+            helper={t('statistics.cardsHint')}
+          />
+          <MetricCard
+            icon={<Target className="size-4 text-(--secondary-accent)" />}
+            label={t('statistics.avgQuizScore')}
+            value={
+              stats.averageQuizScore == null
                 ? '—'
-                : `${Math.round(stats.averageQuizScore)}%`}
-            </p>
-          </article>
-
-          <article className="rounded-2xl border border-(--border-default) bg-(--bg-color) p-4">
-            <div className="mb-3 flex items-center justify-between text-xs text-(--text-secondary)">
-              <Flame className="size-4 text-(--danger-color)" />
-              <span className="rounded-full bg-(--danger-color)/15 px-2 py-1 text-(--danger-color)">
-                streak
-              </span>
-            </div>
-            <p className="text-sm text-(--text-secondary)">Study Streak</p>
-            <p className="mt-1 text-4xl font-semibold text-(--text-primary)">
-              {stats.streakDays} days
-            </p>
-          </article>
+                : `${Math.round(stats.averageQuizScore)}%`
+            }
+            helper={t('statistics.avgQuizHint')}
+          />
+          <MetricCard
+            icon={<Flame className="size-4 text-(--danger-color)" />}
+            label={t('statistics.streak')}
+            value={
+              locale === 'ru'
+                ? `${stats.streakDays} дн.`
+                : `${stats.streakDays} days`
+            }
+            helper={t('statistics.streakHint')}
+          />
         </div>
 
         <section className="mb-6 rounded-3xl border border-(--border-default) bg-(--bg-color) p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold text-(--text-primary)">
-                Quiz Score Over Time
+                {t('statistics.quizQualityTitle')}
               </h2>
               <p className="text-sm text-(--text-secondary)">
-                Weekly performance average across all modules.
+                {t('statistics.quizQualitySubtitle')}
               </p>
             </div>
 
@@ -326,17 +361,25 @@ export default function StatisticsPage() {
             </div>
           </div>
 
-          <ProgressChart points={quizSeries} />
+          <ProgressChart points={quizSeries} locale={locale} t={t} />
+          {quizSeries.length < 1 ? (
+            <p className="mt-3 text-xs text-(--text-secondary)">
+              {t('statistics.emptyQuizSeriesHint')}
+            </p>
+          ) : null}
         </section>
 
         <div className="grid gap-4 xl:grid-cols-12">
           <section className="rounded-3xl border border-(--border-default) bg-(--bg-color) p-4 xl:col-span-8">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-xl font-semibold text-(--text-primary)">
-                Performance by Module
+                {t('statistics.moduleSnapshotTitle')}
               </h3>
               <BarChart3 className="size-4 text-(--primary-accent)" />
             </div>
+            <p className="mb-4 text-xs text-(--text-secondary)">
+              {t('statistics.moduleSnapshotHint')}
+            </p>
 
             <Table className="text-sm">
               <TableHeader>
@@ -362,7 +405,7 @@ export default function StatisticsPage() {
                       colSpan={4}
                       className="h-20 text-center text-sm text-(--text-secondary)"
                     >
-                      No activity for selected filters.
+                      {t('statistics.noModuleActivity')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -390,7 +433,7 @@ export default function StatisticsPage() {
                         </span>
                       </TableCell>
                       <TableCell className="text-(--text-secondary)">
-                        {formatRelative(row.lastStudiedAt)}
+                        {formatRelative(row.lastStudiedAt, t)}
                       </TableCell>
                     </TableRow>
                   ))
@@ -402,17 +445,20 @@ export default function StatisticsPage() {
           <section className="rounded-3xl border border-(--border-default) bg-(--bg-color) p-4 xl:col-span-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-xl font-semibold text-(--text-primary)">
-                Cards to review
+                {t('statistics.priorityReviewTitle')}
               </h3>
               <span className="text-sm text-(--text-secondary)">
                 {cardsToReview.length || 0}
               </span>
             </div>
+            <p className="mb-4 text-xs text-(--text-secondary)">
+              {t('statistics.priorityReviewHint')}
+            </p>
 
             <div className="space-y-3">
               {cardsToReview.length < 1 ? (
                 <div className="rounded-2xl border border-(--border-default) bg-(--surface-color) p-4 text-sm text-(--text-secondary)">
-                  Great job. No weak quiz sessions found.
+                  {t('statistics.noWeakSessions')}
                 </div>
               ) : (
                 cardsToReview.map((item) => (
@@ -421,16 +467,18 @@ export default function StatisticsPage() {
                     className="rounded-2xl border border-(--border-default) bg-(--surface-color) p-4"
                   >
                     <p className="text-sm text-(--text-primary)">
-                      {item.title}
+                      {item.moduleTitle}
                     </p>
                     <p className="mt-2 text-xs font-semibold text-(--danger-color)">
-                      {item.subtitle}
+                      {locale === 'ru'
+                        ? `${item.mistakes} ошибок в худшей попытке`
+                        : `${item.mistakes} mistakes in weakest attempt`}
                     </p>
                     <Link
                       to={`/app/modules/${item.moduleId}/quiz-study`}
                       className="mt-3 inline-flex text-sm font-semibold text-(--primary-accent)"
                     >
-                      Study
+                      {t('statistics.startQuiz')}
                     </Link>
                   </article>
                 ))
@@ -443,7 +491,7 @@ export default function StatisticsPage() {
       <section className="mt-5 rounded-3xl border border-(--border-default) bg-(--surface-color) p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-(family-name:--font-syne) text-xl font-bold text-(--text-primary)">
-            Session history
+            {t('statistics.sessionHistory')}
           </h2>
 
           <div className="flex items-center gap-2">
@@ -451,7 +499,7 @@ export default function StatisticsPage() {
               htmlFor="module-filter"
               className="text-sm font-medium text-(--text-secondary)"
             >
-              Module:
+              {t('statistics.moduleLabel')}
             </label>
             <select
               id="module-filter"
@@ -459,7 +507,7 @@ export default function StatisticsPage() {
               onChange={(e) => setSelectedModuleId(e.target.value)}
               className="h-10 rounded-xl border border-(--border-default) bg-(--bg-color) px-3 text-sm text-(--text-primary) outline-none"
             >
-              <option value="all">All modules</option>
+              <option value="all">{t('common.allModules')}</option>
               {modules.map((module) => (
                 <option key={module.id} value={module.id}>
                   {module.title}
@@ -477,10 +525,10 @@ export default function StatisticsPage() {
           <Table>
             <TableHeader>
               <TableRow className="border-(--border-default)">
-                <TableHead>Type</TableHead>
-                <TableHead>Module</TableHead>
-                <TableHead>Result</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>{t('statistics.type')}</TableHead>
+                <TableHead>{t('statistics.module')}</TableHead>
+                <TableHead>{t('statistics.result')}</TableHead>
+                <TableHead>{t('statistics.date')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -490,7 +538,7 @@ export default function StatisticsPage() {
                     colSpan={4}
                     className="h-16 text-center text-(--text-secondary)"
                   >
-                    Loading sessions...
+                    {t('statistics.loadingSessions')}
                   </TableCell>
                 </TableRow>
               ) : filteredSessions.length < 1 ? (
@@ -499,7 +547,7 @@ export default function StatisticsPage() {
                     colSpan={4}
                     className="h-16 text-center text-(--text-secondary)"
                   >
-                    No sessions found for this filter.
+                    {t('statistics.noSessionsForFilter')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -509,7 +557,9 @@ export default function StatisticsPage() {
                     className="border-(--border-default)"
                   >
                     <TableCell className="font-medium text-(--text-primary)">
-                      {session.kind === 'QUIZ_SESSION' ? 'Quiz' : 'Flashcards'}
+                      {session.kind === 'QUIZ_SESSION'
+                        ? t('statistics.quiz')
+                        : t('statistics.flashcards')}
                     </TableCell>
                     <TableCell className="text-(--text-primary)">
                       {session.moduleTitle}
@@ -518,7 +568,7 @@ export default function StatisticsPage() {
                       <ActivityMetric session={session} />
                     </TableCell>
                     <TableCell className="text-(--text-secondary)">
-                      {formatDate(session.at)}
+                      {formatDate(session.at, locale)}
                     </TableCell>
                   </TableRow>
                 ))

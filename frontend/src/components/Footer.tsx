@@ -1,3 +1,4 @@
+import { useI18n } from '@/i18n/useI18n';
 import { useTheme } from '@/theme/useTheme';
 import { Link } from 'react-router-dom';
 
@@ -6,6 +7,7 @@ const footerLinkClass =
 
 const Footer = () => {
   const { theme, toggle } = useTheme();
+  const { t } = useI18n();
   const isDark = theme === 'dark';
 
   return (
@@ -23,40 +25,39 @@ const Footer = () => {
               QuizoO
             </Link>
             <p className="mt-4 font-(family-name:--font-dm-sans) text-sm leading-relaxed text-(--text-secondary) md:text-base">
-              The modern knowledge retention platform for students,
-              professionals, and lifelong learners.
+              {t('public.footerTagline')}
             </p>
           </div>
 
           <nav
             className="grid grid-cols-2 gap-10 sm:grid-cols-3 sm:gap-12 lg:gap-16"
-            aria-label="Footer"
+            aria-label={t('aria.footerNavigation')}
           >
             <div>
               <h3 className="font-(family-name:--font-syne) text-sm font-bold text-(--text-primary)">
-                Platform
+                {t('public.platform')}
               </h3>
               <ul className="mt-4 flex list-none flex-col gap-3">
                 <li>
                   <a href="#about" className={footerLinkClass}>
-                    About
+                    {t('public.about')}
                   </a>
                 </li>
                 <li>
                   <a href="#features" className={footerLinkClass}>
-                    Features
+                    {t('public.features')}
                   </a>
                 </li>
                 <li>
                   <a href="#pricing" className={footerLinkClass}>
-                    Pricing
+                    {t('public.pricing')}
                   </a>
                 </li>
               </ul>
             </div>
             <div>
               <h3 className="font-(family-name:--font-syne) text-sm font-bold text-(--text-primary)">
-                Community
+                {t('public.community')}
               </h3>
               <ul className="mt-4 flex list-none flex-col gap-3">
                 <li>
@@ -93,7 +94,7 @@ const Footer = () => {
             </div>
             <div className="col-span-2 sm:col-span-1">
               <h3 className="font-(family-name:--font-syne) text-sm font-bold text-(--text-primary)">
-                Contact
+                {t('public.contact')}
               </h3>
               <ul className="mt-4 flex list-none flex-col gap-3">
                 <li>
@@ -101,17 +102,17 @@ const Footer = () => {
                     href="mailto:support@example.com"
                     className={footerLinkClass}
                   >
-                    Support
+                    {t('public.support')}
                   </a>
                 </li>
                 <li>
                   <a href="#privacy" className={footerLinkClass}>
-                    Privacy
+                    {t('public.privacy')}
                   </a>
                 </li>
                 <li>
                   <a href="#terms" className={footerLinkClass}>
-                    Terms
+                    {t('public.terms')}
                   </a>
                 </li>
               </ul>
@@ -122,17 +123,17 @@ const Footer = () => {
         <div className="mt-12 border-t border-(--border-default) pt-8 md:pt-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <p className="font-(family-name:--font-jetbrains-mono) text-[11px] uppercase leading-relaxed tracking-wide text-(--text-secondary) sm:text-xs">
-              © {new Date().getFullYear()} QuizoO INC. BUILT WITH INNOVATION.
+              {t('public.footerCopyright', { year: new Date().getFullYear() })}
             </p>
             <div className="flex items-center gap-3 sm:gap-4">
               <span className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary)">
-                Theme
+                {t('public.theme')}
               </span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={isDark}
-                aria-label="Dark theme"
+                aria-label={t('public.darkTheme')}
                 className="relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full bg-(--primary-accent)/25 p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--primary-accent)"
                 onClick={toggle}
               >

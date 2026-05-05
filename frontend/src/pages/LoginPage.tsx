@@ -6,9 +6,12 @@ import { GoogleIcon } from '@/components/ui/icons/GoogleIcon';
 import { Label } from '@/components/ui/label';
 import { apiErrorMessage } from '@/lib/apiErrorMessage';
 import { apiClient } from '@/lib/api/client';
+import { getHomeRouteByRole } from '@/lib/authRoute';
+import { useI18n } from '@/i18n/useI18n';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import { cn } from '@/lib/utils';
 import { loginSchema, type LoginFormValues } from '@/schemas/auth';
+import type { ApiPublicUser } from '@/types/api-user';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -30,6 +33,7 @@ const LoginPage = () => {
   const [pending, setPending] = useState(false);
 
   const { refresh } = useAuthContext();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -49,13 +53,16 @@ const LoginPage = () => {
 
     setPending(true);
     try {
-      await apiClient.post('/auth/login', {
-        email: validatedData.data.email,
-        password: validatedData.data.password,
-      });
+      const { data: signedInUser } = await apiClient.post<ApiPublicUser>(
+        '/auth/login',
+        {
+          email: validatedData.data.email,
+          password: validatedData.data.password,
+        },
+      );
       await refresh();
-      toast.success('Signed in.');
-      navigate('/app', { replace: true });
+      toast.success(t('auth.signIn'));
+      navigate(getHomeRouteByRole(signedInUser.role), { replace: true });
     } catch (err) {
       toast.error(apiErrorMessage(err));
     } finally {
@@ -76,14 +83,16 @@ const LoginPage = () => {
               htmlFor="login-email"
               className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
             >
-              Email
+              {t('auth.email')}
             </label>
             <Input
               id="login-email"
               name="email"
               type="email"
               autoComplete="email"
-              placeholder="you@example.com"
+              placeholder={
+                locale === 'ru' ? 'you@example.com' : 'you@example.com'
+              }
               aria-invalid={!!fieldErrors.email}
               className={cn(
                 fieldClass,
@@ -106,13 +115,13 @@ const LoginPage = () => {
                 htmlFor="login-password"
                 className="font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Password
+                {t('auth.password')}
               </label>
               <Link
                 to="/auth/forgot-password"
                 className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--primary-accent) transition-opacity hover:opacity-90"
               >
-                Forgot password?
+                {t('auth.forgotPassword')}
               </Link>
             </div>
             <div className="relative">
@@ -121,7 +130,9 @@ const LoginPage = () => {
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
-                placeholder="Your password here"
+                placeholder={
+                  locale === 'ru' ? 'Введите пароль' : 'Your password here'
+                }
                 aria-invalid={!!fieldErrors.password}
                 className={cn(
                   fieldClass,
@@ -132,7 +143,15 @@ const LoginPage = () => {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={
+                  showPassword
+                    ? locale === 'ru'
+                      ? 'Скрыть пароль'
+                      : 'Hide password'
+                    : locale === 'ru'
+                      ? 'Показать пароль'
+                      : 'Show password'
+                }
                 onClick={() => setShowPassword((v) => !v)}
               >
                 {showPassword ? (
@@ -163,7 +182,7 @@ const LoginPage = () => {
               htmlFor="login-remember"
               className="cursor-pointer font-(family-name:--font-dm-sans) text-sm font-normal text-(--text-primary)"
             >
-              Remember me
+              {t('auth.rememberMe')}
             </Label>
           </div>
 
@@ -174,7 +193,7 @@ const LoginPage = () => {
             type="submit"
             disabled={pending}
           >
-            {pending ? 'Signing in…' : 'Log in'}
+            {pending ? t('auth.signingIn') : t('auth.logIn')}
           </Button>
 
           <div
@@ -184,7 +203,7 @@ const LoginPage = () => {
           >
             <span className="h-px flex-1 bg-(--border-default)" aria-hidden />
             <span className="font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-(--text-secondary)">
-              or
+              {locale === 'ru' ? 'или' : 'or'}
             </span>
             <span className="h-px flex-1 bg-(--border-default)" aria-hidden />
           </div>
@@ -213,12 +232,12 @@ const LoginPage = () => {
           </div>
 
           <p className="text-center font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-            Don&apos;t have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <Link
               to="/auth/register"
               className="font-semibold text-(--primary-accent) transition-opacity hover:opacity-90"
             >
-              Sign up
+              {t('auth.signUp')}
             </Link>
           </p>
         </form>

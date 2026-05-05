@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   NotFoundException,
+  Param,
   Patch,
   Post,
   Res,
@@ -117,5 +118,36 @@ export class UsersController {
   @Delete('me/avatar')
   async deleteAvatar(@CurrentUserId() userId: string): Promise<PublicUser> {
     return this.usersService.clearAvatar(userId);
+  }
+
+  @Get('admin/overview')
+  getAdminOverview(@CurrentUserId() userId: string) {
+    return this.usersService.getAdminOverview(userId);
+  }
+
+  @Get('admin/users')
+  listUsersForAdmin(@CurrentUserId() userId: string) {
+    return this.usersService.listUsersForAdmin(userId);
+  }
+
+  @Patch('admin/users/:targetUserId/block')
+  setUserBlockForAdmin(
+    @CurrentUserId() userId: string,
+    @Param('targetUserId') targetUserId: string,
+    @Body('isBlocked') isBlockedRaw: unknown,
+  ) {
+    if (typeof isBlockedRaw !== 'boolean') {
+      throw new BadRequestException('isBlocked must be boolean');
+    }
+    return this.usersService.setUserBlockedForAdmin(
+      userId,
+      targetUserId,
+      isBlockedRaw,
+    );
+  }
+
+  @Get('admin/modules')
+  listModulesForAdmin(@CurrentUserId() userId: string) {
+    return this.usersService.listModulesForAdmin(userId);
   }
 }

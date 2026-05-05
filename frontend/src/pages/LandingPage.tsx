@@ -1,9 +1,11 @@
 import heroIllustration from '@/assets/welcomeSectionImage.png';
 import { Button } from '@/components/ui';
+import { useI18n } from '@/i18n/useI18n';
 import { ArrowRight, BarChart3, MoveDiagonal, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const LandingPage = () => {
+  const { t } = useI18n();
   return (
     <>
       <section
@@ -17,7 +19,7 @@ const LandingPage = () => {
               className="mb-6 inline-flex items-center rounded-full border border-(--secondary-accent)/35 bg-(--secondary-accent)/10 px-4 py-1.5 font-(family-name:--font-dm-sans) text-sm font-medium text-(--secondary-accent)"
               role="status"
             >
-              1,200+ modules created
+              {t('landing.modulesCreated')}
             </p>
 
             <h1
@@ -25,20 +27,21 @@ const LandingPage = () => {
               className="font-(family-name:--font-syne) text-[clamp(2rem,4vw+1rem,4.5rem)] font-extrabold leading-[1.08] tracking-tight"
             >
               <span className="block text-(--text-primary)">
-                Learn smarter. Remember
+                {t('landing.heroLine1')}
               </span>
-              <span className="block text-(--primary-accent)">longer.</span>
+              <span className="block text-(--primary-accent)">
+                {t('landing.heroLine2')}
+              </span>
             </h1>
 
             <p className="mt-6 max-w-2xl font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary) md:text-lg">
-              Create your own modules, study with flashcards, test yourself with
-              quizzes. Master any subject with ease.
+              {t('landing.heroSubtitle')}
             </p>
 
             <div
               className="mt-9 flex w-full flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:items-center sm:gap-4"
               role="group"
-              aria-label="Primary actions"
+              aria-label={t('landing.primaryActions')}
             >
               <Button
                 variant="cta"
@@ -50,7 +53,7 @@ const LandingPage = () => {
                   to="/auth/register"
                   className="inline-flex items-center justify-center gap-2"
                 >
-                  Start for free
+                  {t('landing.startFree')}
                   <ArrowRight className="size-4 shrink-0" aria-hidden />
                 </Link>
               </Button>
@@ -60,14 +63,14 @@ const LandingPage = () => {
                 className="rounded-full px-7"
                 asChild
               >
-                <a href="#how-it-works">See how it works</a>
+                <a href="#how-it-works">{t('landing.seeHowItWorks')}</a>
               </Button>
             </div>
 
             <figure className="mt-12 w-full max-w-4xl md:mt-16">
               <img
                 src={heroIllustration}
-                alt="Isometric illustration of study modules, flashcards, and learning progress"
+                alt={t('landing.heroIllustrationAlt')}
                 width={960}
                 height={540}
                 decoding="async"
@@ -89,14 +92,16 @@ const LandingPage = () => {
             className="text-center font-(family-name:--font-syne) text-[clamp(1.5rem,2.5vw+0.75rem,2.25rem)] font-bold leading-tight text-(--text-primary)"
           >
             <span className="relative inline-block">
-              <span className="text-(--text-primary)">Everything</span>
+              <span className="text-(--text-primary)">
+                {t('landing.featuresTitleStart')}
+              </span>
               <span
                 className="absolute -bottom-1 left-0 h-1 w-full rounded-sm bg-(--primary-accent)"
                 aria-hidden
               />
             </span>{' '}
             <span className="text-(--text-primary)">
-              you need to learn effectively
+              {t('landing.featuresTitleEnd')}
             </span>
           </h2>
 
@@ -110,11 +115,10 @@ const LandingPage = () => {
                   <Smartphone className="size-6" strokeWidth={1.75} />
                 </div>
                 <h3 className="mt-6 font-(family-name:--font-syne) text-xl font-bold text-(--text-primary)">
-                  Flashcard Mode
+                  {t('landing.featureFlashTitle')}
                 </h3>
                 <p className="mt-3 flex-1 font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary)">
-                  Leverage active recall and spaced repetition with our
-                  interactive, customizable flashcard system.
+                  {t('landing.featureFlashBody')}
                 </p>
               </article>
             </li>
@@ -127,11 +131,10 @@ const LandingPage = () => {
                   <MoveDiagonal className="size-6" strokeWidth={1.75} />
                 </div>
                 <h3 className="mt-6 font-(family-name:--font-syne) text-xl font-bold text-(--text-primary)">
-                  Quiz Mode
+                  {t('landing.featureQuizTitle')}
                 </h3>
                 <p className="mt-3 flex-1 font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary)">
-                  Test your knowledge with AI-generated quizzes that adapt to
-                  your weaknesses and reinforce key concepts.
+                  {t('landing.featureQuizBody')}
                 </p>
               </article>
             </li>
@@ -144,11 +147,10 @@ const LandingPage = () => {
                   <BarChart3 className="size-6" strokeWidth={1.75} />
                 </div>
                 <h3 className="mt-6 font-(family-name:--font-syne) text-xl font-bold text-(--text-primary)">
-                  Track Your Progress
+                  {t('landing.featureProgressTitle')}
                 </h3>
                 <p className="mt-3 flex-1 font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary)">
-                  Visualize your learning journey with detailed analytics and
-                  insights into your retention rates over time.
+                  {t('landing.featureProgressBody')}
                 </p>
               </article>
             </li>
@@ -166,7 +168,7 @@ const LandingPage = () => {
             id="how-it-works-title"
             className="text-center font-(family-name:--font-syne) text-[clamp(1.5rem,2.5vw+0.75rem,2.25rem)] font-bold leading-tight text-(--text-primary)"
           >
-            How it works
+            {t('landing.howTitle')}
           </h2>
 
           <ol className="mt-12 grid list-none gap-10 md:mt-14 md:grid-cols-3 md:gap-8">
@@ -178,10 +180,10 @@ const LandingPage = () => {
                 01
               </div>
               <h3 className="mt-6 font-(family-name:--font-syne) text-lg font-bold text-(--text-primary) md:text-xl">
-                Create your module
+                {t('landing.step1Title')}
               </h3>
               <p className="mt-3 max-w-sm font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary)">
-                Import your notes or create new topics from scratch in minutes.
+                {t('landing.step1Body')}
               </p>
             </li>
             <li className="flex flex-col items-center text-center">
@@ -192,11 +194,10 @@ const LandingPage = () => {
                 02
               </div>
               <h3 className="mt-6 font-(family-name:--font-syne) text-lg font-bold text-(--text-primary) md:text-xl">
-                Study with cards
+                {t('landing.step2Title')}
               </h3>
               <p className="mt-3 max-w-sm font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary)">
-                Master concepts through intuitive flashcard drills designed for
-                retention.
+                {t('landing.step2Body')}
               </p>
             </li>
             <li className="flex flex-col items-center text-center">
@@ -207,11 +208,10 @@ const LandingPage = () => {
                 03
               </div>
               <h3 className="mt-6 font-(family-name:--font-syne) text-lg font-bold text-(--text-primary) md:text-xl">
-                Take the quiz
+                {t('landing.step3Title')}
               </h3>
               <p className="mt-3 max-w-sm font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary)">
-                Verify your mastery with custom tests and dynamic challenge
-                modes.
+                {t('landing.step3Body')}
               </p>
             </li>
           </ol>

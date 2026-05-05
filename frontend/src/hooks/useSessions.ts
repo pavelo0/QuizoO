@@ -11,7 +11,7 @@ import type {
 } from '@/types/module';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-const MAX_ACTIVITY_ITEMS = 30;
+const MAX_ACTIVITY_ITEMS = 120;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type SessionsRange = '7d' | '30d' | 'all';
@@ -213,15 +213,26 @@ export function useSessions() {
   }, [filteredSessions]);
 
   const cardsToReview = useMemo(() => {
-    return [...quizSessions]
+    const weakestByModule = new Map<string, QuizSessionActivity>();
+    for (const row of quizSessions) {
+      const prev = weakestByModule.get(row.moduleId);
+      if (!prev || row.scorePercent < prev.scorePercent) {
+        weakestByModule.set(row.moduleId, row);
+      }
+    }
+
+    return [...weakestByModule.values()]
       .sort((a, b) => a.scorePercent - b.scorePercent)
       .slice(0, 4)
-      .map((row) => ({
-        id: `${row.moduleId}-${row.at}`,
-        title: `Review quiz in "${row.moduleTitle}"`,
-        subtitle: `${Math.max(0, row.totalQuestions - row.correctCount)} mistakes in session`,
-        moduleId: row.moduleId,
-      }));
+      .map((row) => {
+        const mistakes = Math.max(0, row.totalQuestions - row.correctCount);
+        return {
+          id: `${row.moduleId}-${row.at}`,
+          moduleTitle: row.moduleTitle,
+          mistakes,
+          moduleId: row.moduleId,
+        };
+      });
   }, [quizSessions]);
 
   return {

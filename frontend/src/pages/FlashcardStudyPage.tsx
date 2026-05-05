@@ -9,7 +9,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { createFlashcardSession, fetchModuleById } from '@/lib/api/modules';
-import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { apiErrorMessage, apiErrorText } from '@/lib/apiErrorMessage';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type { ModuleCard, ModuleId } from '@/types/module';
 import {
@@ -20,10 +21,9 @@ import {
   CircleX,
   Layers,
   RotateCcw,
-  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useBlocker, useParams } from 'react-router-dom';
+import { Link, useBlocker, useParams, type Location } from 'react-router-dom';
 
 type Mark = 'known' | 'unknown';
 type PersistState = 'idle' | 'saving' | 'saved' | 'error';
@@ -65,13 +65,14 @@ function shuffleCards(cards: ModuleCard[]) {
 }
 
 export default function FlashcardStudyPage() {
+  const { t } = useI18n();
   const { moduleId: rawId } = useParams();
   const moduleId = (rawId ?? '') as ModuleId;
 
   const [loadState, setLoadState] = useState<
     'loading' | 'ok' | 'notfound' | 'wrongType'
   >('loading');
-  const [moduleTitle, setModuleTitle] = useState('Flashcards');
+  const [moduleTitle, setModuleTitle] = useState(t('flashStudy.titleDefault'));
   const [sourceCards, setSourceCards] = useState<ModuleCard[]>([]);
   const [cards, setCards] = useState<ModuleCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -132,17 +133,23 @@ export default function FlashcardStudyPage() {
     cards.length > 0 ? Math.round((knownCount / cards.length) * 100) : 0;
   const performanceLabel =
     scorePercent >= 85
-      ? 'Excellent'
+      ? t('quizStudy.performanceExcellent')
       : scorePercent >= 65
-        ? 'Good job'
+        ? t('quizStudy.performanceGood')
         : scorePercent >= 45
-          ? 'Keep practicing'
-          : 'Needs more repetition';
+          ? t('quizStudy.performanceKeep')
+          : t('quizStudy.performanceMore');
   const visiblePercent = Math.round(animatedPercent);
 
   const blocker = useBlocker(
     useCallback(
-      ({ currentLocation, nextLocation }) => {
+      ({
+        currentLocation,
+        nextLocation,
+      }: {
+        currentLocation: Location;
+        nextLocation: Location;
+      }) => {
         if (allowNavigation) return false;
         if (!hasActiveProgress) return false;
         return currentLocation.pathname !== nextLocation.pathname;
@@ -206,9 +213,9 @@ export default function FlashcardStudyPage() {
       setPersistState('saved');
     } catch (e) {
       setPersistState('error');
-      setPersistError(apiErrorMessage(e));
+      setPersistError(apiErrorText(e, t));
     }
-  }, [cards.length, knownCount, moduleId, unknownCount]);
+  }, [cards.length, knownCount, moduleId, t, unknownCount]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -287,7 +294,7 @@ export default function FlashcardStudyPage() {
         aria-live="polite"
         aria-busy
       >
-        Loading flashcards…
+        {t('flashStudy.loading')}
       </div>
     );
   }
@@ -297,8 +304,8 @@ export default function FlashcardStudyPage() {
       <div className="mx-auto max-w-md text-center">
         <p className="text-(--text-secondary)">
           {loadState === 'wrongType'
-            ? 'This module is not a flashcard set.'
-            : 'Module not found or you do not have access.'}
+            ? t('edit.common.wrongTypeFlash')
+            : t('edit.common.moduleNotFound')}
         </p>
         <Button
           asChild
@@ -306,7 +313,7 @@ export default function FlashcardStudyPage() {
           variant="outline"
           size="outlineCompact"
         >
-          <Link to="/app">Back to dashboard</Link>
+          <Link to="/app">{t('common.backToDashboard')}</Link>
         </Button>
       </div>
     );
@@ -316,7 +323,7 @@ export default function FlashcardStudyPage() {
     return (
       <div className="mx-auto max-w-md text-center">
         <p className="text-(--text-secondary)">
-          Add at least one flashcard to start a study session.
+          {t('flashStudy.noCardsToStart')}
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <Button
@@ -326,7 +333,7 @@ export default function FlashcardStudyPage() {
             className="rounded-xl"
           >
             <Link to={`/app/modules/${encodeURIComponent(moduleId)}/edit`}>
-              Back to module
+              {t('common.backToModule')}
             </Link>
           </Button>
         </div>
@@ -334,16 +341,18 @@ export default function FlashcardStudyPage() {
     );
   }
 
-  const titleTrimmed = moduleTitle.trim() || 'Flashcards';
+  const titleTrimmed = moduleTitle.trim() || t('flashStudy.titleDefault');
   const sideArrowDisabled = cards.length < 2;
 
   if (allAnswered) {
     return (
       <article className="mx-auto flex w-full max-w-[980px] flex-1 flex-col pb-4 text-(--text-primary)">
-        <h1 className="sr-only">Flashcard session results: {titleTrimmed}</h1>
+        <h1 className="sr-only">
+          {t('flashStudy.resultsTitle', { title: titleTrimmed })}
+        </h1>
         <header className="mb-8 text-center">
           <h2 className="font-(family-name:--font-syne) text-2xl font-extrabold tracking-[-0.04em] sm:text-3xl">
-            {titleTrimmed} - Flashcards results
+            {t('flashStudy.resultsTitle', { title: titleTrimmed })}
           </h2>
         </header>
 
@@ -354,7 +363,7 @@ export default function FlashcardStudyPage() {
               style={{
                 background: `conic-gradient(var(--secondary-accent) ${animatedPercent}%, rgba(119,131,171,0.18) ${animatedPercent}% 100%)`,
               }}
-              aria-label={`Score ${visiblePercent}%`}
+              aria-label={t('aria.statistics')}
             >
               <div className="flex size-full items-center justify-center overflow-hidden rounded-full border border-(--border-default) bg-[#0d122a] text-center">
                 <div className="flex w-full max-w-full flex-col items-center justify-center px-2">
@@ -362,7 +371,7 @@ export default function FlashcardStudyPage() {
                     {visiblePercent}%
                   </p>
                   <p className="mt-2 text-xs text-(--text-secondary)">
-                    Session complete
+                    {t('flashStudy.sessionComplete')}
                   </p>
                 </div>
               </div>
@@ -371,12 +380,14 @@ export default function FlashcardStudyPage() {
               {performanceLabel}
             </p>
             {persistState === 'saving' ? (
-              <p className="text-xs text-(--text-secondary)">Saving session…</p>
+              <p className="text-xs text-(--text-secondary)">
+                {t('flashStudy.savingSession')}
+              </p>
             ) : null}
             {persistState === 'error' ? (
               <div className="flex flex-col items-center gap-2">
                 <p className="text-xs text-destructive">
-                  Could not save session: {persistError}
+                  {t('flashStudy.saveFailed', { error: persistError ?? '' })}
                 </p>
                 <Button
                   type="button"
@@ -385,7 +396,7 @@ export default function FlashcardStudyPage() {
                   className="rounded-xl"
                   onClick={() => void persistSession()}
                 >
-                  Retry save
+                  {t('flashStudy.retrySave')}
                 </Button>
               </div>
             ) : null}
@@ -393,19 +404,23 @@ export default function FlashcardStudyPage() {
 
           <div className="mb-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-(--border-default) bg-(--input-bg)/40 px-4 py-4 text-center">
-              <p className="text-xs text-emerald-300">Known</p>
+              <p className="text-xs text-emerald-300">
+                {t('flashStudy.known')}
+              </p>
               <p className="mt-1 font-(family-name:--font-syne) text-3xl font-bold">
                 {knownCount}
               </p>
             </div>
             <div className="rounded-2xl border border-(--border-default) bg-(--input-bg)/40 px-4 py-4 text-center">
-              <p className="text-xs text-red-300">Unknown</p>
+              <p className="text-xs text-red-300">{t('flashStudy.unknown')}</p>
               <p className="mt-1 font-(family-name:--font-syne) text-3xl font-bold">
                 {unknownCount}
               </p>
             </div>
             <div className="rounded-2xl border border-(--border-default) bg-(--input-bg)/40 px-4 py-4 text-center">
-              <p className="text-xs text-(--text-secondary)">Total cards</p>
+              <p className="text-xs text-(--text-secondary)">
+                {t('flashStudy.totalCards')}
+              </p>
               <p className="mt-1 font-(family-name:--font-syne) text-3xl font-bold">
                 {cards.length}
               </p>
@@ -421,7 +436,7 @@ export default function FlashcardStudyPage() {
               onClick={restartSession}
             >
               <RotateCcw className="size-4" />
-              Restart
+              {t('common.restart')}
             </Button>
             <Button
               asChild
@@ -431,18 +446,18 @@ export default function FlashcardStudyPage() {
               className="h-11 min-w-40 rounded-xl"
             >
               <Link to={`/app/modules/${encodeURIComponent(moduleId)}/edit`}>
-                Back to module
+                {t('common.backToModule')}
               </Link>
             </Button>
           </div>
 
           <section
             className="overflow-hidden rounded-2xl border border-(--border-default)"
-            aria-label="Cards breakdown"
+            aria-label={t('aria.cardsBreakdown')}
           >
             <header className="border-b border-(--border-default) bg-(--input-bg)/45 px-4 py-3">
               <h3 className="font-(family-name:--font-syne) text-lg font-bold">
-                Cards breakdown
+                {t('flashStudy.breakdownTitle')}
               </h3>
             </header>
             <ul className="max-h-[380px] space-y-0 overflow-y-auto">
@@ -477,11 +492,11 @@ export default function FlashcardStudyPage() {
                       )}
                     >
                       {known
-                        ? 'Marked as: I knew it'
-                        : "Marked as: Didn't know"}
+                        ? t('flashStudy.markedKnown')
+                        : t('flashStudy.markedUnknown')}
                     </p>
                     <p className="ml-6 mt-1 text-sm text-(--text-secondary)">
-                      Answer: {card.answer}
+                      {t('flashStudy.answerLabel', { value: card.answer })}
                     </p>
                   </li>
                 );
@@ -495,12 +510,14 @@ export default function FlashcardStudyPage() {
 
   return (
     <article className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col text-(--text-primary)">
-      <h1 className="sr-only">Flashcard study: {titleTrimmed}</h1>
+      <h1 className="sr-only">
+        {t('flashStudy.study')}: {titleTrimmed}
+      </h1>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <nav
           className="text-xs text-(--text-secondary)"
-          aria-label="Breadcrumb"
+          aria-label={t('aria.breadcrumb')}
         >
           <ol className="flex min-w-0 list-none flex-wrap items-center gap-x-1.5 gap-y-1 p-0">
             <li className="shrink-0">
@@ -508,7 +525,7 @@ export default function FlashcardStudyPage() {
                 to="/app"
                 className="font-(family-name:--font-dm-sans) font-medium text-(--text-secondary) underline-offset-2 transition-opacity hover:opacity-100 hover:underline"
               >
-                My modules
+                {t('modules.myModules')}
               </Link>
             </li>
             <li className="shrink-0 text-(--text-secondary)/50" aria-hidden>
@@ -529,7 +546,7 @@ export default function FlashcardStudyPage() {
               className="min-w-0 font-(family-name:--font-dm-sans) font-medium text-(--text-primary)"
               aria-current="page"
             >
-              Study
+              {t('flashStudy.study')}
             </li>
           </ol>
         </nav>
@@ -542,7 +559,7 @@ export default function FlashcardStudyPage() {
           onClick={restartSession}
         >
           <RotateCcw className="size-4" aria-hidden />
-          Restart
+          {t('common.restart')}
         </Button>
       </div>
 
@@ -551,16 +568,19 @@ export default function FlashcardStudyPage() {
           'relative rounded-3xl border border-(--border-default) bg-(--input-bg)/25 px-4 py-6 sm:px-8 sm:py-8',
           'shadow-[0_18px_80px_rgba(11,16,40,0.35)]',
         )}
-        aria-label="Flashcard study area"
+        aria-label={t('aria.flashcardStudyArea')}
       >
         <div className="mb-4 flex items-center justify-between">
           <div className="inline-flex items-center gap-2 rounded-full bg-(--module-badge-violet-bg) px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-(--module-badge-violet-fg) uppercase">
             <Layers className="size-3.5" aria-hidden />
-            Card {currentIndex + 1}/{cards.length}
+            {t('flashStudy.cardProgress', {
+              current: currentIndex + 1,
+              total: cards.length,
+            })}
           </div>
           {allAnswered ? (
             <p className="text-xs font-semibold text-(--secondary-accent)">
-              Session complete
+              {t('flashStudy.sessionComplete')}
             </p>
           ) : null}
         </div>
@@ -573,7 +593,7 @@ export default function FlashcardStudyPage() {
             className="size-10 rounded-full sm:size-12"
             onClick={goPrev}
             disabled={sideArrowDisabled}
-            aria-label="Previous card"
+            aria-label={t('aria.previousCard')}
           >
             <ChevronLeft className="size-5" aria-hidden />
           </Button>
@@ -584,7 +604,9 @@ export default function FlashcardStudyPage() {
               onClick={toggleFace}
               className="block w-full rounded-[2rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--primary-accent)/40"
               aria-label={
-                showAnswer ? 'Show question side' : 'Show answer side'
+                showAnswer
+                  ? t('flashStudy.showQuestionSide')
+                  : t('flashStudy.showAnswerSide')
               }
             >
               <div
@@ -597,13 +619,15 @@ export default function FlashcardStudyPage() {
                 )}
               >
                 <p className="font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold tracking-[0.2em] text-white/60 uppercase">
-                  {showAnswer ? 'Answer' : 'Question'}
+                  {showAnswer
+                    ? t('flashStudy.answer')
+                    : t('flashStudy.question')}
                 </p>
                 <p className="mt-6 font-(family-name:--font-syne) text-3xl leading-[1.06] font-extrabold tracking-[-0.03em] text-white sm:text-5xl">
                   {showAnswer ? currentCard.answer : currentCard.question}
                 </p>
                 <p className="mt-8 text-sm text-white/50">
-                  Tap card to flip. Use left/right arrows to mark unknown/known.
+                  {t('flashStudy.flipHint')}
                 </p>
               </div>
             </button>
@@ -616,7 +640,7 @@ export default function FlashcardStudyPage() {
             className="size-10 rounded-full sm:size-12"
             onClick={goNext}
             disabled={sideArrowDisabled}
-            aria-label="Next card"
+            aria-label={t('aria.nextCard')}
           >
             <ChevronRight className="size-5" aria-hidden />
           </Button>
@@ -629,33 +653,34 @@ export default function FlashcardStudyPage() {
             onClick={() => markCurrent('unknown')}
           >
             <CircleHelp className="size-4" strokeWidth={2.2} />
-            Didn&apos;t know
+            {t('flashStudy.didntKnow')}
           </Button>
           <Button
             type="button"
             className="h-12 min-w-40 gap-2 rounded-[12px] border border-emerald-400/30 bg-emerald-500/10 px-6 font-(family-name:--font-syne) text-base font-bold text-emerald-300 hover:bg-emerald-500/20"
             onClick={() => markCurrent('known')}
           >
-            <Check className="size-4" strokeWidth={2.4} />I knew it
+            <Check className="size-4" strokeWidth={2.4} />
+            {t('flashStudy.iKnewIt')}
           </Button>
         </div>
       </section>
 
       <section
         className="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-t border-(--border-default) pt-5"
-        aria-label="Session statistics"
+        aria-label={t('aria.sessionStatistics')}
       >
         <p className="font-(family-name:--font-dm-sans) text-sm text-emerald-300">
           <span className="mr-2 inline-block size-2 rounded-full bg-emerald-300" />
-          {knownCount} Known
+          {knownCount} {t('flashStudy.known')}
         </p>
         <p className="font-(family-name:--font-dm-sans) text-sm text-red-300">
           <span className="mr-2 inline-block size-2 rounded-full bg-red-300" />
-          {unknownCount} Unknown
+          {unknownCount} {t('flashStudy.unknown')}
         </p>
         <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
           <span className="mr-2 inline-block size-2 rounded-full bg-(--text-secondary)" />
-          {remainingCount} Remaining
+          {remainingCount} {t('flashStudy.remaining')}
         </p>
       </section>
 
@@ -667,10 +692,9 @@ export default function FlashcardStudyPage() {
       >
         <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Leave study session?</AlertDialogTitle>
+            <AlertDialogTitle>{t('flashStudy.leaveTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Your current progress in this session is not saved yet. Are you
-              sure you want to leave?
+              {t('flashStudy.leaveDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:flex-col sm:gap-2">
@@ -680,13 +704,13 @@ export default function FlashcardStudyPage() {
               className="w-full sm:w-full"
               onClick={confirmLeave}
             >
-              Leave session
+              {t('flashStudy.leaveAction')}
             </Button>
             <AlertDialogCancel
               className="w-full sm:w-full"
               onClick={cancelLeave}
             >
-              Stay here
+              {t('flashStudy.stayAction')}
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
