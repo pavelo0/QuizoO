@@ -1,0 +1,23 @@
+{
+  "formatVersion": 1,
+  "moduleType": "FLASHCARD",
+  "title": "Тестовый модуль карточек",
+  "cards": [
+    {
+      "question": "Как переводится слово \"apple\"?",
+      "answer": "Яблоко"
+    },
+    {
+      "question": "HTTP расшифровывается как?",
+      "answer": "HyperText Transfer Protocol"
+    },
+    {
+      "question": "Столица Японии",
+      "answer": "Токио"
+    },
+    {
+      "question": "2 * 6",
+      "answer": "12"
+    }
+  ]
+}

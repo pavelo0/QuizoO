@@ -1,0 +1,42 @@
+{
+  "formatVersion": 1,
+  "moduleType": "QUIZ",
+  "title": "Тестовый модуль для импорта",
+  "questions": [
+    {
+      "type": "CHOICE",
+      "questionText": "Сколько будет 2 + 2?",
+      "allowMultipleAnswers": false,
+      "options": [
+        { "text": "3", "isCorrect": false },
+        { "text": "4", "isCorrect": true },
+        { "text": "5", "isCorrect": false }
+      ]
+    },
+    {
+      "type": "CHOICE",
+      "questionText": "Какие из этих языков являются языками программирования?",
+      "allowMultipleAnswers": true,
+      "options": [
+        { "text": "TypeScript", "isCorrect": true },
+        { "text": "Python", "isCorrect": true },
+        { "text": "Photoshop", "isCorrect": false },
+        { "text": "HTML", "isCorrect": false }
+      ]
+    },
+    {
+      "type": "TEXT",
+      "questionText": "Столица Франции",
+      "answer": "Париж"
+    },
+    {
+      "type": "MATCHING",
+      "questionText": "Сопоставь страны и столицы",
+      "pairs": [
+        { "left": "Франция", "right": "Париж" },
+        { "left": "Испания", "right": "Мадрид" },
+        { "left": "Италия", "right": "Рим" }
+      ]
+    }
+  ]
+}

@@ -404,6 +404,47 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.summaryCorrectAnswer': 'Correct answer: {value}',
     'editQuiz.summaryCorrectNotSet': 'Correct answer is not set',
     'editQuiz.summaryNoPairs': 'No pairs yet',
+    'editQuiz.importJson': 'Import JSON',
+    'editQuiz.exportJson': 'Export JSON',
+    'editQuiz.exportSuccess': 'Quiz JSON file exported.',
+    'editQuiz.importSuccess': 'Imported questions: {count}.',
+    'editQuiz.importFailed': 'Could not import quiz JSON.',
+    'editQuiz.importInvalidJson': 'Invalid JSON file.',
+    'editQuiz.importReplaceConfirm':
+      'Current questions ({count}) will be replaced. Continue?',
+    'editQuiz.importFormatHelpTitle': 'Quiz JSON format',
+    'editQuiz.importFormatHelpDescription':
+      'Use this structure for import/export. Supported types: CHOICE, TEXT, MATCHING.',
+    'editQuiz.importInvalidStructure': 'JSON root must be an object.',
+    'editQuiz.importUnsupportedVersion':
+      'Unsupported formatVersion. Expected: {version}.',
+    'editQuiz.importWrongModuleType': 'moduleType must be QUIZ.',
+    'editQuiz.importQuestionsArrayRequired':
+      'Field questions must be an array.',
+    'editQuiz.importQuestionObjectExpected':
+      'Question #{index} must be an object.',
+    'editQuiz.importQuestionTextRequired':
+      'Question #{index}: questionText is required.',
+    'editQuiz.importUnknownType':
+      'Question #{index}: unsupported type. Use CHOICE, TEXT, or MATCHING.',
+    'editQuiz.importChoiceOptionsMin':
+      'Question #{index}: CHOICE requires at least 2 options.',
+    'editQuiz.importChoiceOptionInvalid':
+      'Question #{index}: each option must be an object.',
+    'editQuiz.importChoiceOptionTextRequired':
+      'Question #{index}: each option must have text.',
+    'editQuiz.importChoiceCorrectRequired':
+      'Question #{index}: mark at least one option as correct.',
+    'editQuiz.importChoiceSingleCorrect':
+      'Question #{index}: single-answer CHOICE must have exactly one correct option.',
+    'editQuiz.importTextAnswerRequired':
+      'Question #{index}: TEXT requires answer field.',
+    'editQuiz.importMatchingPairsMin':
+      'Question #{index}: MATCHING requires at least 2 pairs.',
+    'editQuiz.importMatchingPairInvalid':
+      'Question #{index}: each pair must be an object.',
+    'editQuiz.importMatchingPairValuesRequired':
+      'Question #{index}: each pair must include left and right.',
     'editFlash.cardAdded': 'Card added',
     'editFlash.cardUpdated': 'Card updated',
     'editFlash.cardRemoved': 'Card removed',
@@ -429,6 +470,25 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editFlash.validationQuestion': 'Enter a question.',
     'editFlash.validationAnswer': 'Enter an answer.',
     'editFlash.validationMaxCards': 'You can add up to {count} cards.',
+    'editFlash.importJson': 'Import JSON',
+    'editFlash.exportJson': 'Export JSON',
+    'editFlash.exportSuccess': 'Flashcard JSON file exported.',
+    'editFlash.importSuccess': 'Imported cards: {count}.',
+    'editFlash.importFailed': 'Could not import flashcard JSON.',
+    'editFlash.importInvalidJson': 'Invalid JSON file.',
+    'editFlash.importReplaceConfirm':
+      'Current cards ({count}) will be replaced. Continue?',
+    'editFlash.importFormatHelpTitle': 'Flashcard JSON format',
+    'editFlash.importFormatHelpDescription':
+      'Use this structure for import/export flashcards.',
+    'editFlash.importInvalidStructure': 'JSON root must be an object.',
+    'editFlash.importUnsupportedVersion':
+      'Unsupported formatVersion. Expected: {version}.',
+    'editFlash.importWrongModuleType': 'moduleType must be FLASHCARD.',
+    'editFlash.importCardsArrayRequired': 'Field cards must be an array.',
+    'editFlash.importCardObjectExpected': 'Card #{index} must be an object.',
+    'editFlash.importQuestionRequired': 'Card #{index}: question is required.',
+    'editFlash.importAnswerRequired': 'Card #{index}: answer is required.',
     'quizStudy.loading': 'Loading quiz…',
     'quizStudy.quizModule': 'Quiz module',
     'quizStudy.noQuestionsToStart':
@@ -953,6 +1013,47 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.summaryCorrectAnswer': 'Правильный ответ: {value}',
     'editQuiz.summaryCorrectNotSet': 'Правильный ответ не задан',
     'editQuiz.summaryNoPairs': 'Пары пока не добавлены',
+    'editQuiz.importJson': 'Импорт JSON',
+    'editQuiz.exportJson': 'Экспорт JSON',
+    'editQuiz.exportSuccess': 'JSON файл теста экспортирован.',
+    'editQuiz.importSuccess': 'Вопросов импортировано: {count}.',
+    'editQuiz.importFailed': 'Не удалось импортировать JSON теста.',
+    'editQuiz.importInvalidJson': 'Некорректный JSON файл.',
+    'editQuiz.importReplaceConfirm':
+      'Текущие вопросы ({count}) будут заменены. Продолжить?',
+    'editQuiz.importFormatHelpTitle': 'Формат JSON для теста',
+    'editQuiz.importFormatHelpDescription':
+      'Используйте эту структуру для импорта/экспорта. Поддерживаемые типы: CHOICE, TEXT, MATCHING.',
+    'editQuiz.importInvalidStructure': 'Корневой JSON должен быть объектом.',
+    'editQuiz.importUnsupportedVersion':
+      'Неподдерживаемый formatVersion. Ожидается: {version}.',
+    'editQuiz.importWrongModuleType': 'Поле moduleType должно быть QUIZ.',
+    'editQuiz.importQuestionsArrayRequired':
+      'Поле questions должно быть массивом.',
+    'editQuiz.importQuestionObjectExpected':
+      'Вопрос №{index} должен быть объектом.',
+    'editQuiz.importQuestionTextRequired':
+      'Вопрос №{index}: поле questionText обязательно.',
+    'editQuiz.importUnknownType':
+      'Вопрос №{index}: неизвестный тип. Используйте CHOICE, TEXT или MATCHING.',
+    'editQuiz.importChoiceOptionsMin':
+      'Вопрос №{index}: для CHOICE нужно минимум 2 варианта.',
+    'editQuiz.importChoiceOptionInvalid':
+      'Вопрос №{index}: каждый вариант должен быть объектом.',
+    'editQuiz.importChoiceOptionTextRequired':
+      'Вопрос №{index}: у каждого варианта нужен текст.',
+    'editQuiz.importChoiceCorrectRequired':
+      'Вопрос №{index}: отметьте хотя бы один правильный вариант.',
+    'editQuiz.importChoiceSingleCorrect':
+      'Вопрос №{index}: в режиме одного ответа должен быть ровно один правильный вариант.',
+    'editQuiz.importTextAnswerRequired':
+      'Вопрос №{index}: для TEXT обязательно поле answer.',
+    'editQuiz.importMatchingPairsMin':
+      'Вопрос №{index}: для MATCHING нужно минимум 2 пары.',
+    'editQuiz.importMatchingPairInvalid':
+      'Вопрос №{index}: каждая пара должна быть объектом.',
+    'editQuiz.importMatchingPairValuesRequired':
+      'Вопрос №{index}: каждая пара должна содержать left и right.',
     'editFlash.cardAdded': 'Карточка добавлена',
     'editFlash.cardUpdated': 'Карточка обновлена',
     'editFlash.cardRemoved': 'Карточка удалена',
@@ -977,6 +1078,28 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editFlash.validationQuestion': 'Введите вопрос.',
     'editFlash.validationAnswer': 'Введите ответ.',
     'editFlash.validationMaxCards': 'Можно добавить до {count} карточек.',
+    'editFlash.importJson': 'Импорт JSON',
+    'editFlash.exportJson': 'Экспорт JSON',
+    'editFlash.exportSuccess': 'JSON файл карточек экспортирован.',
+    'editFlash.importSuccess': 'Карточек импортировано: {count}.',
+    'editFlash.importFailed': 'Не удалось импортировать JSON карточек.',
+    'editFlash.importInvalidJson': 'Некорректный JSON файл.',
+    'editFlash.importReplaceConfirm':
+      'Текущие карточки ({count}) будут заменены. Продолжить?',
+    'editFlash.importFormatHelpTitle': 'Формат JSON для карточек',
+    'editFlash.importFormatHelpDescription':
+      'Используйте эту структуру для импорта/экспорта карточек.',
+    'editFlash.importInvalidStructure': 'Корневой JSON должен быть объектом.',
+    'editFlash.importUnsupportedVersion':
+      'Неподдерживаемый formatVersion. Ожидается: {version}.',
+    'editFlash.importWrongModuleType': 'Поле moduleType должно быть FLASHCARD.',
+    'editFlash.importCardsArrayRequired': 'Поле cards должно быть массивом.',
+    'editFlash.importCardObjectExpected':
+      'Карточка №{index} должна быть объектом.',
+    'editFlash.importQuestionRequired':
+      'Карточка №{index}: поле question обязательно.',
+    'editFlash.importAnswerRequired':
+      'Карточка №{index}: поле answer обязательно.',
     'quizStudy.loading': 'Загрузка теста…',
     'quizStudy.quizModule': 'Тестовый модуль',
     'quizStudy.noQuestionsToStart':

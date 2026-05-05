@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -37,15 +38,26 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
   BookOpen,
+  CircleHelp,
   Clock,
+  Download,
   IdCard,
   Layers,
   Pencil,
   Plus,
   Search,
   Trash2,
+  Upload,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from 'react';
 import {
   Link,
   useBlocker,
@@ -67,6 +79,90 @@ const cardLabelClass = cn(
 );
 
 const SHUFFLE_KEY = (id: string) => `quizo:flash-shuffle:${id}`;
+const FLASHCARD_IMPORT_FORMAT_VERSION = 1;
+
+type FlashcardImportPayload = { question: string; answer: string };
+
+const flashcardJsonExample = JSON.stringify(
+  {
+    formatVersion: FLASHCARD_IMPORT_FORMAT_VERSION,
+    moduleType: 'FLASHCARD',
+    title: 'Sample flashcard module',
+    cards: [
+      {
+        question: 'Capital of Japan',
+        answer: 'Tokyo',
+      },
+      {
+        question: 'HTTP stands for',
+        answer: 'HyperText Transfer Protocol',
+      },
+    ],
+  },
+  null,
+  2,
+);
+
+function sanitizeFilenamePart(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9а-яё_-]+/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function parseFlashcardImportJson(
+  raw: unknown,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): FlashcardImportPayload[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error(t('editFlash.importInvalidStructure'));
+  }
+  const data = raw as {
+    formatVersion?: number;
+    moduleType?: string;
+    cards?: unknown;
+  };
+  if (data.formatVersion !== FLASHCARD_IMPORT_FORMAT_VERSION) {
+    throw new Error(
+      t('editFlash.importUnsupportedVersion', {
+        version: FLASHCARD_IMPORT_FORMAT_VERSION,
+      }),
+    );
+  }
+  if (data.moduleType !== 'FLASHCARD') {
+    throw new Error(t('editFlash.importWrongModuleType'));
+  }
+  if (!Array.isArray(data.cards)) {
+    throw new Error(t('editFlash.importCardsArrayRequired'));
+  }
+  if (data.cards.length > MAX_FLASHCARDS_PER_MODULE) {
+    throw new Error(
+      t('editFlash.validationMaxCards', { count: MAX_FLASHCARDS_PER_MODULE }),
+    );
+  }
+
+  return data.cards.map((item, idx) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error(
+        t('editFlash.importCardObjectExpected', { index: idx + 1 }),
+      );
+    }
+    const card = item as { question?: string; answer?: string };
+    const question = card.question?.trim() ?? '';
+    const answer = card.answer?.trim() ?? '';
+    if (!question) {
+      throw new Error(
+        t('editFlash.importQuestionRequired', { index: idx + 1 }),
+      );
+    }
+    if (!answer) {
+      throw new Error(t('editFlash.importAnswerRequired', { index: idx + 1 }));
+    }
+    return { question, answer };
+  });
+}
 
 function readShuffle(id: string) {
   try {
@@ -382,6 +478,9 @@ export default function EditFlashcardModulePage() {
   const [deleteModuleOpen, setDeleteModuleOpen] = useState(false);
   const [deleteModulePending, setDeleteModulePending] = useState(false);
   const [allowNavigation, setAllowNavigation] = useState(false);
+  const [importHelpOpen, setImportHelpOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const isDirty = title.trim() !== savedTitle;
 
@@ -527,6 +626,92 @@ export default function EditFlashcardModulePage() {
   const openStudy = useCallback(() => {
     void navigate(`/app/modules/${encodeURIComponent(moduleId)}/flash-study`);
   }, [moduleId, navigate]);
+
+  const onClickImport = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
+
+  const onImportFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      if (
+        cards.length > 0 &&
+        !window.confirm(
+          t('editFlash.importReplaceConfirm', { count: cards.length }),
+        )
+      ) {
+        return;
+      }
+
+      setImporting(true);
+      try {
+        const rawText = await file.text();
+        const parsed = JSON.parse(rawText) as unknown;
+        const importedCards = parseFlashcardImportJson(parsed, t);
+
+        await Promise.all(cards.map((card) => deleteCard(moduleId, card.id)));
+
+        const createdCards: ModuleCard[] = [];
+        for (const [index, card] of importedCards.entries()) {
+          const created = await createCard(moduleId, {
+            question: card.question,
+            answer: card.answer,
+            orderIndex: index,
+          });
+          createdCards.push(created);
+        }
+
+        setCards(
+          createdCards.sort(
+            (left, right) => left.orderIndex - right.orderIndex,
+          ),
+        );
+        toast.success(
+          t('editFlash.importSuccess', { count: createdCards.length }),
+        );
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          toast.error(t('editFlash.importInvalidJson'));
+          return;
+        }
+        toast.error(
+          error instanceof Error ? error.message : t('editFlash.importFailed'),
+        );
+      } finally {
+        setImporting(false);
+      }
+    },
+    [cards, moduleId, t],
+  );
+
+  const onExportJson = useCallback(() => {
+    const exportData = {
+      formatVersion: FLASHCARD_IMPORT_FORMAT_VERSION,
+      moduleType: 'FLASHCARD',
+      title: title.trim(),
+      cards: [...cards]
+        .sort((left, right) => left.orderIndex - right.orderIndex)
+        .map((card) => ({
+          question: card.question,
+          answer: card.answer,
+        })),
+    };
+    const content = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const suffix = sanitizeFilenamePart(title) || 'flashcard-module';
+    anchor.href = url;
+    anchor.download = `${suffix}.json`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    toast.success(t('editFlash.exportSuccess'));
+  }, [cards, t, title]);
 
   const finishLeaveSave = useCallback(async () => {
     const t = title.trim();
@@ -764,6 +949,46 @@ export default function EditFlashcardModulePage() {
             />
           </div>
         </div>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(event) => void onImportFile(event)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 gap-2 rounded-xl"
+            onClick={onClickImport}
+            disabled={importing}
+          >
+            <Upload className="size-4" strokeWidth={2} />
+            {importing ? t('common.loading') : t('editFlash.importJson')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 gap-2 rounded-xl"
+            onClick={onExportJson}
+            disabled={importing}
+          >
+            <Download className="size-4" strokeWidth={2} />
+            {t('editFlash.exportJson')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-(--text-secondary)"
+            onClick={() => setImportHelpOpen(true)}
+            title={t('editFlash.importFormatHelpTitle')}
+            aria-label={t('editFlash.importFormatHelpTitle')}
+          >
+            <CircleHelp className="size-4" strokeWidth={2} />
+          </Button>
+        </div>
 
         <Panel className="flex max-h-[min(52vh,520px)] min-h-[220px] flex-col overflow-hidden">
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain p-3 sm:space-y-2.5 sm:p-4">
@@ -870,6 +1095,20 @@ export default function EditFlashcardModulePage() {
         onOpenChange={setDeleteModuleOpen}
         onConfirm={onDeleteModule}
       />
+
+      <Dialog open={importHelpOpen} onOpenChange={setImportHelpOpen}>
+        <DialogContent className="w-[min(52rem,calc(100%-2rem))] max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{t('editFlash.importFormatHelpTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('editFlash.importFormatHelpDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[50vh] overflow-auto rounded-xl border border-(--border-default) bg-(--input-bg)/30 p-4 text-xs leading-relaxed text-(--text-primary)">
+            {flashcardJsonExample}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={leaveOpen} onOpenChange={onLeaveDialogOpenChange}>
         <AlertDialogContent className="max-w-sm" size="default">
