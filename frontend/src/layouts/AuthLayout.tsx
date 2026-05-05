@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/theme/useTheme';
 import { Home, Moon, Sun } from 'lucide-react';
@@ -33,6 +34,7 @@ const statCards = [
 
 export default function AuthLayout() {
   const { theme, toggle } = useTheme();
+  const { locale, setLocale, t } = useI18n();
   const location = useLocation();
   const isAuthGate = location.pathname.startsWith('/auth');
   const isRegister = location.pathname.includes('/auth/register');
@@ -76,7 +78,7 @@ export default function AuthLayout() {
                 QuizoO
               </h2>
               <p className="mt-3 max-w-md font-(family-name:--font-dm-sans) text-base leading-relaxed text-white/55 md:text-lg">
-                Your personal learning companion
+                {t('auth.layoutTagline')}
               </p>
             </header>
 
@@ -101,10 +103,18 @@ export default function AuthLayout() {
                     </span>
                     <div className="min-w-0 pt-0.5">
                       <h3 className="font-(family-name:--font-dm-sans) text-[0.9375rem] font-semibold leading-snug tracking-tight text-white sm:text-base">
-                        {card.title}
+                        {card.title === '15-day streak'
+                          ? t('auth.cardStreakTitle')
+                          : card.title === '48 cards learned today'
+                            ? t('auth.cardLearnedTitle')
+                            : t('auth.cardAccuracyTitle')}
                       </h3>
                       <p className="mt-1 font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-[#34e5c5] sm:text-xs">
-                        {card.subtitle}
+                        {card.subtitle === 'Keep it up!'
+                          ? t('auth.cardStreakSubtitle')
+                          : card.subtitle === 'Productive session'
+                            ? t('auth.cardLearnedSubtitle')
+                            : t('auth.cardAccuracySubtitle')}
                       </p>
                     </div>
                   </div>
@@ -128,21 +138,21 @@ export default function AuthLayout() {
             <div className="min-w-0">
               <h1 className="font-(family-name:--font-syne) text-[1.75rem] font-extrabold tracking-[-0.02em] text-(--text-primary) sm:text-[2rem]">
                 {isRegister
-                  ? 'Create account'
+                  ? t('auth.createAccountTitle')
                   : isForgotPassword
-                    ? 'Reset password'
-                    : 'Welcome back'}
+                    ? t('auth.resetPasswordTitle')
+                    : t('auth.welcomeBackTitle')}
               </h1>
               <p className="mt-2 font-(family-name:--font-dm-sans) text-sm leading-relaxed text-(--text-secondary) sm:text-[0.9375rem]">
                 {isRegister
-                  ? 'Join QuizoO and start learning'
+                  ? t('auth.createAccountSubtitle')
                   : isForgotPassword
-                    ? 'We will email you a code to set a new password'
-                    : 'Log in to continue your learning'}
+                    ? t('auth.resetPasswordSubtitle')
+                    : t('auth.welcomeBackSubtitle')}
               </p>
             </div>
 
-            <div className="">
+            <div className="flex items-center gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -150,8 +160,8 @@ export default function AuthLayout() {
                 className="h-12 w-12 shrink-0 rounded-2xl hover:text-(--primary-accent)"
                 aria-label={
                   theme === 'dark'
-                    ? 'Switch to light theme'
-                    : 'Switch to dark theme'
+                    ? t('common.lightMode')
+                    : t('common.darkMode')
                 }
                 aria-pressed={theme === 'dark'}
                 onClick={toggle}
@@ -167,7 +177,20 @@ export default function AuthLayout() {
                 variant="ghost"
                 size="icon"
                 className="h-12 w-12 shrink-0 rounded-2xl hover:text-(--primary-accent)"
-                aria-label="Go back"
+                aria-label={t('common.language')}
+                title={t('common.language')}
+                onClick={() => setLocale(locale === 'en' ? 'ru' : 'en')}
+              >
+                <span className="text-xs font-semibold uppercase">
+                  {locale}
+                </span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 shrink-0 rounded-2xl hover:text-(--primary-accent)"
+                aria-label={t('auth.goBack')}
               >
                 <Link to="/">
                   <Home className="size-4.5" strokeWidth={1.5} />

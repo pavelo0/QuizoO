@@ -10,7 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { createQuizSession, fetchQuizQuestionsPage } from '@/lib/api/modules';
-import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { apiErrorMessage, apiErrorText } from '@/lib/apiErrorMessage';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type {
   ModuleId,
@@ -28,7 +29,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Link, useBlocker, useParams } from 'react-router-dom';
+import { Link, useBlocker, useParams, type Location } from 'react-router-dom';
 
 const SHUFFLE_KEY = (id: string) => `quizo:quiz-shuffle:${id}`;
 const PAGE_SIZE = 12;
@@ -111,7 +112,10 @@ function toSessionAnswerPayload(
   };
 }
 
-function renderCorrectAnswer(answer: QuizSessionAnswerDetail) {
+function renderCorrectAnswer(
+  answer: QuizSessionAnswerDetail,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+) {
   const q = answer.question;
   if (q.type === 'CHOICE') {
     const correct = q.questionOptions
@@ -128,9 +132,12 @@ function renderCorrectAnswer(answer: QuizSessionAnswerDetail) {
     .join(' · ');
 }
 
-function renderUserAnswer(answer: QuizSessionAnswerDetail) {
+function renderUserAnswer(
+  answer: QuizSessionAnswerDetail,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+) {
   const q = answer.question;
-  if (!answer.userAnswer) return 'No answer';
+  if (!answer.userAnswer) return t('quizStudy.noAnswer');
   if (q.type === 'CHOICE') {
     const selectedIds =
       'choiceOptionIds' in answer.userAnswer
@@ -139,23 +146,25 @@ function renderUserAnswer(answer: QuizSessionAnswerDetail) {
             answer.userAnswer.choiceOptionId
           ? [answer.userAnswer.choiceOptionId]
           : [];
-    if (selectedIds.length < 1) return 'No answer';
+    if (selectedIds.length < 1) return t('quizStudy.noAnswer');
     const selected = selectedIds.map((id) => {
       return (
-        q.questionOptions.find((o) => o.id === id)?.text ?? 'Unknown option'
+        q.questionOptions.find((o) => o.id === id)?.text ??
+        t('quizStudy.unknownOption')
       );
     });
     return selected.join(' · ');
   }
   if (q.type === 'TEXT') {
-    if (!('textAnswer' in answer.userAnswer)) return 'No answer';
-    return answer.userAnswer.textAnswer?.trim() || 'No answer';
+    if (!('textAnswer' in answer.userAnswer)) return t('quizStudy.noAnswer');
+    return answer.userAnswer.textAnswer?.trim() || t('quizStudy.noAnswer');
   }
-  if (
-    !('matchingAnswer' in answer.userAnswer) ||
-    !answer.userAnswer.matchingAnswer
-  ) {
-    return 'No answer';
+  const matchingAnswer =
+    'matchingAnswer' in answer.userAnswer
+      ? answer.userAnswer.matchingAnswer
+      : null;
+  if (!matchingAnswer) {
+    return t('quizStudy.noAnswer');
   }
 
   const rightById = new Map(
@@ -164,7 +173,7 @@ function renderUserAnswer(answer: QuizSessionAnswerDetail) {
 
   return q.matchingPairs
     .map((pair) => {
-      const selectedId = answer.userAnswer?.matchingAnswer?.[pair.id];
+      const selectedId = matchingAnswer[pair.id];
       const selectedRight = selectedId
         ? (rightById.get(selectedId) ?? '—')
         : '—';
@@ -174,13 +183,14 @@ function renderUserAnswer(answer: QuizSessionAnswerDetail) {
 }
 
 export default function QuizStudyPage() {
+  const { t } = useI18n();
   const { moduleId: rawId } = useParams();
   const moduleId = (rawId ?? '') as ModuleId;
 
   const [loadState, setLoadState] = useState<
     'loading' | 'ok' | 'notfound' | 'wrongType'
   >('loading');
-  const [moduleTitle, setModuleTitle] = useState('Quiz module');
+  const [moduleTitle, setModuleTitle] = useState(t('quizStudy.quizModule'));
   const [questions, setQuestions] = useState<ModuleQuestion[]>([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -216,7 +226,7 @@ export default function QuizStudyPage() {
     setLoadState('loading');
     try {
       const page = await fetchQuizQuestionsPage(moduleId, { take: PAGE_SIZE });
-      setModuleTitle(page.moduleTitle?.trim() || 'Quiz module');
+      setModuleTitle(page.moduleTitle?.trim() || t('quizStudy.quizModule'));
       setTotalQuestions(page.total);
       setQuestions(maybeShuffleQuestions(page.items, shuffleEnabled));
       setNextCursor(page.nextCursor);
@@ -253,12 +263,12 @@ export default function QuizStudyPage() {
       nextCursorRef.current = page.nextCursor;
       return prepared.length;
     } catch (e) {
-      toast.error(apiErrorMessage(e));
+      toast.error(apiErrorText(e, t));
       return 0;
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, mergeQuestions, moduleId, shuffleEnabled]);
+  }, [isLoadingMore, mergeQuestions, moduleId, shuffleEnabled, t]);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -324,7 +334,13 @@ export default function QuizStudyPage() {
 
   const blocker = useBlocker(
     useCallback(
-      ({ currentLocation, nextLocation }) => {
+      ({
+        currentLocation,
+        nextLocation,
+      }: {
+        currentLocation: Location;
+        nextLocation: Location;
+      }) => {
         if (allowNavigation) return false;
         if (!hasActiveProgress) return false;
         return currentLocation.pathname !== nextLocation.pathname;
@@ -423,12 +439,12 @@ export default function QuizStudyPage() {
       setAllowNavigation(true);
       setSubmitState('idle');
     } catch (e) {
-      const message = apiErrorMessage(e);
+      const message = apiErrorText(e, t);
       setSubmitState('error');
       setSubmitError(message);
       toast.error(message);
     }
-  }, [answers, canSubmit, moduleId, questions, submitState]);
+  }, [answers, canSubmit, moduleId, questions, submitState, t]);
 
   const restart = useCallback(() => {
     void loadInitial();
@@ -463,7 +479,7 @@ export default function QuizStudyPage() {
         aria-live="polite"
         aria-busy
       >
-        Loading quiz…
+        {t('quizStudy.loading')}
       </div>
     );
   }
@@ -473,8 +489,8 @@ export default function QuizStudyPage() {
       <div className="mx-auto max-w-md text-center">
         <p className="text-(--text-secondary)">
           {loadState === 'wrongType'
-            ? 'This module is not a quiz module.'
-            : 'Module not found or you do not have access.'}
+            ? t('edit.common.wrongTypeQuiz')
+            : t('edit.common.moduleNotFound')}
         </p>
         <Button
           asChild
@@ -482,7 +498,7 @@ export default function QuizStudyPage() {
           variant="outline"
           size="outlineCompact"
         >
-          <Link to="/app">Back to dashboard</Link>
+          <Link to="/app">{t('common.backToDashboard')}</Link>
         </Button>
       </div>
     );
@@ -492,7 +508,7 @@ export default function QuizStudyPage() {
     return (
       <div className="mx-auto max-w-md text-center">
         <p className="text-(--text-secondary)">
-          Add at least one question to start the quiz.
+          {t('quizStudy.noQuestionsToStart')}
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <Button
@@ -502,7 +518,7 @@ export default function QuizStudyPage() {
             className="rounded-xl"
           >
             <Link to={`/app/modules/${encodeURIComponent(moduleId)}/quiz-edit`}>
-              Back to module
+              {t('common.backToModule')}
             </Link>
           </Button>
         </div>
@@ -510,29 +526,34 @@ export default function QuizStudyPage() {
     );
   }
 
-  const titleTrimmed = moduleTitle.trim() || 'Quiz module';
+  const titleTrimmed = moduleTitle.trim() || t('quizStudy.quizModule');
 
   if (session) {
     const scorePercent = Math.round(session.scorePercent);
     const wrongCount = session.totalQuestions - session.correctCount;
     const performanceLabel =
       scorePercent >= 85
-        ? 'Excellent'
+        ? t('quizStudy.performanceExcellent')
         : scorePercent >= 65
-          ? 'Good job'
+          ? t('quizStudy.performanceGood')
           : scorePercent >= 45
-            ? 'Keep practicing'
-            : 'Needs more practice';
+            ? t('quizStudy.performanceKeep')
+            : t('quizStudy.performanceMore');
 
     return (
       <article className="mx-auto flex w-full max-w-[1040px] flex-1 flex-col pb-4 text-(--text-primary)">
-        <h1 className="sr-only">Quiz results: {titleTrimmed}</h1>
+        <h1 className="sr-only">
+          {t('quizStudy.resultsTitle', { title: titleTrimmed })}
+        </h1>
         <header className="mb-8 text-center">
           <h2 className="font-(family-name:--font-syne) text-2xl font-extrabold tracking-[-0.04em] sm:text-3xl">
-            {titleTrimmed} - Quiz results
+            {t('quizStudy.resultsTitle', { title: titleTrimmed })}
           </h2>
           <p className="mt-2 text-sm text-(--text-secondary)">
-            {session.correctCount} of {session.totalQuestions} correct
+            {t('quizStudy.resultsCorrect', {
+              correct: session.correctCount,
+              total: session.totalQuestions,
+            })}
           </p>
         </header>
 
@@ -543,39 +564,45 @@ export default function QuizStudyPage() {
               style={{
                 background: `conic-gradient(var(--secondary-accent) ${animatedPercent}%, rgba(119,131,171,0.18) ${animatedPercent}% 100%)`,
               }}
-              aria-label={`Score ${visiblePercent}%`}
+              aria-label={t('aria.statistics')}
             >
-              <div className="flex size-full items-center justify-center overflow-hidden rounded-full border border-(--border-default) bg-[#0d122a] text-center">
+              <div className="flex size-full items-center justify-center overflow-hidden rounded-full border border-(--border-default) bg-(--surface-color) text-center">
                 <div className="flex w-full max-w-full flex-col items-center justify-center px-2">
                   <p className="leading-none font-(family-name:--font-syne) text-3xl font-extrabold sm:text-4xl">
                     {visiblePercent}%
                   </p>
                   <p className="mt-2 text-xs text-(--text-secondary)">
-                    Session complete
+                    {t('quizStudy.sessionComplete')}
                   </p>
                 </div>
               </div>
             </div>
-            <p className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-300">
+            <p className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               {performanceLabel}
             </p>
           </div>
 
           <div className="mb-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-(--border-default) bg-(--input-bg)/40 px-4 py-4 text-center">
-              <p className="text-xs text-emerald-300">Correct</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                {t('quizStudy.correct')}
+              </p>
               <p className="mt-1 font-(family-name:--font-syne) text-3xl font-bold">
                 {session.correctCount}
               </p>
             </div>
             <div className="rounded-2xl border border-(--border-default) bg-(--input-bg)/40 px-4 py-4 text-center">
-              <p className="text-xs text-red-300">Wrong</p>
+              <p className="text-xs text-red-700 dark:text-red-300">
+                {t('quizStudy.wrong')}
+              </p>
               <p className="mt-1 font-(family-name:--font-syne) text-3xl font-bold">
                 {wrongCount}
               </p>
             </div>
             <div className="rounded-2xl border border-(--border-default) bg-(--input-bg)/40 px-4 py-4 text-center">
-              <p className="text-xs text-(--text-secondary)">Total</p>
+              <p className="text-xs text-(--text-secondary)">
+                {t('quizStudy.total')}
+              </p>
               <p className="mt-1 font-(family-name:--font-syne) text-3xl font-bold">
                 {session.totalQuestions}
               </p>
@@ -591,7 +618,7 @@ export default function QuizStudyPage() {
               onClick={restart}
             >
               <RotateCcw className="size-4" />
-              Retake quiz
+              {t('quizStudy.retake')}
             </Button>
             <Button
               asChild
@@ -603,7 +630,7 @@ export default function QuizStudyPage() {
               <Link
                 to={`/app/modules/${encodeURIComponent(moduleId)}/quiz-edit`}
               >
-                Back to module
+                {t('common.backToModule')}
               </Link>
             </Button>
           </div>
@@ -611,11 +638,11 @@ export default function QuizStudyPage() {
 
         <section
           className="overflow-hidden rounded-2xl border border-(--border-default)"
-          aria-label="Questions breakdown"
+          aria-label={t('aria.questionsBreakdown')}
         >
           <header className="border-b border-(--border-default) bg-(--input-bg)/45 px-4 py-3">
             <h3 className="font-(family-name:--font-syne) text-lg font-bold">
-              Questions breakdown
+              {t('quizStudy.breakdownTitle')}
             </h3>
           </header>
           <ul className="max-h-[560px] space-y-0 overflow-y-auto">
@@ -626,19 +653,23 @@ export default function QuizStudyPage() {
               >
                 <div className="mb-2 flex items-start gap-2">
                   {answer.isCorrect ? (
-                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-300" />
+                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
                   ) : (
-                    <CircleX className="mt-0.5 size-4 shrink-0 text-red-300" />
+                    <CircleX className="mt-0.5 size-4 shrink-0 text-red-700 dark:text-red-300" />
                   )}
                   <p className="font-semibold text-(--text-primary)">
                     {answer.question.questionText}
                   </p>
                 </div>
                 <p className="ml-6 text-sm text-(--text-secondary)">
-                  Your answer: {renderUserAnswer(answer)}
+                  {t('quizStudy.yourAnswer', {
+                    value: renderUserAnswer(answer, t),
+                  })}
                 </p>
                 <p className="ml-6 mt-1 text-sm text-(--text-secondary)">
-                  Correct answer: {renderCorrectAnswer(answer)}
+                  {t('quizStudy.correctAnswer', {
+                    value: renderCorrectAnswer(answer, t),
+                  })}
                 </p>
               </li>
             ))}
@@ -651,7 +682,7 @@ export default function QuizStudyPage() {
   if (!currentQuestion) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-sm text-(--text-secondary)">
-        No questions loaded yet.
+        {t('quizStudy.noQuestionsLoaded')}
       </div>
     );
   }
@@ -667,12 +698,14 @@ export default function QuizStudyPage() {
 
   return (
     <article className="mx-auto flex w-full max-w-[1080px] flex-1 flex-col text-(--text-primary)">
-      <h1 className="sr-only">Quiz study: {titleTrimmed}</h1>
+      <h1 className="sr-only">
+        {t('quizStudy.quiz')}: {titleTrimmed}
+      </h1>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <nav
           className="text-xs text-(--text-secondary)"
-          aria-label="Breadcrumb"
+          aria-label={t('aria.breadcrumb')}
         >
           <ol className="flex min-w-0 list-none flex-wrap items-center gap-x-1.5 gap-y-1 p-0">
             <li className="shrink-0">
@@ -680,7 +713,7 @@ export default function QuizStudyPage() {
                 to="/app"
                 className="font-(family-name:--font-dm-sans) font-medium text-(--text-secondary) underline-offset-2 transition-opacity hover:opacity-100 hover:underline"
               >
-                My modules
+                {t('modules.myModules')}
               </Link>
             </li>
             <li className="shrink-0 text-(--text-secondary)/50" aria-hidden>
@@ -701,7 +734,7 @@ export default function QuizStudyPage() {
               className="min-w-0 font-(family-name:--font-dm-sans) font-medium text-(--text-primary)"
               aria-current="page"
             >
-              Quiz
+              {t('quizStudy.quiz')}
             </li>
           </ol>
         </nav>
@@ -714,7 +747,7 @@ export default function QuizStudyPage() {
           onClick={restart}
         >
           <RotateCcw className="size-4" aria-hidden />
-          Restart
+          {t('quizStudy.restart')}
         </Button>
       </div>
 
@@ -727,8 +760,10 @@ export default function QuizStudyPage() {
         <div className="mb-4 flex items-center justify-between gap-4">
           <div className="inline-flex items-center gap-2 rounded-full bg-(--module-badge-violet-bg) px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-(--module-badge-violet-fg) uppercase">
             <ClipboardList className="size-3.5" aria-hidden />
-            Question {Math.min(currentIndex + 1, totalQuestions)}/
-            {totalQuestions}
+            {t('quizStudy.questionProgress', {
+              current: Math.min(currentIndex + 1, totalQuestions),
+              total: totalQuestions,
+            })}
           </div>
           <p
             className={cn(
@@ -736,7 +771,9 @@ export default function QuizStudyPage() {
               currentAnswered ? 'text-emerald-300' : 'text-(--text-secondary)',
             )}
           >
-            {currentAnswered ? 'Answered' : 'Not answered'}
+            {currentAnswered
+              ? t('quizStudy.answered')
+              : t('quizStudy.notAnswered')}
           </p>
         </div>
 
@@ -744,7 +781,7 @@ export default function QuizStudyPage() {
           <div
             className="h-full rounded-full bg-(--primary-accent) transition-[width] duration-300"
             style={{ width: `${progressPercent}%` }}
-            aria-label={`Progress ${progressPercent}%`}
+            aria-label={t('aria.statistics')}
           />
         </div>
 
@@ -756,8 +793,8 @@ export default function QuizStudyPage() {
           <div className="mt-6 space-y-2.5">
             <p className="text-xs text-(--text-secondary)">
               {currentQuestion.allowMultipleAnswers
-                ? 'Select one or more options'
-                : 'Select one option'}
+                ? t('quizStudy.selectOneOrMore')
+                : t('quizStudy.selectOne')}
             </p>
             {currentQuestion.questionOptions.map((opt) => {
               const selected = (currentDraft?.choiceOptionIds ?? []).includes(
@@ -800,7 +837,7 @@ export default function QuizStudyPage() {
         {currentQuestion.type === 'TEXT' ? (
           <div className="mt-6">
             <label htmlFor="quiz-text-answer" className="sr-only">
-              Type your answer
+              {t('quizStudy.typeAnswer')}
             </label>
             <Textarea
               id="quiz-text-answer"
@@ -808,7 +845,7 @@ export default function QuizStudyPage() {
               onChange={(e) =>
                 setTextAnswer(currentQuestion.id, e.target.value)
               }
-              placeholder="Type your answer…"
+              placeholder={t('quizStudy.typeAnswerPlaceholder')}
               rows={4}
               className="min-h-28 rounded-2xl border-(--border-default) bg-(--input-bg)/35"
             />
@@ -826,7 +863,7 @@ export default function QuizStudyPage() {
                   {pair.leftItem}
                 </p>
                 <label className="sr-only" htmlFor={`matching-${pair.id}`}>
-                  Select matching value
+                  {t('quizStudy.selectMatchingValue')}
                 </label>
                 <select
                   id={`matching-${pair.id}`}
@@ -840,7 +877,7 @@ export default function QuizStudyPage() {
                   }
                   className="h-11 rounded-xl border border-(--border-default) bg-(--input-bg) px-3 text-sm text-(--text-primary) outline-none focus:border-(--primary-accent)"
                 >
-                  <option value="">Select match</option>
+                  <option value="">{t('quizStudy.selectMatch')}</option>
                   {matchingOptions.map((right) => (
                     <option key={right.id} value={right.id}>
                       {right.label}
@@ -861,7 +898,7 @@ export default function QuizStudyPage() {
               className="size-11 rounded-full"
               onClick={goPrev}
               disabled={currentIndex === 0}
-              aria-label="Previous question"
+              aria-label={t('aria.previousQuestion')}
             >
               <ChevronLeft className="size-5" />
             </Button>
@@ -872,7 +909,7 @@ export default function QuizStudyPage() {
               className="size-11 rounded-full"
               onClick={() => void goNext()}
               disabled={currentIndex >= questions.length - 1 && !nextCursor}
-              aria-label="Next question"
+              aria-label={t('aria.nextQuestion')}
             >
               <ChevronRight className="size-5" />
             </Button>
@@ -885,17 +922,18 @@ export default function QuizStudyPage() {
             disabled={!canSubmit || submitState === 'saving'}
             onClick={() => void submitSession()}
           >
-            {submitState === 'saving' ? 'Submitting…' : 'Finish quiz'}
+            {submitState === 'saving'
+              ? t('quizStudy.submitting')
+              : t('quizStudy.finishQuiz')}
           </Button>
         </div>
 
         <p className="mt-4 text-xs text-(--text-secondary)">
-          For big quizzes, questions are loaded in small pages so the app stays
-          responsive.
+          {t('quizStudy.lazyLoadHint')}
         </p>
         {submitState === 'error' && submitError ? (
           <p className="mt-2 text-xs text-destructive">
-            Could not submit: {submitError}
+            {t('quizStudy.submitFailed', { error: submitError })}
           </p>
         ) : null}
       </section>
@@ -908,10 +946,9 @@ export default function QuizStudyPage() {
       >
         <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Leave quiz session?</AlertDialogTitle>
+            <AlertDialogTitle>{t('quizStudy.leaveTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Your current progress in this quiz is not submitted yet. Are you
-              sure you want to leave?
+              {t('quizStudy.leaveDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:flex-col sm:gap-2">
@@ -921,13 +958,13 @@ export default function QuizStudyPage() {
               className="w-full sm:w-full"
               onClick={confirmLeave}
             >
-              Leave session
+              {t('quizStudy.leaveAction')}
             </Button>
             <AlertDialogCancel
               className="w-full sm:w-full"
               onClick={cancelLeave}
             >
-              Stay here
+              {t('quizStudy.stayAction')}
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

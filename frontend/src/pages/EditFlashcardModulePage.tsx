@@ -7,7 +7,8 @@ import {
   updateModule,
 } from '@/lib/api/modules';
 import { clearFlashcardDraftInflight } from '@/lib/flashcardModuleDraft';
-import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { apiErrorMessage, apiErrorText } from '@/lib/apiErrorMessage';
+import { useI18n } from '@/i18n/useI18n';
 import {
   MAX_FLASHCARDS_PER_MODULE,
   MAX_MODULE_TITLE_LENGTH,
@@ -45,7 +46,13 @@ import {
   Trash2,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { useBlocker, Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  useBlocker,
+  useNavigate,
+  useParams,
+  type Location,
+} from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
 const cardTextareaClass = cn(
@@ -116,6 +123,7 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
   onCreateCard,
   onUpdateCard,
 }: FlashcardCardDialogProps) {
+  const { t } = useI18n();
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [saving, setSaving] = useState(false);
@@ -138,10 +146,12 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
     const a = answer.trim();
     const next: { question?: string; answer?: string; form?: string } = {};
 
-    if (!q) next.question = 'Enter a question.';
-    if (!a) next.answer = 'Enter an answer.';
+    if (!q) next.question = t('editFlash.validationQuestion');
+    if (!a) next.answer = t('editFlash.validationAnswer');
     if (!editingCard && cardsCount >= MAX_FLASHCARDS_PER_MODULE) {
-      next.form = `You can add up to ${MAX_FLASHCARDS_PER_MODULE} cards.`;
+      next.form = t('editFlash.validationMaxCards', {
+        count: MAX_FLASHCARDS_PER_MODULE,
+      });
     }
     if (Object.keys(next).length > 0) {
       setErrors(next);
@@ -158,7 +168,7 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
       }
       onOpenChange(false);
     } catch (err) {
-      setErrors({ form: apiErrorMessage(err) });
+      setErrors({ form: apiErrorText(err, t) });
     } finally {
       setSaving(false);
     }
@@ -170,6 +180,7 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
     onOpenChange,
     onUpdateCard,
     question,
+    t,
   ]);
 
   return (
@@ -187,7 +198,9 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
         <div className="p-6 sm:p-8">
           <DialogHeader className="mb-0 gap-0 space-y-0 text-left sm:text-left">
             <DialogTitle className="font-(family-name:--font-syne) text-lg font-bold tracking-[0.02em] text-(--text-primary) sm:text-xl">
-              {editingCard ? 'Edit card' : 'New card'}
+              {editingCard
+                ? t('editFlash.dialogEdit')
+                : t('editFlash.dialogNew')}
             </DialogTitle>
           </DialogHeader>
           {errors.form ? (
@@ -203,7 +216,7 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
           >
             <div>
               <label className={cardLabelClass} htmlFor="new-card-question">
-                Question
+                {t('editFlash.dialogQuestion')}
               </label>
               <Textarea
                 id="new-card-question"
@@ -216,7 +229,7 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
                     form: undefined,
                   }));
                 }}
-                placeholder="e.g. How do you ask for directions?"
+                placeholder={t('editFlash.dialogQuestionPlaceholder')}
                 aria-invalid={!!errors.question}
                 rows={4}
                 className={cn(
@@ -236,7 +249,7 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
             </div>
             <div>
               <label className={cardLabelClass} htmlFor="new-card-answer">
-                Answer
+                {t('editFlash.dialogAnswer')}
               </label>
               <Textarea
                 id="new-card-answer"
@@ -249,7 +262,7 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
                     form: undefined,
                   }));
                 }}
-                placeholder="e.g. Excuse me, how do I get to…?"
+                placeholder={t('editFlash.dialogAnswerPlaceholder')}
                 aria-invalid={!!errors.answer}
                 rows={4}
                 className={cn(
@@ -277,7 +290,7 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
             className="h-12 rounded-2xl px-6"
             disabled={saving}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -286,7 +299,11 @@ const FlashcardCardDialog = memo(function FlashcardCardDialog({
             className="h-12 rounded-2xl px-6"
             disabled={saving}
           >
-            {saving ? 'Saving…' : editingCard ? 'Save' : 'Add card'}
+            {saving
+              ? t('common.saving')
+              : editingCard
+                ? t('editFlash.dialogSave')
+                : t('editFlash.dialogAdd')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -310,16 +327,16 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
   onOpenChange,
   onConfirm,
 }: DeleteModuleDialogProps) {
+  const { t } = useI18n();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-sm border-(--border-default) bg-(--bg-color) text-(--text-primary)">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
-            Delete module?
+            {t('edit.common.deleteTitle')}
           </AlertDialogTitle>
           <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
-            This will permanently remove <strong>{moduleTitle}</strong> and all
-            its cards. This action cannot be undone.
+            {t('edit.common.deleteDescriptionFlash', { title: moduleTitle })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:flex-col sm:gap-2">
@@ -327,7 +344,7 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
             className="w-full border-(--border-default) sm:w-full"
             disabled={pending}
           >
-            Cancel
+            {t('common.cancel')}
           </AlertDialogCancel>
           <Button
             type="button"
@@ -336,7 +353,7 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
             onClick={() => void onConfirm()}
             disabled={pending}
           >
-            {pending ? 'Deleting…' : 'Delete module'}
+            {pending ? t('common.deleting') : t('edit.common.deleteAction')}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -346,6 +363,7 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
 DeleteModuleDialog.displayName = 'DeleteModuleDialog';
 
 export default function EditFlashcardModulePage() {
+  const { t } = useI18n();
   const { moduleId: rawId } = useParams();
   const moduleId = (rawId ?? '') as ModuleId;
   const navigate = useNavigate();
@@ -353,8 +371,8 @@ export default function EditFlashcardModulePage() {
   const [loadState, setLoadState] = useState<
     'loading' | 'ok' | 'notfound' | 'wrongType'
   >('loading');
-  const [title, setTitle] = useState('New module');
-  const [savedTitle, setSavedTitle] = useState('New module');
+  const [title, setTitle] = useState(t('edit.common.newFlashModule'));
+  const [savedTitle, setSavedTitle] = useState(t('edit.common.newFlashModule'));
   const [cards, setCards] = useState<ModuleCard[]>([]);
   const [search, setSearch] = useState('');
   const [shuffle, setShuffle] = useState(true);
@@ -369,7 +387,13 @@ export default function EditFlashcardModulePage() {
 
   const blocker = useBlocker(
     useCallback(
-      ({ currentLocation, nextLocation }) => {
+      ({
+        currentLocation,
+        nextLocation,
+      }: {
+        currentLocation: Location;
+        nextLocation: Location;
+      }) => {
         if (allowNavigation) return false;
         if (!isDirty) return false;
         return currentLocation.pathname !== nextLocation.pathname;
@@ -424,7 +448,9 @@ export default function EditFlashcardModulePage() {
 
   const openAddCard = useCallback(() => {
     if (cards.length >= MAX_FLASHCARDS_PER_MODULE) {
-      toast.error(`You can add up to ${MAX_FLASHCARDS_PER_MODULE} cards.`);
+      toast.error(
+        t('editFlash.validationMaxCards', { count: MAX_FLASHCARDS_PER_MODULE }),
+      );
       return;
     }
     setEditingCard(null);
@@ -446,7 +472,7 @@ export default function EditFlashcardModulePage() {
       setCards((prev) =>
         [...prev, created].sort((x, y) => x.orderIndex - y.orderIndex),
       );
-      toast.success('Card added');
+      toast.success(t('editFlash.cardAdded'));
     },
     [cards.length, moduleId],
   );
@@ -458,7 +484,7 @@ export default function EditFlashcardModulePage() {
         answer,
       });
       setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      toast.success('Card updated');
+      toast.success(t('editFlash.cardUpdated'));
     },
     [moduleId],
   );
@@ -468,9 +494,9 @@ export default function EditFlashcardModulePage() {
       try {
         await deleteCard(moduleId, c.id);
         setCards((prev) => prev.filter((x) => x.id !== c.id));
-        toast.success('Card removed');
+        toast.success(t('editFlash.cardRemoved'));
       } catch {
-        toast.error('Could not delete the card.');
+        toast.error(t('editFlash.cardDeleteFailed'));
       }
     },
     [moduleId],
@@ -488,11 +514,11 @@ export default function EditFlashcardModulePage() {
     setDeleteModulePending(true);
     try {
       await deleteModule(moduleId);
-      toast.success('Module deleted');
+      toast.success(t('modules.moduleDeleted'));
       setAllowNavigation(true);
       void navigate('/app', { replace: true });
     } catch {
-      toast.error('Could not delete module.');
+      toast.error(t('modules.moduleDeleteFailed'));
     } finally {
       setDeleteModulePending(false);
     }
@@ -505,7 +531,7 @@ export default function EditFlashcardModulePage() {
   const finishLeaveSave = useCallback(async () => {
     const t = title.trim();
     if (!t) {
-      toast.error('Title cannot be empty.');
+      toast.error(t('edit.common.titleRequired'));
       return;
     }
     try {
@@ -513,7 +539,7 @@ export default function EditFlashcardModulePage() {
       setSavedTitle(t);
       if (blocker.state === 'blocked') blocker.proceed();
     } catch {
-      toast.error('Could not save the module title.');
+      toast.error(t('edit.common.saveTitleFailed'));
     }
   }, [blocker, moduleId, title]);
 
@@ -540,7 +566,7 @@ export default function EditFlashcardModulePage() {
         aria-live="polite"
         aria-busy
       >
-        Loading…
+        {t('edit.common.loading')}
       </div>
     );
   }
@@ -550,8 +576,8 @@ export default function EditFlashcardModulePage() {
       <div className="mx-auto max-w-md text-center">
         <p className="text-(--text-secondary)">
           {loadState === 'wrongType'
-            ? 'This module is not a flashcard set.'
-            : 'Module not found or you do not have access.'}
+            ? t('edit.common.wrongTypeFlash')
+            : t('edit.common.moduleNotFound')}
         </p>
         <Button
           asChild
@@ -559,13 +585,13 @@ export default function EditFlashcardModulePage() {
           variant="outline"
           size="outlineCompact"
         >
-          <Link to="/app">Back to dashboard</Link>
+          <Link to="/app">{t('common.backToDashboard')}</Link>
         </Button>
       </div>
     );
   }
 
-  const titleTrimmed = title.trim() || 'New module';
+  const titleTrimmed = title.trim() || t('edit.common.newFlashModule');
 
   return (
     <article
@@ -574,15 +600,20 @@ export default function EditFlashcardModulePage() {
         'text-(--text-primary)',
       )}
     >
-      <h1 className="sr-only">Edit flashcard module: {titleTrimmed}</h1>
-      <nav className="text-xs text-(--text-secondary)" aria-label="Breadcrumb">
+      <h1 className="sr-only">
+        {t('editFlash.dialogEdit')}: {titleTrimmed}
+      </h1>
+      <nav
+        className="text-xs text-(--text-secondary)"
+        aria-label={t('aria.breadcrumb')}
+      >
         <ol className="flex min-w-0 list-none flex-wrap items-center gap-x-1.5 gap-y-1 p-0">
           <li className="shrink-0">
             <Link
               to="/app"
               className="font-(family-name:--font-dm-sans) font-medium text-(--text-secondary) underline-offset-2 transition-opacity hover:opacity-100 hover:underline"
             >
-              My modules
+              {t('modules.myModules')}
             </Link>
           </li>
           <li className="shrink-0 text-(--text-secondary)/50" aria-hidden>
@@ -602,12 +633,12 @@ export default function EditFlashcardModulePage() {
         <Panel
           className="p-5 sm:px-7 sm:py-6 lg:px-8"
           role="region"
-          aria-label="Module summary and study actions"
+          aria-label={t('aria.moduleSummary')}
         >
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
             <div className="min-w-0 flex-1">
               <label className="sr-only" htmlFor="module-title-input">
-                Module title
+                {t('edit.common.moduleTitle')}
               </label>
               <input
                 key={moduleId}
@@ -625,27 +656,27 @@ export default function EditFlashcardModulePage() {
               />
               <ul
                 className="mt-4 flex list-none flex-col gap-3 p-0 text-sm text-(--text-secondary)"
-                aria-label="Module statistics"
+                aria-label={t('aria.moduleStatistics')}
               >
                 <li className="flex items-center gap-2">
                   <span className="flex size-8 items-center justify-center rounded-lg bg-(--module-badge-mint-bg) text-(--module-badge-mint-fg)">
                     <IdCard className="size-4" strokeWidth={2} aria-hidden />
                   </span>
                   <span className="font-(family-name:--font-dm-sans) text-(--text-primary)">
-                    {cards.length} {cards.length === 1 ? 'card' : 'cards'}
+                    {t('modules.cards', { count: cards.length })}
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="flex size-8 items-center justify-center rounded-lg bg-(--module-badge-violet-bg) text-(--module-badge-violet-fg)">
                     <BookOpen className="size-4" strokeWidth={2} aria-hidden />
                   </span>
-                  <span>0 sessions completed</span>
+                  <span>{t('edit.common.zeroSessions')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
                     <Clock className="size-4" strokeWidth={2} aria-hidden />
                   </span>
-                  <span>Last studied: Not studied yet</span>
+                  <span>{t('edit.common.lastStudiedNever')}</span>
                 </li>
               </ul>
             </div>
@@ -656,8 +687,8 @@ export default function EditFlashcardModulePage() {
                   variant="outlineSoft"
                   size="icon-header"
                   className="rounded-[12px] text-(--text-secondary) hover:text-(--text-primary)"
-                  title="Delete module"
-                  aria-label="Delete module"
+                  title={t('aria.deleteModule')}
+                  aria-label={t('aria.deleteModule')}
                   onClick={() => setDeleteModuleOpen(true)}
                 >
                   <Trash2 className="size-4" strokeWidth={2} aria-hidden />
@@ -670,7 +701,7 @@ export default function EditFlashcardModulePage() {
                 onClick={openStudy}
               >
                 <Layers className="size-4" strokeWidth={2} aria-hidden />
-                Study with flashcards
+                {t('editFlash.startStudy')}
               </Button>
             </div>
           </div>
@@ -685,14 +716,14 @@ export default function EditFlashcardModulePage() {
           id="flashcard-settings-heading"
           className="font-(family-name:--font-syne) text-[0.6875rem] font-extrabold tracking-[0.2em] text-(--text-secondary) uppercase"
         >
-          Flashcard settings
+          {t('editFlash.settings')}
         </h2>
         <div className="mt-3 flex items-center justify-between gap-3 sm:mt-0 sm:ml-6">
           <span
             className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
             id="switch-shuffle-label"
           >
-            Shuffle
+            {t('editFlash.shuffle')}
           </span>
           <Switch
             checked={shuffle}
@@ -712,11 +743,11 @@ export default function EditFlashcardModulePage() {
             id="cards-section-heading"
             className="min-w-0 font-(family-name:--font-syne) text-xl font-bold tracking-[-0.04em] text-(--text-primary) sm:text-2xl"
           >
-            Cards ({cards.length})
+            {t('editFlash.cardsTitle', { count: cards.length })}
           </h2>
           <div className="relative w-full min-w-0 sm:max-w-full lg:w-80">
             <label htmlFor="card-search" className="sr-only">
-              Search cards
+              {t('editFlash.searchCards')}
             </label>
             <Search
               className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-(--text-secondary)"
@@ -728,7 +759,7 @@ export default function EditFlashcardModulePage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search cards…"
+              placeholder={t('editFlash.searchPlaceholder')}
               className="h-[52px] w-full rounded-[10px] border border-(--border-default) bg-(--input-bg) pl-10 text-base text-(--text-primary) shadow-none focus-visible:border-(--primary-accent) focus-visible:ring-2 focus-visible:ring-(--primary-accent)/20"
             />
           </div>
@@ -739,8 +770,8 @@ export default function EditFlashcardModulePage() {
             {filtered.length === 0 ? (
               <p className="py-10 text-center text-sm text-(--text-secondary) sm:py-12">
                 {cards.length === 0
-                  ? 'No cards yet. Add your first card below.'
-                  : 'No cards match your search.'}
+                  ? t('editFlash.noCards')
+                  : t('editFlash.noCardsMatch')}
               </p>
             ) : (
               <ul
@@ -758,7 +789,7 @@ export default function EditFlashcardModulePage() {
                     >
                       <span
                         className="w-7 shrink-0 select-none pt-0.5 font-(family-name:--font-jetbrains-mono) text-xs text-(--text-secondary)"
-                        aria-label={`Order ${n}`}
+                        aria-label={t('aria.order', { number: n })}
                       >
                         {n}
                       </span>
@@ -783,7 +814,7 @@ export default function EditFlashcardModulePage() {
                           size="icon-sm"
                           className="text-(--text-secondary) hover:text-(--text-primary)"
                           onClick={() => openEditCard(c)}
-                          aria-label="Edit card"
+                          aria-label={t('aria.editCard')}
                         >
                           <Pencil className="size-4" strokeWidth={2} />
                         </Button>
@@ -793,7 +824,7 @@ export default function EditFlashcardModulePage() {
                           size="icon-sm"
                           className="text-(--text-secondary) hover:text-(--danger-color)"
                           onClick={() => void onDeleteCard(c)}
-                          aria-label="Delete card"
+                          aria-label={t('aria.deleteCard')}
                         >
                           <Trash2 className="size-4" strokeWidth={2} />
                         </Button>
@@ -815,7 +846,7 @@ export default function EditFlashcardModulePage() {
             disabled={cards.length >= MAX_FLASHCARDS_PER_MODULE}
           >
             <Plus className="size-4" strokeWidth={2.5} />
-            Add new card
+            {t('editFlash.addCard')}
           </Button>
         </div>
       </section>
@@ -843,11 +874,9 @@ export default function EditFlashcardModulePage() {
       <AlertDialog open={leaveOpen} onOpenChange={onLeaveDialogOpenChange}>
         <AlertDialogContent className="max-w-sm" size="default">
           <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.unsavedChanges')}</AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved changes to the title. Do you want to save before
-              you leave? If you do not save, the title you typed will be lost.
-              Your cards are already kept on the server.
+              {t('edit.common.unsavedDescriptionFlash')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:flex-col sm:gap-2">
@@ -857,7 +886,7 @@ export default function EditFlashcardModulePage() {
               className="w-full sm:w-full"
               onClick={() => void finishLeaveSave()}
             >
-              Save and leave
+              {t('common.saveAndLeave')}
             </Button>
             <Button
               type="button"
@@ -865,10 +894,10 @@ export default function EditFlashcardModulePage() {
               className="w-full sm:w-full"
               onClick={finishLeaveNoSave}
             >
-              Leave without saving
+              {t('common.leaveWithoutSaving')}
             </Button>
             <AlertDialogCancel className="w-full sm:w-full">
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

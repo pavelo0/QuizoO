@@ -52,7 +52,7 @@ const ServiceHeader = () => {
       isCompact ? 'size-11 shrink-0 justify-center p-0' : 'gap-3 px-3 py-2.5',
       isActive
         ? 'bg-(--primary-accent)/12 text-(--primary-accent)'
-        : 'text-(--text-primary) hover:bg-(--bg-color)',
+        : 'text-(--text-primary) hover:bg-(--primary-accent)/12',
     );
 
   return (
@@ -67,7 +67,7 @@ const ServiceHeader = () => {
           <Link
             to="/app"
             className="font-(family-name:--font-syne) flex size-10 shrink-0 items-center justify-center rounded-2xl text-base font-extrabold leading-none tracking-[-0.04em] text-(--text-primary) no-underline transition-opacity hover:opacity-70"
-            title="QuizoO — Home"
+            title={t('common.dashboard')}
           >
             Q
           </Link>
@@ -103,7 +103,10 @@ const ServiceHeader = () => {
         </div>
       )}
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-2" aria-label="App">
+      <nav
+        className="flex min-h-0 flex-1 flex-col gap-2"
+        aria-label={t('aria.appNavigation')}
+      >
         <NavLink
           to={isAdmin ? '/app/admin' : '/app'}
           end={!isAdmin}
@@ -182,7 +185,7 @@ const ServiceHeader = () => {
           variant="ghost"
           size="icon"
           className={cn(
-            'text-(--text-primary) hover:bg-(--bg-color)',
+            'text-(--text-primary) hover:bg-(--primary-accent)/12! dark:hover:bg-(--primary-accent)/12!',
             isCompact
               ? 'size-11 rounded-2xl'
               : 'h-11 w-full justify-start gap-3 rounded-2xl px-3',
@@ -216,7 +219,7 @@ const ServiceHeader = () => {
           variant="ghost"
           size="icon"
           className={cn(
-            'text-(--text-primary) hover:bg-(--bg-color)',
+            'text-(--text-primary) hover:bg-(--primary-accent)/12! dark:hover:bg-(--primary-accent)/12!',
             isCompact
               ? 'size-11 rounded-2xl'
               : 'h-11 w-full justify-start gap-3 rounded-2xl px-3',
@@ -239,7 +242,7 @@ const ServiceHeader = () => {
         <Link
           to="/app/profile"
           className={cn(
-            'flex items-center rounded-2xl transition-colors hover:bg-(--bg-color)',
+            'flex items-center rounded-2xl transition-colors hover:bg-(--primary-accent)/12',
             isCompact ? 'justify-center p-1' : 'gap-3 px-2 py-1.5',
           )}
           aria-label={t('nav.openProfile')}
@@ -275,7 +278,7 @@ const ServiceHeader = () => {
               {profileLabel}
             </p>
             <p className="truncate font-(family-name:--font-dm-sans) text-xs text-(--text-secondary)">
-              {user?.email ?? 'View account'}
+              {user?.email ?? t('service.viewAccount')}
             </p>
           </div>
         </Link>

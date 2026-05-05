@@ -6,7 +6,8 @@ import {
   updateModule,
   updateQuestion,
 } from '@/lib/api/modules';
-import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { apiErrorText } from '@/lib/apiErrorMessage';
+import { useI18n } from '@/i18n/useI18n';
 import { MAX_MODULE_TITLE_LENGTH } from '@/lib/moduleConstants';
 import { clearQuizDraftInflight } from '@/lib/quizModuleDraft';
 import { cn } from '@/lib/utils';
@@ -49,7 +50,13 @@ import {
   useState,
   type ComponentProps,
 } from 'react';
-import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  useBlocker,
+  useNavigate,
+  useParams,
+  type Location,
+} from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
 const MAX_QUESTIONS_PER_MODULE = 30;
@@ -104,39 +111,65 @@ type QuestionTypeUi = {
   badge: string;
 };
 
-const QUESTION_TYPES: QuestionTypeUi[] = [
-  { value: 'CHOICE', title: 'Choice', badge: 'Choice' },
-  { value: 'TEXT', title: 'Text answer', badge: 'Text' },
-  { value: 'MATCHING', title: 'Matching', badge: 'Matching' },
-];
+function getQuestionTypes(t: (key: string) => string): QuestionTypeUi[] {
+  return [
+    {
+      value: 'CHOICE',
+      title: t('questionType.choice'),
+      badge: t('questionType.badgeChoice'),
+    },
+    {
+      value: 'TEXT',
+      title: t('questionType.text'),
+      badge: t('questionType.badgeText'),
+    },
+    {
+      value: 'MATCHING',
+      title: t('questionType.matching'),
+      badge: t('questionType.badgeMatching'),
+    },
+  ];
+}
 
 const DEFAULT_MATCHING_PAIRS = [
   { leftItem: '', rightItem: '' },
   { leftItem: '', rightItem: '' },
 ];
 
-function labelByType(type: QuestionType) {
-  return QUESTION_TYPES.find((t) => t.value === type)?.badge ?? type;
+function labelByType(
+  type: QuestionType,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+) {
+  return getQuestionTypes(t).find((x) => x.value === type)?.badge ?? type;
 }
 
-function summarizeQuestion(q: ModuleQuestion) {
+function summarizeQuestion(
+  q: ModuleQuestion,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+) {
   if (q.type === 'CHOICE') {
-    const mode = q.allowMultipleAnswers ? 'Multiple answers' : 'Single answer';
+    const mode = q.allowMultipleAnswers
+      ? t('editQuiz.summaryMultiple')
+      : t('editQuiz.summarySingle');
     const options = q.questionOptions.map((o) => o.text).join(' · ');
-    return options ? `${mode}: ${options}` : `${mode}: No options yet`;
+    return options
+      ? `${mode}: ${options}`
+      : `${mode}: ${t('editQuiz.summaryNoOptions')}`;
   }
   if (q.type === 'TEXT') {
     const correct = q.questionOptions.find((o) => o.isCorrect)?.text?.trim();
-    return correct ? `Correct answer: ${correct}` : 'Correct answer is not set';
+    return correct
+      ? t('editQuiz.summaryCorrectAnswer', { value: correct })
+      : t('editQuiz.summaryCorrectNotSet');
   }
   if (q.type === 'MATCHING') {
     return (
       q.matchingPairs
         .map((p) => `${p.leftItem} -> ${p.rightItem}`)
-        .join(' · ') || 'No pairs yet'
+        .join(' · ') || t('editQuiz.summaryNoPairs')
     );
   }
-  return 'Text answer question';
+  return t('questionType.text');
 }
 
 type QuestionDialogProps = {
@@ -171,6 +204,8 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
   onCreateQuestion,
   onUpdateQuestion,
 }: QuestionDialogProps) {
+  const { t } = useI18n();
+  const QUESTION_TYPES = useMemo(() => getQuestionTypes(t), [t]);
   const [type, setType] = useState<QuestionType>('CHOICE');
   const [questionText, setQuestionText] = useState('');
   const [textAnswer, setTextAnswer] = useState('');
@@ -254,9 +289,12 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       form?: string;
     } = {};
 
-    if (!question) nextErrors.questionText = 'Enter question text.';
+    if (!question)
+      nextErrors.questionText = t('editQuiz.validationQuestionText');
     if (!editingQuestion && questionsCount >= MAX_QUESTIONS_PER_MODULE) {
-      nextErrors.form = `You can add up to ${MAX_QUESTIONS_PER_MODULE} questions.`;
+      nextErrors.form = t('editQuiz.validationMaxQuestions', {
+        count: MAX_QUESTIONS_PER_MODULE,
+      });
     }
 
     const cleanOptions = options
@@ -271,35 +309,34 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
 
     if (type === 'CHOICE') {
       if (cleanOptions.length < 2) {
-        nextErrors.options = 'Add at least 2 options.';
+        nextErrors.options = t('editQuiz.validationAtLeast2Options');
       } else if (cleanOptions.some((o) => !o.text)) {
-        nextErrors.options = 'Option text cannot be empty.';
+        nextErrors.options = t('editQuiz.validationOptionEmpty');
       } else if (cleanOptions.filter((o) => o.isCorrect).length < 1) {
-        nextErrors.options = 'Mark at least one correct option.';
+        nextErrors.options = t('editQuiz.validationAtLeastOneCorrect');
       } else if (
         !allowMultipleAnswers &&
         cleanOptions.filter((o) => o.isCorrect).length !== 1
       ) {
-        nextErrors.options =
-          'Single-answer mode requires exactly one correct option.';
+        nextErrors.options = t('editQuiz.validationSingleCorrect');
       }
     }
 
     if (type === 'MATCHING') {
       if (cleanPairs.length < 2) {
-        nextErrors.matching = 'Add at least 2 matching pairs.';
+        nextErrors.matching = t('editQuiz.validationAtLeast2Pairs');
       } else if (
         cleanPairs.some(
           (p) => p.leftItem.length === 0 || p.rightItem.length === 0,
         )
       ) {
-        nextErrors.matching = 'Both values are required for each pair.';
+        nextErrors.matching = t('editQuiz.validationPairValues');
       }
     }
 
     const cleanTextAnswer = textAnswer.trim();
     if (type === 'TEXT' && !cleanTextAnswer) {
-      nextErrors.textAnswer = 'Enter the correct text answer.';
+      nextErrors.textAnswer = t('editQuiz.validationTextAnswer');
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -336,7 +373,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       }
       onOpenChange(false);
     } catch (err) {
-      setErrors({ form: apiErrorMessage(err) });
+      setErrors({ form: apiErrorText(err, t) });
     } finally {
       setSaving(false);
     }
@@ -352,6 +389,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     questionsCount,
     type,
     allowMultipleAnswers,
+    t,
   ]);
 
   return (
@@ -369,7 +407,9 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
         <div className="p-6 sm:p-8">
           <DialogHeader className="mb-0 gap-0 space-y-0 text-left sm:text-left">
             <DialogTitle className="font-(family-name:--font-syne) text-lg font-bold tracking-[0.02em] text-(--text-primary) sm:text-xl">
-              {editingQuestion ? 'Edit question' : 'New question'}
+              {editingQuestion
+                ? t('editQuiz.dialogEdit')
+                : t('editQuiz.dialogNew')}
             </DialogTitle>
           </DialogHeader>
           {errors.form ? (
@@ -383,7 +423,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
 
           <div className={cn('mt-6 space-y-6', errors.form ? 'mt-5' : 'mt-6')}>
             <div>
-              <p className={labelClass}>Question type</p>
+              <p className={labelClass}>{t('editQuiz.dialogQuestionType')}</p>
               <div className="grid gap-2 sm:grid-cols-3">
                 {QUESTION_TYPES.map((t) => (
                   <Button
@@ -417,7 +457,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
 
             <div>
               <label className={labelClass} htmlFor="quiz-question-text">
-                Question
+                {t('editQuiz.dialogQuestion')}
               </label>
               <Textarea
                 id="quiz-question-text"
@@ -430,7 +470,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                     form: undefined,
                   }));
                 }}
-                placeholder="e.g. Which statement is correct?"
+                placeholder={t('editQuiz.dialogQuestionPlaceholder')}
                 rows={4}
                 aria-invalid={!!errors.questionText}
                 className={cn(
@@ -452,7 +492,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
             {type === 'TEXT' ? (
               <div>
                 <label className={labelClass} htmlFor="quiz-text-answer">
-                  Correct answer
+                  {t('editQuiz.dialogCorrectAnswer')}
                 </label>
                 <Input
                   id="quiz-text-answer"
@@ -465,7 +505,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                       form: undefined,
                     }));
                   }}
-                  placeholder="e.g. Paris"
+                  placeholder={t('editQuiz.dialogCorrectPlaceholder')}
                   aria-invalid={!!errors.textAnswer}
                   className={cn(
                     'h-11 rounded-xl',
@@ -486,7 +526,9 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
             {type === 'CHOICE' ? (
               <div>
                 <div className="mb-3 flex items-center justify-between rounded-xl border border-(--border-default) bg-(--input-bg)/45 px-3 py-2">
-                  <p className="text-xs text-(--text-secondary)">Answer mode</p>
+                  <p className="text-xs text-(--text-secondary)">
+                    {t('editQuiz.dialogAnswerMode')}
+                  </p>
                   <label className="flex items-center gap-2 text-xs text-(--text-primary)">
                     <input
                       type="checkbox"
@@ -500,10 +542,10 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                         }));
                       }}
                     />
-                    Allow multiple answers
+                    {t('editQuiz.dialogAllowMultiple')}
                   </label>
                 </div>
-                <p className={labelClass}>Options</p>
+                <p className={labelClass}>{t('editQuiz.dialogOptions')}</p>
                 <div className="space-y-2.5">
                   {options.map((opt, idx) => (
                     <div key={`opt-${idx}`} className="flex items-center gap-2">
@@ -522,7 +564,9 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                             form: undefined,
                           }));
                         }}
-                        placeholder={`Option ${idx + 1}`}
+                        placeholder={t('editQuiz.dialogOption', {
+                          index: idx + 1,
+                        })}
                         className="h-11 rounded-xl"
                       />
                       <label className="flex shrink-0 items-center gap-2 text-xs text-(--text-secondary)">
@@ -543,7 +587,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                             }));
                           }}
                         />
-                        Correct
+                        {t('editQuiz.dialogOptionCorrect')}
                       </label>
                     </div>
                   ))}
@@ -555,7 +599,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                     className="h-10 rounded-xl"
                     onClick={addChoiceOption}
                   >
-                    Add option
+                    {t('editQuiz.dialogAddOption')}
                   </Button>
                 </div>
                 {errors.options ? (
@@ -571,7 +615,9 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
 
             {type === 'MATCHING' ? (
               <div>
-                <p className={labelClass}>Matching pairs</p>
+                <p className={labelClass}>
+                  {t('editQuiz.dialogMatchingPairs')}
+                </p>
                 <div className="space-y-2.5">
                   {pairs.map((pair, idx) => (
                     <div
@@ -593,7 +639,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                             form: undefined,
                           }));
                         }}
-                        placeholder="Left item"
+                        placeholder={t('editQuiz.dialogLeftItem')}
                         className="h-11 rounded-xl"
                       />
                       <span className="text-center text-xs text-(--text-secondary)">
@@ -614,7 +660,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                             form: undefined,
                           }));
                         }}
-                        placeholder="Right item"
+                        placeholder={t('editQuiz.dialogRightItem')}
                         className="h-11 rounded-xl"
                       />
                     </div>
@@ -627,7 +673,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                     className="h-10 rounded-xl"
                     onClick={addMatchingPair}
                   >
-                    Add pair
+                    {t('editQuiz.dialogAddPair')}
                   </Button>
                 </div>
                 {errors.matching ? (
@@ -651,7 +697,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
             className="h-12 rounded-2xl px-6"
             disabled={saving}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -660,7 +706,11 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
             className="h-12 rounded-2xl px-6"
             disabled={saving}
           >
-            {saving ? 'Saving…' : editingQuestion ? 'Save' : 'Add question'}
+            {saving
+              ? t('common.saving')
+              : editingQuestion
+                ? t('editQuiz.dialogSave')
+                : t('editQuiz.dialogAdd')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -684,16 +734,16 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
   onOpenChange,
   onConfirm,
 }: DeleteModuleDialogProps) {
+  const { t } = useI18n();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-sm border-(--border-default) bg-(--bg-color) text-(--text-primary)">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
-            Delete module?
+            {t('edit.common.deleteTitle')}
           </AlertDialogTitle>
           <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
-            This will permanently remove <strong>{moduleTitle}</strong> and all
-            its questions. This action cannot be undone.
+            {t('edit.common.deleteDescriptionQuiz', { title: moduleTitle })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:flex-col sm:gap-2">
@@ -701,7 +751,7 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
             className="w-full border-(--border-default) sm:w-full"
             disabled={pending}
           >
-            Cancel
+            {t('common.cancel')}
           </AlertDialogCancel>
           <Button
             type="button"
@@ -710,7 +760,7 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
             onClick={() => void onConfirm()}
             disabled={pending}
           >
-            {pending ? 'Deleting…' : 'Delete module'}
+            {pending ? t('common.deleting') : t('edit.common.deleteAction')}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -720,6 +770,7 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
 DeleteModuleDialog.displayName = 'DeleteModuleDialog';
 
 export default function EditQuizModulePage() {
+  const { t } = useI18n();
   const { moduleId: rawId } = useParams();
   const moduleId = (rawId ?? '') as ModuleId;
   const navigate = useNavigate();
@@ -727,8 +778,8 @@ export default function EditQuizModulePage() {
   const [loadState, setLoadState] = useState<
     'loading' | 'ok' | 'notfound' | 'wrongType'
   >('loading');
-  const [title, setTitle] = useState('New quiz module');
-  const [savedTitle, setSavedTitle] = useState('New quiz module');
+  const [title, setTitle] = useState(t('edit.common.newQuizModule'));
+  const [savedTitle, setSavedTitle] = useState(t('edit.common.newQuizModule'));
   const [questions, setQuestions] = useState<ModuleQuestion[]>([]);
   const [search, setSearch] = useState('');
   const [shuffle, setShuffle] = useState(true);
@@ -745,7 +796,13 @@ export default function EditQuizModulePage() {
 
   const blocker = useBlocker(
     useCallback(
-      ({ currentLocation, nextLocation }) => {
+      ({
+        currentLocation,
+        nextLocation,
+      }: {
+        currentLocation: Location;
+        nextLocation: Location;
+      }) => {
         if (allowNavigation) return false;
         if (!isDirty) return false;
         return currentLocation.pathname !== nextLocation.pathname;
@@ -811,12 +868,16 @@ export default function EditQuizModulePage() {
 
   const openAddQuestion = useCallback(() => {
     if (questions.length >= MAX_QUESTIONS_PER_MODULE) {
-      toast.error(`You can add up to ${MAX_QUESTIONS_PER_MODULE} questions.`);
+      toast.error(
+        t('editQuiz.validationMaxQuestions', {
+          count: MAX_QUESTIONS_PER_MODULE,
+        }),
+      );
       return;
     }
     setEditingQuestion(null);
     setQuestionDialogOpen(true);
-  }, [questions.length]);
+  }, [questions.length, t]);
 
   const openEditQuestion = useCallback((q: ModuleQuestion) => {
     setEditingQuestion(q);
@@ -838,9 +899,9 @@ export default function EditQuizModulePage() {
       setQuestions((prev) =>
         [...prev, created].sort((x, y) => x.orderIndex - y.orderIndex),
       );
-      toast.success('Question added');
+      toast.success(t('editQuiz.questionAdded'));
     },
-    [moduleId, questions.length],
+    [moduleId, questions.length, t],
   );
 
   const onUpdateQuestion = useCallback(
@@ -858,9 +919,9 @@ export default function EditQuizModulePage() {
       setQuestions((prev) =>
         prev.map((q) => (q.id === updated.id ? updated : q)),
       );
-      toast.success('Question updated');
+      toast.success(t('editQuiz.questionUpdated'));
     },
-    [moduleId],
+    [moduleId, t],
   );
 
   const onDeleteQuestion = useCallback(
@@ -868,12 +929,12 @@ export default function EditQuizModulePage() {
       try {
         await deleteQuestion(moduleId, q.id);
         setQuestions((prev) => prev.filter((x) => x.id !== q.id));
-        toast.success('Question removed');
+        toast.success(t('editQuiz.questionRemoved'));
       } catch {
-        toast.error('Could not delete the question.');
+        toast.error(t('editQuiz.questionDeleteFailed'));
       }
     },
-    [moduleId],
+    [moduleId, t],
   );
 
   const onShuffle = useCallback(
@@ -888,34 +949,34 @@ export default function EditQuizModulePage() {
     setDeleteModulePending(true);
     try {
       await deleteModule(moduleId);
-      toast.success('Module deleted');
+      toast.success(t('modules.moduleDeleted'));
       setAllowNavigation(true);
       void navigate('/app', { replace: true });
     } catch {
-      toast.error('Could not delete module.');
+      toast.error(t('modules.moduleDeleteFailed'));
     } finally {
       setDeleteModulePending(false);
     }
-  }, [moduleId, navigate]);
+  }, [moduleId, navigate, t]);
 
   const openStudy = useCallback(() => {
     void navigate(`/app/modules/${encodeURIComponent(moduleId)}/quiz-study`);
   }, [moduleId, navigate]);
 
   const finishLeaveSave = useCallback(async () => {
-    const t = title.trim();
-    if (!t) {
-      toast.error('Title cannot be empty.');
+    const nextTitle = title.trim();
+    if (!nextTitle) {
+      toast.error(t('edit.common.titleRequired'));
       return;
     }
     try {
-      await updateModule(moduleId, { title: t });
-      setSavedTitle(t);
+      await updateModule(moduleId, { title: nextTitle });
+      setSavedTitle(nextTitle);
       if (blocker.state === 'blocked') blocker.proceed();
     } catch {
-      toast.error('Could not save the module title.');
+      toast.error(t('edit.common.saveTitleFailed'));
     }
-  }, [blocker, moduleId, title]);
+  }, [blocker, moduleId, t, title]);
 
   const finishLeaveNoSave = useCallback(() => {
     if (blocker.state === 'blocked') blocker.proceed();
@@ -940,7 +1001,7 @@ export default function EditQuizModulePage() {
         aria-live="polite"
         aria-busy
       >
-        Loading…
+        {t('edit.common.loading')}
       </div>
     );
   }
@@ -950,8 +1011,8 @@ export default function EditQuizModulePage() {
       <div className="mx-auto max-w-md text-center">
         <p className="text-(--text-secondary)">
           {loadState === 'wrongType'
-            ? 'This module is not a quiz module.'
-            : 'Module not found or you do not have access.'}
+            ? t('edit.common.wrongTypeQuiz')
+            : t('edit.common.moduleNotFound')}
         </p>
         <Button
           asChild
@@ -959,13 +1020,13 @@ export default function EditQuizModulePage() {
           variant="outline"
           size="outlineCompact"
         >
-          <Link to="/app">Back to dashboard</Link>
+          <Link to="/app">{t('common.backToDashboard')}</Link>
         </Button>
       </div>
     );
   }
 
-  const titleTrimmed = title.trim() || 'New quiz module';
+  const titleTrimmed = title.trim() || t('edit.common.newQuizModule');
 
   return (
     <article
@@ -974,15 +1035,20 @@ export default function EditQuizModulePage() {
         'text-(--text-primary)',
       )}
     >
-      <h1 className="sr-only">Edit quiz module: {titleTrimmed}</h1>
-      <nav className="text-xs text-(--text-secondary)" aria-label="Breadcrumb">
+      <h1 className="sr-only">
+        {t('editQuiz.dialogEdit')}: {titleTrimmed}
+      </h1>
+      <nav
+        className="text-xs text-(--text-secondary)"
+        aria-label={t('aria.breadcrumb')}
+      >
         <ol className="flex min-w-0 list-none flex-wrap items-center gap-x-1.5 gap-y-1 p-0">
           <li className="shrink-0">
             <Link
               to="/app"
               className="font-(family-name:--font-dm-sans) font-medium text-(--text-secondary) underline-offset-2 transition-opacity hover:opacity-100 hover:underline"
             >
-              My modules
+              {t('modules.myModules')}
             </Link>
           </li>
           <li className="shrink-0 text-(--text-secondary)/50" aria-hidden>
@@ -1002,12 +1068,12 @@ export default function EditQuizModulePage() {
         <Panel
           className="p-5 sm:px-7 sm:py-6 lg:px-8"
           role="region"
-          aria-label="Module summary and study actions"
+          aria-label={t('aria.moduleSummary')}
         >
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
             <div className="min-w-0 flex-1">
               <label className="sr-only" htmlFor="module-title-input">
-                Module title
+                {t('edit.common.moduleTitle')}
               </label>
               <input
                 key={moduleId}
@@ -1025,7 +1091,7 @@ export default function EditQuizModulePage() {
               />
               <ul
                 className="mt-4 flex list-none flex-col gap-3 p-0 text-sm text-(--text-secondary)"
-                aria-label="Module statistics"
+                aria-label={t('aria.moduleStatistics')}
               >
                 <li className="flex items-center gap-2">
                   <span className="flex size-8 items-center justify-center rounded-lg bg-(--module-badge-mint-bg) text-(--module-badge-mint-fg)">
@@ -1033,20 +1099,22 @@ export default function EditQuizModulePage() {
                   </span>
                   <span className="font-(family-name:--font-dm-sans) text-(--text-primary)">
                     {questions.length}{' '}
-                    {questions.length === 1 ? 'question' : 'questions'}
+                    {questions.length === 1
+                      ? t('modules.questions', { count: 1 })
+                      : t('modules.questions', { count: questions.length })}
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="flex size-8 items-center justify-center rounded-lg bg-(--module-badge-violet-bg) text-(--module-badge-violet-fg)">
                     <BookOpen className="size-4" strokeWidth={2} aria-hidden />
                   </span>
-                  <span>0 sessions completed</span>
+                  <span>{t('edit.common.zeroSessions')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
                     <Clock className="size-4" strokeWidth={2} aria-hidden />
                   </span>
-                  <span>Last studied: Not studied yet</span>
+                  <span>{t('edit.common.lastStudiedNever')}</span>
                 </li>
               </ul>
             </div>
@@ -1057,8 +1125,8 @@ export default function EditQuizModulePage() {
                   variant="outlineSoft"
                   size="icon-header"
                   className="rounded-[12px] text-(--text-secondary) hover:text-(--text-primary)"
-                  title="Delete module"
-                  aria-label="Delete module"
+                  title={t('aria.deleteModule')}
+                  aria-label={t('aria.deleteModule')}
                   onClick={() => setDeleteModuleOpen(true)}
                 >
                   <Trash2 className="size-4" strokeWidth={2} aria-hidden />
@@ -1071,7 +1139,7 @@ export default function EditQuizModulePage() {
                 onClick={openStudy}
               >
                 <ListChecks className="size-4" strokeWidth={2} aria-hidden />
-                Start quiz
+                {t('editQuiz.startQuiz')}
               </Button>
             </div>
           </div>
@@ -1086,14 +1154,14 @@ export default function EditQuizModulePage() {
           id="quiz-settings-heading"
           className="font-(family-name:--font-syne) text-[0.6875rem] font-extrabold tracking-[0.2em] text-(--text-secondary) uppercase"
         >
-          Quiz settings
+          {t('editQuiz.settings')}
         </h2>
         <div className="mt-3 flex items-center justify-between gap-3 sm:mt-0 sm:ml-6">
           <span
             className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
             id="switch-shuffle-label"
           >
-            Shuffle questions
+            {t('editQuiz.shuffle')}
           </span>
           <Switch
             checked={shuffle}
@@ -1113,11 +1181,11 @@ export default function EditQuizModulePage() {
             id="questions-section-heading"
             className="min-w-0 font-(family-name:--font-syne) text-xl font-bold tracking-[-0.04em] text-(--text-primary) sm:text-2xl"
           >
-            Questions ({questions.length})
+            {t('editQuiz.questionsTitle', { count: questions.length })}
           </h2>
           <div className="relative w-full min-w-0 sm:max-w-full lg:w-80">
             <label htmlFor="question-search" className="sr-only">
-              Search questions
+              {t('editQuiz.searchQuestions')}
             </label>
             <Search
               className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-(--text-secondary)"
@@ -1129,7 +1197,7 @@ export default function EditQuizModulePage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search questions…"
+              placeholder={t('editQuiz.searchPlaceholder')}
               className="h-[52px] w-full rounded-[10px] border border-(--border-default) bg-(--input-bg) pl-10 text-base text-(--text-primary) shadow-none focus-visible:border-(--primary-accent) focus-visible:ring-2 focus-visible:ring-(--primary-accent)/20"
             />
           </div>
@@ -1140,8 +1208,8 @@ export default function EditQuizModulePage() {
             {filtered.length === 0 ? (
               <p className="py-10 text-center text-sm text-(--text-secondary) sm:py-12">
                 {questions.length === 0
-                  ? 'No questions yet. Add your first question below.'
-                  : 'No questions match your search.'}
+                  ? t('editQuiz.noQuestions')
+                  : t('editQuiz.noQuestionsMatch')}
               </p>
             ) : (
               <ul
@@ -1159,7 +1227,7 @@ export default function EditQuizModulePage() {
                     >
                       <span
                         className="w-7 shrink-0 select-none pt-0.5 font-(family-name:--font-jetbrains-mono) text-xs text-(--text-secondary)"
-                        aria-label={`Order ${n}`}
+                        aria-label={t('aria.order', { number: n })}
                       >
                         {n}
                       </span>
@@ -1169,11 +1237,11 @@ export default function EditQuizModulePage() {
                             {q.questionText}
                           </h3>
                           <span className="inline-flex items-center rounded-full bg-(--module-badge-violet-bg) px-2.5 py-1 text-[0.625rem] font-bold tracking-[0.08em] text-(--module-badge-violet-fg) uppercase">
-                            {labelByType(q.type)}
+                            {labelByType(q.type, t)}
                           </span>
                         </div>
                         <p className="mt-1 text-sm text-(--text-secondary) sm:text-sm">
-                          {summarizeQuestion(q)}
+                          {summarizeQuestion(q, t)}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-0.5">
@@ -1183,7 +1251,7 @@ export default function EditQuizModulePage() {
                           size="icon-sm"
                           className="text-(--text-secondary) hover:text-(--text-primary)"
                           onClick={() => openEditQuestion(q)}
-                          aria-label="Edit question"
+                          aria-label={t('aria.editQuestion')}
                         >
                           <Pencil className="size-4" strokeWidth={2} />
                         </Button>
@@ -1193,7 +1261,7 @@ export default function EditQuizModulePage() {
                           size="icon-sm"
                           className="text-(--text-secondary) hover:text-(--danger-color)"
                           onClick={() => void onDeleteQuestion(q)}
-                          aria-label="Delete question"
+                          aria-label={t('aria.deleteQuestion')}
                         >
                           <Trash2 className="size-4" strokeWidth={2} />
                         </Button>
@@ -1215,7 +1283,7 @@ export default function EditQuizModulePage() {
             disabled={questions.length >= MAX_QUESTIONS_PER_MODULE}
           >
             <Plus className="size-4" strokeWidth={2.5} />
-            Add new question
+            {t('editQuiz.addQuestion')}
           </Button>
         </div>
       </section>
@@ -1243,11 +1311,9 @@ export default function EditQuizModulePage() {
       <AlertDialog open={leaveOpen} onOpenChange={onLeaveDialogOpenChange}>
         <AlertDialogContent className="max-w-sm" size="default">
           <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.unsavedChanges')}</AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved changes to the title. Do you want to save before
-              you leave? If you do not save, the title you typed will be lost.
-              Your questions are already kept on the server.
+              {t('edit.common.unsavedDescriptionQuiz')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:flex-col sm:gap-2">
@@ -1257,7 +1323,7 @@ export default function EditQuizModulePage() {
               className="w-full sm:w-full"
               onClick={() => void finishLeaveSave()}
             >
-              Save and leave
+              {t('common.saveAndLeave')}
             </Button>
             <Button
               type="button"
@@ -1265,10 +1331,10 @@ export default function EditQuizModulePage() {
               className="w-full sm:w-full"
               onClick={finishLeaveNoSave}
             >
-              Leave without saving
+              {t('common.leaveWithoutSaving')}
             </Button>
             <AlertDialogCancel className="w-full sm:w-full">
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

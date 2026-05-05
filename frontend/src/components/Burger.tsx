@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui';
+import { useI18n } from '@/i18n/useI18n';
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -10,6 +11,7 @@ type BurgerProps = {
 };
 
 const Burger = ({ phase, onDismiss, onExitComplete }: BurgerProps) => {
+  const { locale, setLocale, t } = useI18n();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -51,14 +53,14 @@ const Burger = ({ phase, onDismiss, onExitComplete }: BurgerProps) => {
       id="mobile-menu"
       role="dialog"
       aria-modal="true"
-      aria-label="Mobile navigation"
+      aria-label={t('public.mobileNavigation')}
     >
       <button
         type="button"
         className={`absolute inset-0 bg-black/50 transition-opacity duration-200 ease-out ${
           visible ? 'opacity-100' : 'opacity-0'
         }`}
-        aria-label="Close menu"
+        aria-label={t('public.closeMenu')}
         onClick={onDismiss}
       />
 
@@ -75,7 +77,7 @@ const Burger = ({ phase, onDismiss, onExitComplete }: BurgerProps) => {
           <button
             type="button"
             className="inline-flex size-10 items-center justify-center rounded-2xl text-(--text-primary) transition-colors hover:bg-(--surface-color)"
-            aria-label="Close menu"
+            aria-label={t('public.closeMenu')}
             onClick={onDismiss}
           >
             <X className="size-5" strokeWidth={1.75} />
@@ -84,40 +86,51 @@ const Burger = ({ phase, onDismiss, onExitComplete }: BurgerProps) => {
 
         <nav
           className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-6"
-          aria-label="Mobile"
+          aria-label={t('aria.mobileNavigation')}
         >
           <a
             href="#features"
             className="rounded-xl px-3 py-3 font-(family-name:--font-dm-sans) text-base font-medium text-(--text-primary) no-underline hover:bg-(--surface-color)"
             onClick={onDismiss}
           >
-            Features
+            {t('public.features')}
           </a>
           <a
             href="#pricing"
             className="rounded-xl px-3 py-3 font-(family-name:--font-dm-sans) text-base font-medium text-(--text-primary) no-underline hover:bg-(--surface-color)"
             onClick={onDismiss}
           >
-            Pricing
+            {t('public.pricing')}
           </a>
           <a
             href="#how-it-works"
             className="rounded-xl px-3 py-3 font-(family-name:--font-dm-sans) text-base font-medium text-(--text-primary) no-underline hover:bg-(--surface-color)"
             onClick={onDismiss}
           >
-            How it works
+            {t('public.howItWorks')}
           </a>
         </nav>
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-(--border-default) p-5">
+          <Button
+            type="button"
+            variant="outlineSoft"
+            size="cta"
+            className="w-full gap-2"
+            aria-label={t('common.language')}
+            onClick={() => setLocale(locale === 'en' ? 'ru' : 'en')}
+          >
+            <span className="text-xs font-semibold uppercase">{locale}</span>
+            {t('common.language')}
+          </Button>
           <Button variant="outlineSoft" size="cta" className="w-full" asChild>
             <Link to="/auth/login" onClick={onDismiss}>
-              Log in
+              {t('auth.logIn')}
             </Link>
           </Button>
           <Button variant="cta" size="cta" className="w-full" asChild>
             <Link to="/auth/register" onClick={onDismiss}>
-              Get started
+              {t('public.getStarted')}
             </Link>
           </Button>
         </div>

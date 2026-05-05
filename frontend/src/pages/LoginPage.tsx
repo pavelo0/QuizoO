@@ -33,7 +33,7 @@ const LoginPage = () => {
   const [pending, setPending] = useState(false);
 
   const { refresh } = useAuthContext();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -90,7 +90,9 @@ const LoginPage = () => {
               name="email"
               type="email"
               autoComplete="email"
-              placeholder="you@example.com"
+              placeholder={
+                locale === 'ru' ? 'you@example.com' : 'you@example.com'
+              }
               aria-invalid={!!fieldErrors.email}
               className={cn(
                 fieldClass,
@@ -128,7 +130,9 @@ const LoginPage = () => {
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
-                placeholder="Your password here"
+                placeholder={
+                  locale === 'ru' ? 'Введите пароль' : 'Your password here'
+                }
                 aria-invalid={!!fieldErrors.password}
                 className={cn(
                   fieldClass,
@@ -139,7 +143,15 @@ const LoginPage = () => {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={
+                  showPassword
+                    ? locale === 'ru'
+                      ? 'Скрыть пароль'
+                      : 'Hide password'
+                    : locale === 'ru'
+                      ? 'Показать пароль'
+                      : 'Show password'
+                }
                 onClick={() => setShowPassword((v) => !v)}
               >
                 {showPassword ? (
@@ -191,7 +203,7 @@ const LoginPage = () => {
           >
             <span className="h-px flex-1 bg-(--border-default)" aria-hidden />
             <span className="font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-(--text-secondary)">
-              or
+              {locale === 'ru' ? 'или' : 'or'}
             </span>
             <span className="h-px flex-1 bg-(--border-default)" aria-hidden />
           </div>

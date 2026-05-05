@@ -39,7 +39,7 @@ const ForgotPasswordPage = () => {
   const [pending, setPending] = useState(false);
 
   const { user, refresh } = useAuthContext();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const navigate = useNavigate();
   const signedIn = Boolean(user);
 
@@ -72,10 +72,16 @@ const ForgotPasswordPage = () => {
       setEmail(parsed.data.email);
       setCodeSent(true);
       if (data.resetCode) {
-        toast.success(`Reset code (lab): ${data.resetCode}`);
+        toast.success(
+          locale === 'ru'
+            ? `Код сброса (lab): ${data.resetCode}`
+            : `Reset code (lab): ${data.resetCode}`,
+        );
       } else {
         toast.success(
-          'If the account exists, a reset code was logged on the server.',
+          locale === 'ru'
+            ? 'Если аккаунт существует, код сброса записан в лог сервера.'
+            : 'If the account exists, a reset code was logged on the server.',
         );
       }
     } catch (err) {
@@ -101,7 +107,9 @@ const ForgotPasswordPage = () => {
 
     const trimmedCode = code.trim();
     if (!trimmedCode) {
-      toast.error('Enter the reset code');
+      toast.error(
+        locale === 'ru' ? 'Введите код сброса' : 'Enter the reset code',
+      );
       return;
     }
 
@@ -116,7 +124,11 @@ const ForgotPasswordPage = () => {
         },
       );
       await refresh();
-      toast.success('Password updated. You are signed in.');
+      toast.success(
+        locale === 'ru'
+          ? 'Пароль обновлён. Вы вошли в систему.'
+          : 'Password updated. You are signed in.',
+      );
       navigate(getHomeRouteByRole(signedInUser.role), { replace: true });
     } catch (err) {
       toast.error(apiErrorMessage(err));
@@ -134,9 +146,17 @@ const ForgotPasswordPage = () => {
         resetCode?: string;
       }>('/auth/forgot-password', { email });
       if (data.resetCode) {
-        toast.success(`New code (lab): ${data.resetCode}`);
+        toast.success(
+          locale === 'ru'
+            ? `Новый код (lab): ${data.resetCode}`
+            : `New code (lab): ${data.resetCode}`,
+        );
       } else {
-        toast.success('A new code was logged on the server.');
+        toast.success(
+          locale === 'ru'
+            ? 'Новый код записан в лог сервера.'
+            : 'A new code was logged on the server.',
+        );
       }
     } catch (err) {
       toast.error(apiErrorMessage(err));
@@ -157,17 +177,21 @@ const ForgotPasswordPage = () => {
             <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
               {signedIn ? (
                 <>
-                  You&apos;re signed in. We&apos;ll send a one-time code to{' '}
+                  {locale === 'ru'
+                    ? 'Вы уже вошли. Мы отправим одноразовый код на '
+                    : "You're signed in. We'll send a one-time code to "}
                   <span className="font-medium text-(--text-primary)">
                     {user?.email}
                   </span>
-                  . Use it below to set a new password — no need to know the old
-                  one. In lab mode the code is also in the API server log.
+                  {locale === 'ru'
+                    ? '. Используйте его ниже для установки нового пароля — старый пароль не нужен. В режиме lab код также есть в логе API-сервера.'
+                    : '. Use it below to set a new password — no need to know the old one. In lab mode the code is also in the API server log.'}
                 </>
               ) : (
                 <>
-                  Enter the email for your account. A one-time code is written
-                  to the API server log (lab mode).
+                  {locale === 'ru'
+                    ? 'Введите email аккаунта. Одноразовый код будет записан в лог API-сервера (режим lab).'
+                    : 'Enter the email for your account. A one-time code is written to the API server log (lab mode).'}
                 </>
               )}
             </p>
@@ -176,7 +200,7 @@ const ForgotPasswordPage = () => {
                 htmlFor="forgot-email"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Email
+                {t('auth.email')}
               </label>
               <Input
                 id="forgot-email"
@@ -211,7 +235,11 @@ const ForgotPasswordPage = () => {
               type="submit"
               disabled={pending}
             >
-              {pending ? 'Sending...' : t('auth.sendResetCode')}
+              {pending
+                ? locale === 'ru'
+                  ? 'Отправка...'
+                  : 'Sending...'
+                : t('auth.sendResetCode')}
             </Button>
             <p className="text-center font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
               {signedIn ? (
@@ -238,16 +266,20 @@ const ForgotPasswordPage = () => {
             noValidate
           >
             <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-              Enter the code for{' '}
-              <span className="font-medium text-(--text-primary)">{email}</span>{' '}
-              and choose a new password.
+              {locale === 'ru' ? 'Введите код для ' : 'Enter the code for '}
+              <span className="font-medium text-(--text-primary)">
+                {email}
+              </span>{' '}
+              {locale === 'ru'
+                ? 'и задайте новый пароль.'
+                : 'and choose a new password.'}
             </p>
             <div>
               <label
                 htmlFor="forgot-code"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Reset code
+                {locale === 'ru' ? 'Код сброса' : 'Reset code'}
               </label>
               <Input
                 id="forgot-code"
@@ -266,7 +298,7 @@ const ForgotPasswordPage = () => {
                 htmlFor="forgot-new-password"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                New password
+                {locale === 'ru' ? 'Новый пароль' : 'New password'}
               </label>
               <div className="relative">
                 <Input
@@ -284,7 +316,15 @@ const ForgotPasswordPage = () => {
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showPassword
+                      ? locale === 'ru'
+                        ? 'Скрыть пароль'
+                        : 'Hide password'
+                      : locale === 'ru'
+                        ? 'Показать пароль'
+                        : 'Show password'
+                  }
                   onClick={() => setShowPassword((v) => !v)}
                 >
                   {showPassword ? (
@@ -308,7 +348,9 @@ const ForgotPasswordPage = () => {
                 htmlFor="forgot-confirm-password"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Confirm new password
+                {locale === 'ru'
+                  ? 'Подтвердите новый пароль'
+                  : 'Confirm new password'}
               </label>
               <Input
                 id="forgot-confirm-password"
@@ -346,14 +388,14 @@ const ForgotPasswordPage = () => {
                 onClick={handleResendCode}
                 disabled={pending}
               >
-                Resend code
+                {t('auth.resendCode')}
               </button>
               {signedIn ? (
                 <Link
                   to="/app/profile"
                   className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary) transition-colors hover:text-(--text-primary)"
                 >
-                  Back to profile
+                  {t('auth.backToProfile')}
                 </Link>
               ) : (
                 <button
@@ -365,7 +407,9 @@ const ForgotPasswordPage = () => {
                   }}
                   disabled={pending}
                 >
-                  Use a different email
+                  {locale === 'ru'
+                    ? 'Использовать другой email'
+                    : 'Use a different email'}
                 </button>
               )}
             </div>

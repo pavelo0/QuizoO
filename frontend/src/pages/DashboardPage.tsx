@@ -2,6 +2,7 @@ import { useAuthContext } from '@/auth/AuthContext';
 import { DashboardModulesSection } from '@/components/modules';
 import { Button } from '@/components/ui/button';
 import { apiErrorMessage } from '@/lib/apiErrorMessage';
+import { useI18n } from '@/i18n/useI18n';
 import {
   fetchModuleList,
   fetchModulesDashboardSummary,
@@ -11,18 +12,20 @@ import type { ApiPublicUser } from '@/types/api-user';
 import type { ModuleListItem } from '@/types/module';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-function greetingWord(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+function greetingWord(hour: number, t: (key: string) => string): string {
+  if (hour < 12) return t('dashboard.greetingMorning');
+  if (hour < 18) return t('dashboard.greetingAfternoon');
+  return t('dashboard.greetingEvening');
 }
 
-function displayFirstName(user: ApiPublicUser | null): string {
-  if (!user) return 'there';
+function displayFirstName(
+  user: ApiPublicUser | null,
+  fallback: string,
+): string {
+  if (!user) return fallback;
   const u = user.username?.trim();
   if (u) return u.split(/\s+/)[0] ?? u;
-  return user.email.split('@')[0] ?? 'there';
+  return user.email.split('@')[0] ?? fallback;
 }
 
 function StatCard({
@@ -56,6 +59,7 @@ function StatCard({
 
 const DashboardPage = () => {
   const { user } = useAuthContext();
+  const { t } = useI18n();
   const [summary, setSummary] = useState<Awaited<
     ReturnType<typeof fetchModulesDashboardSummary>
   > | null>(null);
@@ -111,16 +115,17 @@ const DashboardPage = () => {
   const activeModules = summary?.activeModules ?? 0;
   const subtitle =
     summary == null && loading
-      ? 'Loading your stats…'
+      ? t('dashboard.subtitleLoading')
       : activeModules === 0
-        ? "No modules yet. Create your first module when you're ready."
-        : `You have ${activeModules} modules active. Keep it up!`;
+        ? t('dashboard.subtitleEmpty')
+        : t('dashboard.subtitleActive', { count: activeModules });
 
   return (
     <div className="font-(family-name:--font-dm-sans)">
       <header className="mb-8">
         <h1 className="font-(family-name:--font-syne) text-2xl font-extrabold tracking-[-0.04em] text-(--text-primary) sm:text-3xl">
-          {greetingWord()}, {displayFirstName(user)} 👋
+          {greetingWord(new Date().getHours(), t)},{' '}
+          {displayFirstName(user, t('dashboard.greetingFallbackName'))} 👋
         </h1>
         <p className="mt-2 text-sm text-(--text-secondary)">{subtitle}</p>
       </header>
@@ -138,14 +143,14 @@ const DashboardPage = () => {
             className="mt-2"
             onClick={() => void load()}
           >
-            Retry
+            {t('common.retry')}
           </Button>
         </div>
       )}
 
       <section
         className="mb-10 grid gap-4 sm:grid-cols-3"
-        aria-label="Statistics"
+        aria-label={t('aria.statistics')}
       >
         {loading && !summary ? (
           <>
@@ -156,17 +161,17 @@ const DashboardPage = () => {
         ) : (
           <>
             <StatCard
-              label="Total Modules"
+              label={t('dashboard.totalModules')}
               value={String(summary?.totalModules ?? 0)}
               valueClassName="text-(--primary-accent)"
             />
             <StatCard
-              label="Cards Studied"
+              label={t('dashboard.cardsStudied')}
               value={String(summary?.cardsStudied ?? 0)}
               valueClassName="text-(--secondary-accent)"
             />
             <StatCard
-              label="Avg Quiz Score"
+              label={t('dashboard.avgQuizScore')}
               value={avgScoreText}
               valueClassName="text-(--primary-accent)"
             />

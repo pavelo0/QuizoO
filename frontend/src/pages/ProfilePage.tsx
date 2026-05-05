@@ -1,4 +1,5 @@
 import { useAuthContext } from '@/auth/AuthContext';
+import { Button, Input, Label } from '@/components/ui';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +11,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button, Input, Label } from '@/components/ui';
 import {
   Dialog,
   DialogContent,
@@ -19,10 +19,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { apiErrorMessage } from '@/lib/apiErrorMessage';
-import { apiClient } from '@/lib/api/client';
 import { useI18n } from '@/i18n/useI18n';
-import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
+import { apiClient } from '@/lib/api/client';
+import { apiErrorText } from '@/lib/apiErrorMessage';
 import {
   PROFILE_AVATAR_ACCEPT,
   PROFILE_AVATAR_MAX_BYTES,
@@ -30,6 +29,7 @@ import {
   profileDisplayInitial,
 } from '@/lib/profileAvatar';
 import { cn } from '@/lib/utils';
+import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
 import {
   profileChangeEmailSchema,
   profileChangePasswordSchema,
@@ -142,10 +142,10 @@ const ProfilePage = () => {
     try {
       await apiClient.post('/auth/logout');
       await refresh();
-      toast.success('You have signed out.', { duration: 3500 });
+      toast.success(t('profile.toastSignedOut'), { duration: 3500 });
       navigate('/', { replace: true });
     } catch (err) {
-      toast.error(apiErrorMessage(err));
+      toast.error(apiErrorText(err, t));
     } finally {
       setLogoutPending(false);
       setLogoutOpen(false);
@@ -158,23 +158,23 @@ const ProfilePage = () => {
     });
     if (!parsed.success) {
       const err = fieldErrorsFromZod(parsed.error);
-      setDisplayNameError(err.displayName ?? 'Invalid display name');
+      setDisplayNameError(err.displayName ?? t('errors.invalidDisplayName'));
       return;
     }
     setDisplayNameError(null);
     const next =
       parsed.data.displayName === '' ? null : parsed.data.displayName;
     if (next === (user.username ?? null)) {
-      toast('No changes to save.', { duration: 2500 });
+      toast(t('profile.toastNoChanges'), { duration: 2500 });
       return;
     }
     setNicknamePending(true);
     try {
       await apiClient.patch<ApiPublicUser>('/users/me', { username: next });
       await refresh();
-      toast.success('Display name updated.');
+      toast.success(t('profile.toastDisplayNameUpdated'));
     } catch (err) {
-      toast.error(apiErrorMessage(err));
+      toast.error(apiErrorText(err, t));
     } finally {
       setNicknamePending(false);
     }
@@ -184,11 +184,11 @@ const ProfilePage = () => {
     if (!file) return;
 
     if (!PROFILE_AVATAR_ACCEPT.split(',').includes(file.type)) {
-      toast.error('Use JPEG, PNG, or WebP.');
+      toast.error(t('profile.toastUseImageTypes'));
       return;
     }
     if (file.size > PROFILE_AVATAR_MAX_BYTES) {
-      toast.error('Image must be 2 MB or smaller.');
+      toast.error(t('profile.toastImageTooLarge'));
       return;
     }
 
@@ -208,9 +208,9 @@ const ProfilePage = () => {
         timeout: 60_000,
       });
       await refresh();
-      toast.success('Profile photo updated.');
+      toast.success(t('profile.toastPhotoUpdated'));
     } catch (err) {
-      toast.error(apiErrorMessage(err));
+      toast.error(apiErrorText(err, t));
     } finally {
       setAvatarPending(false);
       if (fileInputRef.current) {
@@ -225,9 +225,9 @@ const ProfilePage = () => {
     try {
       await apiClient.delete<ApiPublicUser>('/users/me/avatar');
       await refresh();
-      toast.success('Profile photo removed.');
+      toast.success(t('profile.toastPhotoRemoved'));
     } catch (err) {
-      toast.error(apiErrorMessage(err));
+      toast.error(apiErrorText(err, t));
     } finally {
       setAvatarPending(false);
     }
@@ -256,11 +256,11 @@ const ProfilePage = () => {
         newPassword: pwdNew,
       });
       await refresh();
-      toast.success('Password updated.');
+      toast.success(t('profile.toastPasswordUpdated'));
       setPwdOpen(false);
       resetPasswordForm();
     } catch (err) {
-      toast.error(apiErrorMessage(err));
+      toast.error(apiErrorText(err, t));
     } finally {
       setPwdPending(false);
     }
@@ -283,7 +283,7 @@ const ProfilePage = () => {
     const trimmed = parsed.data.newEmail.trim().toLowerCase();
     if (trimmed === user.email.toLowerCase()) {
       setEmailErrors({
-        newEmail: 'This is already your email',
+        newEmail: t('profile.sameEmailError'),
       });
       return;
     }
@@ -306,7 +306,7 @@ const ProfilePage = () => {
       setEmailOpen(false);
       resetEmailForm();
     } catch (err) {
-      toast.error(apiErrorMessage(err));
+      toast.error(apiErrorText(err, t));
     } finally {
       setEmailPending(false);
     }
@@ -329,11 +329,10 @@ const ProfilePage = () => {
           role="status"
         >
           <p className="font-semibold text-amber-800 dark:text-amber-200">
-            Email not verified
+            {t('profile.emailNotVerified')}
           </p>
           <p className="mt-1 text-(--text-secondary)">
-            Confirm your address with the code we sent (in lab mode, check the
-            server log). Until then, some actions may be limited.
+            {t('profile.emailNotVerifiedHint')}
           </p>
         </div>
       ) : null}
@@ -349,29 +348,55 @@ const ProfilePage = () => {
           {t('profile.identity')}
         </h2>
         <p className="mt-1 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          Your photo defaults to your initial and a unique color. You can upload
-          a JPEG, PNG, or WebP up to 2&nbsp;MB.
+          {t('profile.photoHint')}
         </p>
 
         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
           <div className="flex flex-col items-center gap-3 sm:items-start">
-            <Avatar
-              key={avatarInstanceKey}
-              className="size-28 border-2 border-(--border-default) shadow-sm"
-            >
-              {avatarSrc ? (
-                <AvatarImage src={avatarSrc} alt="" className="object-cover" />
-              ) : null}
-              <AvatarFallback
-                delayMs={0}
-                className="text-3xl font-bold text-white"
-                style={{
-                  backgroundColor: profileAvatarBackground(user.id),
-                }}
+            <div className="relative">
+              <Avatar
+                key={avatarInstanceKey}
+                className="size-28 border-2 border-(--border-default) shadow-sm"
               >
-                {initial}
-              </AvatarFallback>
-            </Avatar>
+                {avatarSrc ? (
+                  <AvatarImage
+                    src={avatarSrc}
+                    alt=""
+                    className="object-cover"
+                  />
+                ) : null}
+                <AvatarFallback
+                  delayMs={0}
+                  className="text-3xl font-bold text-white"
+                  style={{
+                    backgroundColor: profileAvatarBackground(user.id),
+                  }}
+                >
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'absolute -right-1 -bottom-1 size-10 rounded-full border-0 bg-(--surface-color) hover:bg-(--surface-color) active:bg-(--surface-color) p-0 active:translate-y-0',
+                  'shadow-[0_0_0_1px_var(--border-default),0_10px_15px_-3px_rgb(0_0_0/0.1),0_4px_6px_-4px_rgb(0_0_0/0.1)]',
+                  'transition-shadow duration-300 ease-out',
+                  'hover:shadow-[0_0_0_1px_var(--primary-accent),0_10px_15px_-3px_rgb(0_0_0/0.1),0_4px_6px_-4px_rgb(0_0_0/0.1)]',
+                )}
+                disabled={avatarPending}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label={t('profile.uploadPhoto')}
+                title={t('profile.uploadPhoto')}
+              >
+                {avatarPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <ImageUp className="size-4" strokeWidth={1.9} />
+                )}
+              </Button>
+            </div>
 
             <input
               ref={fileInputRef}
@@ -382,21 +407,6 @@ const ProfilePage = () => {
             />
 
             <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
-              <Button
-                type="button"
-                variant="outlineSoft"
-                size="outlineCompact"
-                className="gap-2"
-                disabled={avatarPending}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {avatarPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <ImageUp className="size-4" strokeWidth={1.75} />
-                )}
-                {t('profile.uploadPhoto')}
-              </Button>
               {hasCustomAvatar ? (
                 <Button
                   type="button"
@@ -459,15 +469,14 @@ const ProfilePage = () => {
                 </p>
               ) : (
                 <p className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-(--text-secondary)">
-                  3–80 characters to set a name, or clear the field to remove
-                  it.
+                  {t('profile.displayNameHint')}
                 </p>
               )}
             </div>
 
             <div>
               <p className="mb-2 font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)">
-                Email
+                {t('profile.emailLabel')}
               </p>
               <p className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary)">
                 {user.email}
@@ -501,8 +510,7 @@ const ProfilePage = () => {
           {t('profile.security')}
         </h2>
         <p className="mt-1 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          Update your password regularly. You will need your current password to
-          change email or password.
+          {t('profile.securityHint')}
         </p>
         <Button
           type="button"
@@ -530,8 +538,7 @@ const ProfilePage = () => {
           {t('profile.session')}
         </h2>
         <p className="mt-1 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          Sign out and return to the home page. Your session will end on this
-          device.
+          {t('profile.sessionHint')}
         </p>
         <Button
           type="button"
@@ -589,19 +596,16 @@ const ProfilePage = () => {
               {t('profile.changePassword')}
             </DialogTitle>
             <DialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
-              8–64 characters, with uppercase, lowercase, number, and a special
-              character (same rules as sign-up).
+              {t('profile.passwordRules')}
             </DialogDescription>
             <p className="font-(family-name:--font-dm-sans) text-xs leading-relaxed text-(--text-secondary)">
-              Don&apos;t remember your current password? Use a one-time code
-              sent to your email — the same flow as &quot;Forgot password&quot;
-              on the sign-in page.{' '}
+              {t('profile.forgotPasswordHintStart')}{' '}
               <Link
                 to="/auth/forgot-password"
                 className="font-semibold text-(--primary-accent) underline-offset-2 hover:underline"
                 onClick={() => setPwdOpen(false)}
               >
-                Reset password via email
+                {t('profile.forgotPasswordLink')}
               </Link>
               .
             </p>
@@ -616,7 +620,7 @@ const ProfilePage = () => {
                 htmlFor="pwd-current"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Current password
+                {t('profile.currentPassword')}
               </Label>
               <div className="relative">
                 <Input
@@ -639,7 +643,9 @@ const ProfilePage = () => {
                   type="button"
                   className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
                   aria-label={
-                    showPwdCurrent ? 'Hide password' : 'Show password'
+                    showPwdCurrent
+                      ? t('profile.hidePassword')
+                      : t('profile.showPassword')
                   }
                   onClick={() => setShowPwdCurrent((v) => !v)}
                 >
@@ -664,7 +670,7 @@ const ProfilePage = () => {
                 htmlFor="pwd-new"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                New password
+                {t('profile.newPassword')}
               </Label>
               <div className="relative">
                 <Input
@@ -690,7 +696,11 @@ const ProfilePage = () => {
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                  aria-label={showPwdNew ? 'Hide passwords' : 'Show passwords'}
+                  aria-label={
+                    showPwdNew
+                      ? t('profile.hidePasswords')
+                      : t('profile.showPasswords')
+                  }
                   onClick={() => setShowPwdNew((v) => !v)}
                 >
                   {showPwdNew ? (
@@ -714,7 +724,7 @@ const ProfilePage = () => {
                 htmlFor="pwd-confirm"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Confirm new password
+                {t('profile.confirmNewPassword')}
               </Label>
               <div className="relative">
                 <Input
@@ -740,7 +750,11 @@ const ProfilePage = () => {
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                  aria-label={showPwdNew ? 'Hide passwords' : 'Show passwords'}
+                  aria-label={
+                    showPwdNew
+                      ? t('profile.hidePasswords')
+                      : t('profile.showPasswords')
+                  }
                   onClick={() => setShowPwdNew((v) => !v)}
                 >
                   {showPwdNew ? (
@@ -766,7 +780,7 @@ const ProfilePage = () => {
                 size="outlineCompact"
                 onClick={() => setPwdOpen(false)}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -775,7 +789,7 @@ const ProfilePage = () => {
                 className="rounded-2xl"
                 disabled={pwdPending}
               >
-                {pwdPending ? 'Saving…' : 'Update password'}
+                {pwdPending ? t('common.saving') : t('profile.updatePassword')}
               </Button>
             </DialogFooter>
           </form>
@@ -797,9 +811,7 @@ const ProfilePage = () => {
               {t('profile.changeEmail')}
             </DialogTitle>
             <DialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
-              Your account email is updated immediately. We send a verification
-              code to the new address — please confirm it (same flow as
-              registration; in lab mode, check the server log).
+              {t('profile.changeEmailHint')}
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleChangeEmail} noValidate>
@@ -808,7 +820,7 @@ const ProfilePage = () => {
                 htmlFor="email-new"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                New email
+                {t('profile.newEmail')}
               </Label>
               <Input
                 id="email-new"
@@ -839,7 +851,7 @@ const ProfilePage = () => {
                 htmlFor="email-password"
                 className="mb-2 block font-(family-name:--font-dm-sans) text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-(--text-secondary)"
               >
-                Current password
+                {t('profile.currentPassword')}
               </Label>
               <div className="relative">
                 <Input
@@ -864,7 +876,11 @@ const ProfilePage = () => {
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-xl text-(--text-secondary) transition-colors hover:text-(--text-primary)"
-                  aria-label={showEmailPwd ? 'Hide password' : 'Show password'}
+                  aria-label={
+                    showEmailPwd
+                      ? t('profile.hidePassword')
+                      : t('profile.showPassword')
+                  }
                   onClick={() => setShowEmailPwd((v) => !v)}
                 >
                   {showEmailPwd ? (
@@ -890,7 +906,7 @@ const ProfilePage = () => {
                 size="outlineCompact"
                 onClick={() => setEmailOpen(false)}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -899,7 +915,7 @@ const ProfilePage = () => {
                 className="rounded-2xl"
                 disabled={emailPending}
               >
-                {emailPending ? 'Saving…' : 'Update email'}
+                {emailPending ? t('common.saving') : t('profile.updateEmail')}
               </Button>
             </DialogFooter>
           </form>

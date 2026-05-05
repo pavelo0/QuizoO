@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type { ModuleType } from '@/types/module';
 import { ArrowRight, Layers, ListChecks, X } from 'lucide-react';
@@ -25,6 +26,7 @@ const FormatCard = memo(function FormatCard({
   description,
   onContinue,
 }: FormatCardProps) {
+  const { t } = useI18n();
   const icon: ReactNode =
     format === 'flashcard' ? (
       <Layers className="size-6" strokeWidth={2} />
@@ -32,7 +34,10 @@ const FormatCard = memo(function FormatCard({
       <ListChecks className="size-6" strokeWidth={2} />
     );
 
-  const ctaLabel = format === 'flashcard' ? 'Create flashcards' : 'Create quiz';
+  const ctaLabel =
+    format === 'flashcard'
+      ? t('createDialog.createFlashcards')
+      : t('createDialog.createQuiz');
 
   return (
     <article
@@ -77,6 +82,7 @@ function CreateModuleTypeDialogInner({
   onOpenChange,
   onContinue,
 }: CreateModuleTypeDialogProps) {
+  const { t } = useI18n();
   const onFlashContinue = useCallback(() => {
     onContinue('FLASHCARD');
   }, [onContinue]);
@@ -114,33 +120,33 @@ function CreateModuleTypeDialogInner({
               variant="outline"
               size="icon"
               className="absolute top-4 right-4 z-10 size-11 rounded-full border-(--border-default) bg-(--surface-color) text-(--text-primary) shadow-md hover:bg-(--input-bg)"
-              aria-label="Close dialog"
+              aria-label={t('aria.closeDialog')}
             >
               <X className="size-5" strokeWidth={2} aria-hidden />
             </Button>
           </DialogPrimitive.Close>
           <div className="mb-8 flex flex-col items-center gap-3 text-center">
             <DialogPrimitive.Title className="max-w-lg font-(family-name:--font-syne) text-2xl font-bold tracking-[0.02em] text-(--text-primary) md:text-3xl">
-              Create a new module
+              {t('createDialog.title')}
             </DialogPrimitive.Title>
             <DialogPrimitive.Description className="max-w-md text-sm text-(--text-secondary)">
-              Choose a format to start building your learning experience.
+              {t('createDialog.description')}
             </DialogPrimitive.Description>
           </div>
           <section
-            aria-label="Module formats"
+            aria-label={t('aria.moduleFormats')}
             className="grid gap-4 md:grid-cols-2 md:gap-5"
           >
             <FormatCard
               format="flashcard"
-              title="Create Flashcards set"
-              description="Build a deck for spaced repetition and memorization. Perfect for vocabulary and key concepts."
+              title={t('createDialog.flashcardsTitle')}
+              description={t('createDialog.flashcardsDescription')}
               onContinue={onFlashContinue}
             />
             <FormatCard
               format="quiz"
-              title="Create Quiz"
-              description="Test your knowledge with multiple choice and text questions. Track your progress with detailed results."
+              title={t('createDialog.quizTitle')}
+              description={t('createDialog.quizDescription')}
               onContinue={onQuizContinue}
             />
           </section>
