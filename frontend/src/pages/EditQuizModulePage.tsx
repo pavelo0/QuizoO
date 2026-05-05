@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -34,20 +35,25 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
   BookOpen,
+  CircleHelp,
   Clock,
+  Download,
   IdCard,
   ListChecks,
   Pencil,
   Plus,
   Search,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import {
   memo,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
+  type ChangeEvent,
   type ComponentProps,
 } from 'react';
 import {
@@ -60,6 +66,230 @@ import {
 import { toast } from 'react-hot-toast';
 
 const MAX_QUESTIONS_PER_MODULE = 30;
+const QUIZ_IMPORT_FORMAT_VERSION = 1;
+
+type QuestionPayload = {
+  questionText: string;
+  type: QuestionType;
+  allowMultipleAnswers?: boolean;
+  options?: Array<{ text: string; isCorrect: boolean }>;
+  matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+};
+
+const quizJsonExample = JSON.stringify(
+  {
+    formatVersion: QUIZ_IMPORT_FORMAT_VERSION,
+    moduleType: 'QUIZ',
+    title: 'Sample quiz module',
+    questions: [
+      {
+        type: 'CHOICE',
+        questionText: 'What is 2 + 2?',
+        allowMultipleAnswers: false,
+        options: [
+          { text: '3', isCorrect: false },
+          { text: '4', isCorrect: true },
+          { text: '5', isCorrect: false },
+        ],
+      },
+      {
+        type: 'TEXT',
+        questionText: 'Capital of France',
+        answer: 'Paris',
+      },
+      {
+        type: 'MATCHING',
+        questionText: 'Match countries to capitals',
+        pairs: [
+          { left: 'France', right: 'Paris' },
+          { left: 'Spain', right: 'Madrid' },
+        ],
+      },
+    ],
+  },
+  null,
+  2,
+);
+
+function sanitizeFilenamePart(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9а-яё_-]+/gi, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function toExportQuestion(q: ModuleQuestion) {
+  if (q.type === 'CHOICE') {
+    return {
+      type: 'CHOICE',
+      questionText: q.questionText,
+      allowMultipleAnswers: q.allowMultipleAnswers,
+      options: q.questionOptions.map((o) => ({
+        text: o.text,
+        isCorrect: o.isCorrect,
+      })),
+    };
+  }
+  if (q.type === 'TEXT') {
+    return {
+      type: 'TEXT',
+      questionText: q.questionText,
+      answer: q.questionOptions.find((o) => o.isCorrect)?.text ?? '',
+    };
+  }
+  return {
+    type: 'MATCHING',
+    questionText: q.questionText,
+    pairs: q.matchingPairs.map((p) => ({
+      left: p.leftItem,
+      right: p.rightItem,
+    })),
+  };
+}
+
+function parseQuizImportJson(
+  raw: unknown,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): QuestionPayload[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error(t('editQuiz.importInvalidStructure'));
+  }
+
+  const data = raw as {
+    formatVersion?: number;
+    moduleType?: string;
+    questions?: unknown;
+  };
+
+  if (data.formatVersion !== QUIZ_IMPORT_FORMAT_VERSION) {
+    throw new Error(
+      t('editQuiz.importUnsupportedVersion', {
+        version: QUIZ_IMPORT_FORMAT_VERSION,
+      }),
+    );
+  }
+  if (data.moduleType !== 'QUIZ') {
+    throw new Error(t('editQuiz.importWrongModuleType'));
+  }
+  if (!Array.isArray(data.questions)) {
+    throw new Error(t('editQuiz.importQuestionsArrayRequired'));
+  }
+  if (data.questions.length > MAX_QUESTIONS_PER_MODULE) {
+    throw new Error(
+      t('editQuiz.validationMaxQuestions', { count: MAX_QUESTIONS_PER_MODULE }),
+    );
+  }
+
+  return data.questions.map((item, idx) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error(
+        t('editQuiz.importQuestionObjectExpected', { index: idx + 1 }),
+      );
+    }
+    const q = item as {
+      type?: string;
+      questionText?: string;
+      allowMultipleAnswers?: boolean;
+      options?: unknown;
+      answer?: string;
+      pairs?: unknown;
+    };
+    const questionText = q.questionText?.trim() ?? '';
+    if (!questionText) {
+      throw new Error(
+        t('editQuiz.importQuestionTextRequired', { index: idx + 1 }),
+      );
+    }
+
+    if (q.type === 'CHOICE') {
+      if (!Array.isArray(q.options) || q.options.length < 2) {
+        throw new Error(
+          t('editQuiz.importChoiceOptionsMin', { index: idx + 1 }),
+        );
+      }
+      const options = q.options.map((opt) => {
+        if (!opt || typeof opt !== 'object' || Array.isArray(opt)) {
+          throw new Error(
+            t('editQuiz.importChoiceOptionInvalid', { index: idx + 1 }),
+          );
+        }
+        const option = opt as { text?: string; isCorrect?: boolean };
+        const text = option.text?.trim() ?? '';
+        if (!text) {
+          throw new Error(
+            t('editQuiz.importChoiceOptionTextRequired', { index: idx + 1 }),
+          );
+        }
+        return { text, isCorrect: !!option.isCorrect };
+      });
+      const correctCount = options.filter((o) => o.isCorrect).length;
+      if (correctCount < 1) {
+        throw new Error(
+          t('editQuiz.importChoiceCorrectRequired', { index: idx + 1 }),
+        );
+      }
+      const allowMultipleAnswers = !!q.allowMultipleAnswers;
+      if (!allowMultipleAnswers && correctCount !== 1) {
+        throw new Error(
+          t('editQuiz.importChoiceSingleCorrect', { index: idx + 1 }),
+        );
+      }
+      return {
+        questionText,
+        type: 'CHOICE' as const,
+        allowMultipleAnswers,
+        options,
+      };
+    }
+
+    if (q.type === 'TEXT') {
+      const answer = q.answer?.trim() ?? '';
+      if (!answer) {
+        throw new Error(
+          t('editQuiz.importTextAnswerRequired', { index: idx + 1 }),
+        );
+      }
+      return {
+        questionText,
+        type: 'TEXT' as const,
+        options: [{ text: answer, isCorrect: true }],
+      };
+    }
+
+    if (q.type === 'MATCHING') {
+      if (!Array.isArray(q.pairs) || q.pairs.length < 2) {
+        throw new Error(
+          t('editQuiz.importMatchingPairsMin', { index: idx + 1 }),
+        );
+      }
+      const matchingPairs = q.pairs.map((pair) => {
+        if (!pair || typeof pair !== 'object' || Array.isArray(pair)) {
+          throw new Error(
+            t('editQuiz.importMatchingPairInvalid', { index: idx + 1 }),
+          );
+        }
+        const value = pair as { left?: string; right?: string };
+        const leftItem = value.left?.trim() ?? '';
+        const rightItem = value.right?.trim() ?? '';
+        if (!leftItem || !rightItem) {
+          throw new Error(
+            t('editQuiz.importMatchingPairValuesRequired', { index: idx + 1 }),
+          );
+        }
+        return { leftItem, rightItem };
+      });
+      return {
+        questionText,
+        type: 'MATCHING' as const,
+        matchingPairs,
+      };
+    }
+
+    throw new Error(t('editQuiz.importUnknownType', { index: idx + 1 }));
+  });
+}
 
 const textareaClass = cn(
   'min-h-28 w-full rounded-2xl border border-(--border-default) bg-(--input-bg) px-4 py-3 text-sm text-(--text-primary) shadow-none',
@@ -791,6 +1021,9 @@ export default function EditQuizModulePage() {
   const [deleteModuleOpen, setDeleteModuleOpen] = useState(false);
   const [deleteModulePending, setDeleteModulePending] = useState(false);
   const [allowNavigation, setAllowNavigation] = useState(false);
+  const [importHelpOpen, setImportHelpOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const isDirty = title.trim() !== savedTitle;
 
@@ -962,6 +1195,88 @@ export default function EditQuizModulePage() {
   const openStudy = useCallback(() => {
     void navigate(`/app/modules/${encodeURIComponent(moduleId)}/quiz-study`);
   }, [moduleId, navigate]);
+
+  const onClickImport = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
+
+  const onImportFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      if (
+        questions.length > 0 &&
+        !window.confirm(
+          t('editQuiz.importReplaceConfirm', { count: questions.length }),
+        )
+      ) {
+        return;
+      }
+
+      setImporting(true);
+      try {
+        const rawText = await file.text();
+        const parsed = JSON.parse(rawText) as unknown;
+        const importedQuestions = parseQuizImportJson(parsed, t);
+
+        await Promise.all(questions.map((q) => deleteQuestion(moduleId, q.id)));
+
+        const createdQuestions: ModuleQuestion[] = [];
+        for (const [index, payload] of importedQuestions.entries()) {
+          const created = await createQuestion(moduleId, {
+            ...payload,
+            orderIndex: index,
+          });
+          createdQuestions.push(created);
+        }
+
+        setQuestions(
+          createdQuestions.sort(
+            (left, right) => left.orderIndex - right.orderIndex,
+          ),
+        );
+        toast.success(
+          t('editQuiz.importSuccess', { count: createdQuestions.length }),
+        );
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          toast.error(t('editQuiz.importInvalidJson'));
+          return;
+        }
+        toast.error(
+          error instanceof Error ? error.message : t('editQuiz.importFailed'),
+        );
+      } finally {
+        setImporting(false);
+      }
+    },
+    [moduleId, questions, t],
+  );
+
+  const onExportJson = useCallback(() => {
+    const exportData = {
+      formatVersion: QUIZ_IMPORT_FORMAT_VERSION,
+      moduleType: 'QUIZ',
+      title: title.trim(),
+      questions: [...questions]
+        .sort((left, right) => left.orderIndex - right.orderIndex)
+        .map(toExportQuestion),
+    };
+    const content = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const suffix = sanitizeFilenamePart(title) || 'quiz-module';
+    anchor.href = url;
+    anchor.download = `${suffix}.json`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    toast.success(t('editQuiz.exportSuccess'));
+  }, [questions, t, title]);
 
   const finishLeaveSave = useCallback(async () => {
     const nextTitle = title.trim();
@@ -1202,6 +1517,46 @@ export default function EditQuizModulePage() {
             />
           </div>
         </div>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(event) => void onImportFile(event)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 gap-2 rounded-xl"
+            onClick={onClickImport}
+            disabled={importing}
+          >
+            <Upload className="size-4" strokeWidth={2} />
+            {importing ? t('common.loading') : t('editQuiz.importJson')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 gap-2 rounded-xl"
+            onClick={onExportJson}
+            disabled={importing}
+          >
+            <Download className="size-4" strokeWidth={2} />
+            {t('editQuiz.exportJson')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-(--text-secondary)"
+            onClick={() => setImportHelpOpen(true)}
+            title={t('editQuiz.importFormatHelpTitle')}
+            aria-label={t('editQuiz.importFormatHelpTitle')}
+          >
+            <CircleHelp className="size-4" strokeWidth={2} />
+          </Button>
+        </div>
 
         <Panel className="flex max-h-[min(52vh,520px)] min-h-[220px] flex-col overflow-hidden">
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain p-3 sm:space-y-2.5 sm:p-4">
@@ -1307,6 +1662,20 @@ export default function EditQuizModulePage() {
         onOpenChange={setDeleteModuleOpen}
         onConfirm={onDeleteModule}
       />
+
+      <Dialog open={importHelpOpen} onOpenChange={setImportHelpOpen}>
+        <DialogContent className="w-[min(52rem,calc(100%-2rem))] max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{t('editQuiz.importFormatHelpTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('editQuiz.importFormatHelpDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[50vh] overflow-auto rounded-xl border border-(--border-default) bg-(--input-bg)/30 p-4 text-xs leading-relaxed text-(--text-primary)">
+            {quizJsonExample}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={leaveOpen} onOpenChange={onLeaveDialogOpenChange}>
         <AlertDialogContent className="max-w-sm" size="default">
