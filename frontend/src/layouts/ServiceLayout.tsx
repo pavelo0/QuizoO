@@ -18,9 +18,9 @@ export default function ServiceLayout() {
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-(--bg-color)">
-      <div className="sticky top-0 z-40 shrink-0 px-3 pt-3 lg:hidden">
-        <div className="flex h-14 items-center justify-between rounded-2xl border border-(--border-default) bg-(--surface-color) px-4 shadow-sm">
+    <div className="min-h-dvh bg-(--bg-color)">
+      <div className="fixed inset-x-0 top-0 z-40 px-3 pt-3 lg:hidden">
+        <div className="mx-auto flex h-14 max-w-[120rem] items-center justify-between rounded-2xl border border-(--border-default) bg-(--surface-color)/95 px-4 shadow-sm backdrop-blur">
           <Link
             to="/app"
             className="font-(family-name:--font-syne) text-xl font-extrabold tracking-[-0.04em] text-(--text-primary) no-underline transition-opacity hover:opacity-70"
@@ -43,9 +43,9 @@ export default function ServiceLayout() {
         />
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-8 pt-3 lg:flex-row lg:items-stretch lg:gap-0 lg:px-4 lg:pt-4">
-        <aside className="hidden shrink-0 overflow-hidden lg:block">
-          <div className="sticky top-4 h-[calc(100dvh-2rem)]">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[120rem] flex-col gap-3 px-3 pb-8 pt-[5.25rem] lg:flex-row lg:items-stretch lg:gap-0 lg:px-4 lg:pt-6">
+        <aside className="hidden shrink-0 lg:block lg:self-start">
+          <div className="sticky top-6 h-[calc(100dvh-3rem)]">
             <ServiceHeader />
           </div>
         </aside>
@@ -55,8 +55,10 @@ export default function ServiceLayout() {
           aria-hidden
         />
 
-        <main className="min-w-0 min-h-0 flex-1 rounded-3xl border border-(--border-default) bg-(--surface-color) p-6 shadow-sm">
-          <Outlet />
+        <main className="min-h-[calc(100dvh-5.25rem-2rem)] min-w-0 flex-1 rounded-3xl border border-(--border-default) bg-(--surface-color) p-4 shadow-sm sm:p-5 lg:min-h-[calc(100dvh-3rem)] lg:p-6">
+          <div className="min-h-full">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
