@@ -7,4 +7,5 @@ frontend/node_modules
 backend/dist
 frontend/dist
 .env
+nginx/certs/*.pem
 backend/uploads

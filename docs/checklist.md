@@ -2,6 +2,8 @@
 
 Обновлено: 29 апреля 2026. Фронт: React Router, Redux Toolkit + RTK Query, axios, Tailwind, shadcn/ui.
 
+Альтернативная нумерация этапов курсовой с пометкой `(*)`: [`archive/checklist-legacy-stages.md`](./archive/checklist-legacy-stages.md).
+
 ---
 
 # Краткий чеклист
