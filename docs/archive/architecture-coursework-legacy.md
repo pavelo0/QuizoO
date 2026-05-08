@@ -3,6 +3,8 @@
 > Этот документ — техническое задание для разработки проекта QuizoO.
 > Стек: React + NestJS + PostgreSQL + Docker + Nginx
 
+> **Актуальная инфраструктура:** примеры `docker-compose`, портов и путей в этом файле относятся к ранней редакции ТЗ. Реальный запуск и версии сервисов см. в [docker-stack-guide.md](../docker-stack-guide.md) и [docker-and-deploy.md](../docker-and-deploy.md), а короткая схема — в [architecture.md](../architecture.md).
+
 ---
 
 ## 📁 Структура монорепозитория

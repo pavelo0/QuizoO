@@ -132,7 +132,7 @@ export function AppRoutes() {
 
 ## Шаг 11: shadcn/ui
 
-**Что сделать:** инициализировать shadcn (`components.json` в корне `frontend/`), добавить нужные примитивы (`button`, `input`, `card`, …) по макетам из `ProjectInfo/QuizoO_STITCH_PROMPTS.md` и токенам из этого репозитория.
+**Что сделать:** инициализировать shadcn (`components.json` в корне `frontend/`), добавить нужные примитивы (`button`, `input`, `card`, …) по макетам из [`docs/stitch-prompts.md`](./stitch-prompts.md) и токенам из этого репозитория.
 
 **Зачем:** единые кнопки, поля, диалоги, таблицы без дублирования вёрстки.
 
