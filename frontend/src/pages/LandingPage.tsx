@@ -217,6 +217,60 @@ const LandingPage = () => {
           </ol>
         </div>
       </section>
+
+      <section
+        id="about"
+        aria-labelledby="about-title"
+        className="w-full bg-(--bg-color)"
+      >
+        <div className="mx-auto max-w-[1320px] px-5 py-16 md:py-20">
+          <h2
+            id="about-title"
+            className="text-center font-(family-name:--font-syne) text-[clamp(1.5rem,2.5vw+0.75rem,2.25rem)] font-bold leading-tight text-(--text-primary)"
+          >
+            {t('landing.aboutTitle')}
+          </h2>
+          <p className="mx-auto mt-6 max-w-3xl text-center font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary) md:text-lg">
+            {t('landing.aboutBody')}
+          </p>
+        </div>
+      </section>
+
+      <section
+        id="privacy"
+        aria-labelledby="privacy-title"
+        className="w-full bg-(--bg-color)"
+      >
+        <div className="mx-auto max-w-[1320px] px-5 py-16 md:py-20">
+          <h2
+            id="privacy-title"
+            className="text-center font-(family-name:--font-syne) text-[clamp(1.5rem,2.5vw+0.75rem,2.25rem)] font-bold leading-tight text-(--text-primary)"
+          >
+            {t('landing.privacyTitle')}
+          </h2>
+          <p className="mx-auto mt-6 max-w-3xl text-center font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary) md:text-lg">
+            {t('landing.privacyBody')}
+          </p>
+        </div>
+      </section>
+
+      <section
+        id="terms"
+        aria-labelledby="terms-title"
+        className="w-full bg-(--bg-color)"
+      >
+        <div className="mx-auto max-w-[1320px] px-5 py-16 md:py-20">
+          <h2
+            id="terms-title"
+            className="text-center font-(family-name:--font-syne) text-[clamp(1.5rem,2.5vw+0.75rem,2.25rem)] font-bold leading-tight text-(--text-primary)"
+          >
+            {t('landing.termsTitle')}
+          </h2>
+          <p className="mx-auto mt-6 max-w-3xl text-center font-(family-name:--font-dm-sans) text-base leading-relaxed text-(--text-secondary) md:text-lg">
+            {t('landing.termsBody')}
+          </p>
+        </div>
+      </section>
     </>
   );
 };

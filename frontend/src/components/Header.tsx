@@ -51,10 +51,10 @@ const Header = () => {
                 </li>
                 <li>
                   <a
-                    href="#pricing"
+                    href="#about"
                     className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
                   >
-                    {t('public.pricing')}
+                    {t('public.about')}
                   </a>
                 </li>
                 <li>

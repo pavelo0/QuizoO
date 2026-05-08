@@ -49,8 +49,8 @@ const Footer = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="#pricing" className={footerLinkClass}>
-                    {t('public.pricing')}
+                  <a href="#how-it-works" className={footerLinkClass}>
+                    {t('public.howItWorks')}
                   </a>
                 </li>
               </ul>
@@ -72,12 +72,12 @@ const Footer = () => {
                 </li>
                 <li>
                   <a
-                    href="https://twitter.com"
+                    href="https://x.com"
                     className={footerLinkClass}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Twitter
+                    X
                   </a>
                 </li>
                 <li>
@@ -99,7 +99,7 @@ const Footer = () => {
               <ul className="mt-4 flex list-none flex-col gap-3">
                 <li>
                   <a
-                    href="mailto:support@example.com"
+                    href="mailto:support@quizoo.app"
                     className={footerLinkClass}
                   >
                     {t('public.support')}
