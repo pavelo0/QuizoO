@@ -1,5 +1,7 @@
+import { Navigate } from 'react-router-dom';
+
 const OnboardingPage = () => {
-  return <div>OnboardingPage</div>;
+  return <Navigate to="/app" replace />;
 };
 
 export default OnboardingPage;

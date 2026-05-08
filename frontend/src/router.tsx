@@ -22,6 +22,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
 import NotFoundPage from './pages/NotFoundPage';
+import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
 import StatisticsPage from './pages/statistics';
@@ -42,6 +43,7 @@ export const router: DataRouter = createBrowserRouter([
     element: <AuthLayout />,
     children: [
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'oauth/callback', element: <OAuthCallbackPage /> },
       {
         element: <GuestOnlyOutlet />,
         children: [

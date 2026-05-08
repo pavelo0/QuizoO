@@ -1,4 +1,9 @@
-import { apiClient } from '@/lib/api/client';
+import {
+  apiClient,
+  resetSessionExpiredNotification,
+  setSessionExpiredHandler,
+} from '@/lib/api/client';
+import { useI18n } from '@/i18n/useI18n';
 import type { ApiPublicUser } from '@/types/api-user';
 import {
   createContext,
@@ -6,9 +11,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
+import toast from 'react-hot-toast';
 
 type AuthContextValue = {
   user: ApiPublicUser | null;
@@ -21,15 +28,42 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<ApiPublicUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const userRef = useRef<ApiPublicUser | null>(null);
+  const { t } = useI18n();
 
   const refresh = useCallback(async () => {
     try {
       const { data } = await apiClient.get<ApiPublicUser>('/users/me');
       setUser(data);
+      resetSessionExpiredNotification();
     } catch {
       setUser(null);
     }
   }, []);
+
+  useEffect(() => {
+    userRef.current = user;
+    if (user) {
+      resetSessionExpiredNotification();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      if (!userRef.current) {
+        return false;
+      }
+
+      userRef.current = null;
+      setUser(null);
+      toast.error(t('auth.sessionExpired'));
+      return true;
+    });
+
+    return () => {
+      setSessionExpiredHandler(null);
+    };
+  }, [t]);
 
   useEffect(() => {
     let cancelled = false;

@@ -96,11 +96,11 @@ const Burger = ({ phase, onDismiss, onExitComplete }: BurgerProps) => {
             {t('public.features')}
           </a>
           <a
-            href="#pricing"
+            href="#about"
             className="rounded-xl px-3 py-3 font-(family-name:--font-dm-sans) text-base font-medium text-(--text-primary) no-underline hover:bg-(--surface-color)"
             onClick={onDismiss}
           >
-            {t('public.pricing')}
+            {t('public.about')}
           </a>
           <a
             href="#how-it-works"

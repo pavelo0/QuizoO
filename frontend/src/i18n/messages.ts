@@ -39,6 +39,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.logIn': 'Log in',
     'auth.signingIn': 'Signing in...',
     'auth.rememberMe': 'Remember me',
+    'auth.sessionExpired': 'Session expired. You were logged out.',
     'auth.forgotPassword': 'Forgot password?',
     'auth.noAccount': "Don't have an account?",
     'auth.signUp': 'Sign up',
@@ -206,6 +207,15 @@ export const messages: Record<Locale, Record<string, string>> = {
     'landing.step3Title': 'Take the quiz',
     'landing.step3Body':
       'Verify your mastery with custom tests and dynamic challenge modes.',
+    'landing.aboutTitle': 'About QuizoO',
+    'landing.aboutBody':
+      'QuizoO helps you convert notes into focused study modules, keep your practice consistent, and remember core concepts for longer.',
+    'landing.privacyTitle': 'Privacy',
+    'landing.privacyBody':
+      'We collect only data needed to operate your learning account, and we never sell personal data to third parties.',
+    'landing.termsTitle': 'Terms',
+    'landing.termsBody':
+      'By using QuizoO, you agree to use the platform responsibly and follow local laws and our product usage rules.',
     'public.features': 'Features',
     'public.pricing': 'Pricing',
     'public.howItWorks': 'How it works',
@@ -640,6 +650,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'auth.logIn': 'Войти',
     'auth.signingIn': 'Вход...',
     'auth.rememberMe': 'Запомнить меня',
+    'auth.sessionExpired': 'Сессия истекла. Вы вышли из аккаунта.',
     'auth.forgotPassword': 'Забыли пароль?',
     'auth.noAccount': 'Нет аккаунта?',
     'auth.signUp': 'Зарегистрироваться',
@@ -810,6 +821,15 @@ export const messages: Record<Locale, Record<string, string>> = {
     'landing.step3Title': 'Пройдите тест',
     'landing.step3Body':
       'Проверьте уровень освоения темы в кастомных тестах и динамических режимах.',
+    'landing.aboutTitle': 'О QuizoO',
+    'landing.aboutBody':
+      'QuizoO помогает превращать конспекты в учебные модули, поддерживать регулярную практику и запоминать ключевые темы надолго.',
+    'landing.privacyTitle': 'Конфиденциальность',
+    'landing.privacyBody':
+      'Мы собираем только данные, необходимые для работы аккаунта, и не продаем персональные данные третьим лицам.',
+    'landing.termsTitle': 'Условия использования',
+    'landing.termsBody':
+      'Используя QuizoO, вы соглашаетесь применять платформу добросовестно и соблюдать применимое законодательство и правила сервиса.',
     'public.features': 'Возможности',
     'public.pricing': 'Тарифы',
     'public.howItWorks': 'Как это работает',

@@ -1,12 +1,12 @@
 import { useAuthContext } from '@/auth/AuthContext';
 import { Button, Input } from '@/components/ui';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AppleIcon } from '@/components/ui/icons/AppleIcon';
 import { GoogleIcon } from '@/components/ui/icons/GoogleIcon';
 import { Label } from '@/components/ui/label';
 import { apiClient } from '@/lib/api/client';
 import { apiErrorMessage } from '@/lib/apiErrorMessage';
 import { getHomeRouteByRole } from '@/lib/authRoute';
+import { getGoogleAuthStartUrl } from '@/lib/googleAuth';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
@@ -117,6 +117,7 @@ const RegisterPage = () => {
         {
           email: registerEmail,
           code,
+          rememberMe: remember,
         },
       );
       await refresh();
@@ -468,26 +469,18 @@ const RegisterPage = () => {
               <span className="h-px flex-1 bg-(--border-default)" aria-hidden />
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 min-[480px]:grid-cols-2 min-[480px]:gap-3">
+            <div className="grid grid-cols-1 gap-2.5">
               <Button
                 type="button"
                 variant="outlineSoft"
                 size="outlineCompact"
                 className="w-full gap-2"
-                disabled
+                onClick={() => {
+                  window.location.href = getGoogleAuthStartUrl();
+                }}
               >
                 <GoogleIcon />
                 Google
-              </Button>
-              <Button
-                type="button"
-                variant="outlineSoft"
-                size="outlineCompact"
-                className="w-full gap-2"
-                disabled
-              >
-                <AppleIcon />
-                Apple
               </Button>
             </div>
 

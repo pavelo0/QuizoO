@@ -4,3 +4,4 @@ export const IS_PUBLIC_KEY = 'auth:isPublic';
 export const REQUEST_USER_ID = 'authUserId';
 
 export const ACCESS_TOKEN_COOKIE = 'quizoo_access_token';
+export const OAUTH_STATE_COOKIE = 'quizoo_oauth_state';
