@@ -1,10 +1,10 @@
 /**
- * Пользователь приложения (ученик, преподаватель, админ).
+ * Пользователь приложения (обычный пользователь или администратор).
  */
 
 export type UserId = string;
 
-export type UserRole = 'student' | 'teacher' | 'admin';
+export type UserRole = 'USER' | 'ADMIN';
 
 export interface User {
   id: UserId;

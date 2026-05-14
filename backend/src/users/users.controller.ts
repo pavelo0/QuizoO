@@ -88,7 +88,6 @@ export class UsersController {
   ): Promise<{
     user: PublicUser;
     message: string;
-    verificationCode?: string;
   }> {
     if (!body.newEmail || !body.currentPassword) {
       throw new BadRequestException(

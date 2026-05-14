@@ -187,3 +187,63 @@ export async function updateQuestion(
 export async function deleteQuestion(moduleId: ModuleId, questionId: string) {
   await apiClient.delete(`/modules/${moduleId}/questions/${questionId}`);
 }
+
+function normalizedApiBaseUrl() {
+  const raw = (import.meta.env.VITE_API_URL || '/api').trim();
+  if (!raw) return '/api';
+  const withoutTrailing = raw.replace(/\/+$/, '');
+  if (/^https?:\/\//i.test(withoutTrailing)) {
+    return withoutTrailing;
+  }
+  return withoutTrailing.startsWith('/')
+    ? withoutTrailing
+    : `/${withoutTrailing}`;
+}
+
+export function questionImageUrl(
+  moduleId: ModuleId,
+  questionId: string,
+  options?: { version?: string | number | null },
+) {
+  const apiBase = normalizedApiBaseUrl();
+  const path = `/modules/${encodeURIComponent(moduleId)}/questions/${encodeURIComponent(questionId)}/image`;
+  const base = `${apiBase}${path}`;
+  const version = options?.version;
+  if (version === undefined || version === null || version === '') {
+    return base;
+  }
+  const separator = base.includes('?') ? '&' : '?';
+  return `${base}${separator}v=${encodeURIComponent(String(version))}`;
+}
+
+export async function uploadQuestionImage(
+  moduleId: ModuleId,
+  questionId: string,
+  file: File,
+) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await apiClient.post<ModuleQuestion>(
+    `/modules/${moduleId}/questions/${questionId}/image`,
+    formData,
+    {
+      transformRequest: [
+        (data, headers) => {
+          if (data instanceof FormData) {
+            delete headers['Content-Type'];
+          }
+          return data;
+        },
+      ],
+      timeout: 60_000,
+    },
+  );
+  return data;
+}
+
+export async function deleteQuestionImage(
+  moduleId: ModuleId,
+  questionId: string,
+) {
+  await apiClient.delete(`/modules/${moduleId}/questions/${questionId}/image`);
+}

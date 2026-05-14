@@ -37,6 +37,7 @@ export interface ModuleQuestion {
   questionText: string;
   type: QuestionType;
   allowMultipleAnswers: boolean;
+  questionImageMime: string | null;
   orderIndex: number;
   createdAt: string;
   questionOptions: ModuleQuestionOption[];

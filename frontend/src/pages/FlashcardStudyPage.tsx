@@ -365,7 +365,7 @@ export default function FlashcardStudyPage() {
               }}
               aria-label={t('aria.statistics')}
             >
-              <div className="flex size-full items-center justify-center overflow-hidden rounded-full border border-(--border-default) bg-[#0d122a] text-center">
+              <div className="flex size-full items-center justify-center overflow-hidden rounded-full border border-(--border-default) bg-(--surface-color) text-center">
                 <div className="flex w-full max-w-full flex-col items-center justify-center px-2">
                   <p className="leading-none font-(family-name:--font-syne) text-3xl font-extrabold sm:text-4xl">
                     {visiblePercent}%
@@ -376,7 +376,7 @@ export default function FlashcardStudyPage() {
                 </div>
               </div>
             </div>
-            <p className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-300">
+            <p className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
               {performanceLabel}
             </p>
             {persistState === 'saving' ? (
@@ -404,7 +404,7 @@ export default function FlashcardStudyPage() {
 
           <div className="mb-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-(--border-default) bg-(--input-bg)/40 px-4 py-4 text-center">
-              <p className="text-xs text-emerald-300">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">
                 {t('flashStudy.known')}
               </p>
               <p className="mt-1 font-(family-name:--font-syne) text-3xl font-bold">
@@ -412,7 +412,9 @@ export default function FlashcardStudyPage() {
               </p>
             </div>
             <div className="rounded-2xl border border-(--border-default) bg-(--input-bg)/40 px-4 py-4 text-center">
-              <p className="text-xs text-red-300">{t('flashStudy.unknown')}</p>
+              <p className="text-xs text-red-700 dark:text-red-300">
+                {t('flashStudy.unknown')}
+              </p>
               <p className="mt-1 font-(family-name:--font-syne) text-3xl font-bold">
                 {unknownCount}
               </p>
@@ -472,12 +474,12 @@ export default function FlashcardStudyPage() {
                     <div className="mb-2 flex items-start gap-2">
                       {known ? (
                         <Check
-                          className="mt-0.5 size-4 shrink-0 text-emerald-300"
+                          className="mt-0.5 size-4 shrink-0 text-emerald-700 dark:text-emerald-300"
                           aria-hidden
                         />
                       ) : (
                         <CircleX
-                          className="mt-0.5 size-4 shrink-0 text-red-300"
+                          className="mt-0.5 size-4 shrink-0 text-red-700 dark:text-red-300"
                           aria-hidden
                         />
                       )}
@@ -488,7 +490,9 @@ export default function FlashcardStudyPage() {
                     <p
                       className={cn(
                         'ml-6 text-sm',
-                        known ? 'text-emerald-300' : 'text-red-300',
+                        known
+                          ? 'text-emerald-700 dark:text-emerald-300'
+                          : 'text-red-700 dark:text-red-300',
                       )}
                     >
                       {known

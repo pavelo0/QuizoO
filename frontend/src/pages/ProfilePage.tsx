@@ -61,7 +61,7 @@ const sectionClass =
   'rounded-2xl border border-(--border-default) bg-(--bg-color) p-5';
 
 const ProfilePage = () => {
-  const { user, refresh } = useAuthContext();
+  const { user, refresh, signOutLocal } = useAuthContext();
   const { t } = useI18n();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -141,7 +141,7 @@ const ProfilePage = () => {
     setLogoutPending(true);
     try {
       await apiClient.post('/auth/logout');
-      await refresh();
+      signOutLocal();
       toast.success(t('profile.toastSignedOut'), { duration: 3500 });
       navigate('/', { replace: true });
     } catch (err) {
@@ -293,16 +293,12 @@ const ProfilePage = () => {
       const { data } = await apiClient.patch<{
         user: ApiPublicUser;
         message: string;
-        verificationCode?: string;
       }>('/users/me/email', {
         newEmail: trimmed,
         currentPassword: parsed.data.currentPassword,
       });
       await refresh();
       toast.success(data.message, { duration: 5000 });
-      if (data.verificationCode) {
-        toast(`Lab code: ${data.verificationCode}`, { duration: 8000 });
-      }
       setEmailOpen(false);
       resetEmailForm();
     } catch (err) {

@@ -38,6 +38,12 @@ cp .env.example .env
 
 В `docker-compose.yml` для основных переменных заданы **значения по умолчанию**, поэтому минимальный запуск возможен и без `.env`.
 
+Важно про источники env:
+
+- В Docker-режиме (`docker compose up ...`) backend читает переменные из **корневого** `.env` через `docker-compose.yml`.
+- Файл `backend/.env` используется только при локальном запуске backend вне Docker (например `npm run start:dev` в папке `backend`).
+- Для Google OAuth в Docker указывай `GOOGLE_REDIRECT_URI=https://localhost/api/auth/google/callback` и добавляй этот же URL в Google Cloud Console (Authorized redirect URIs).
+
 Подробнее про деплой и прод: [`docker-and-deploy.md`](./docker-and-deploy.md).
 
 ---

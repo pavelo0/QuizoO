@@ -1,10 +1,18 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ModuleType, Prisma, QuestionType } from '@prisma/client';
+import { mkdir, unlink, writeFile } from 'fs/promises';
+import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  QUESTION_IMAGE_ALLOWED_MIMES,
+  QUESTION_IMAGE_MAX_BYTES,
+} from './question-image.constants';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 
@@ -50,8 +58,62 @@ function validateChoiceOptions(
 }
 
 @Injectable()
-export class ModulesService {
+export class ModulesService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
+
+  async onModuleInit(): Promise<void> {
+    await mkdir(this.questionImagesDir, { recursive: true });
+  }
+
+  private get questionImagesDir(): string {
+    return join(process.cwd(), 'uploads', 'question-images');
+  }
+
+  private questionImageFilePath(questionId: string): string {
+    return join(this.questionImagesDir, questionId);
+  }
+
+  private async ensureUniqueModuleTitle(
+    userId: string,
+    title: string,
+    excludeModuleId?: string,
+  ) {
+    const existing = await this.prisma.module.findFirst({
+      where: {
+        userId,
+        title: {
+          equals: title,
+          mode: 'insensitive',
+        },
+        ...(excludeModuleId ? { NOT: { id: excludeModuleId } } : {}),
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException('Module title already exists');
+    }
+  }
+
+  private async generateUniqueDefaultModuleTitle(
+    userId: string,
+    type: ModuleType,
+  ) {
+    const baseTitle =
+      type === ModuleType.QUIZ ? 'New quiz module' : 'New module';
+    const modules = await this.prisma.module.findMany({
+      where: { userId, type },
+      select: { title: true },
+    });
+    const used = new Set(modules.map((module) => module.title.toLowerCase()));
+    if (!used.has(baseTitle.toLowerCase())) {
+      return baseTitle;
+    }
+    let index = 1;
+    while (used.has(`${baseTitle} ${index}`.toLowerCase())) {
+      index += 1;
+    }
+    return `${baseTitle} ${index}`;
+  }
 
   async getDashboardSummary(userId: string) {
     const [totalModules, activeModules, flashAgg, quizAgg] = await Promise.all([
@@ -284,7 +346,10 @@ export class ModulesService {
       moduleTitle: module.title,
       total,
       items,
-      nextCursor: items.length === take ? items[items.length - 1]!.id : null,
+      nextCursor:
+        items.length === take && items[items.length - 1]
+          ? items[items.length - 1].id
+          : null,
     };
   }
 
@@ -296,10 +361,21 @@ export class ModulesService {
     if (!isModuleType(body.type)) {
       throw new BadRequestException('type must be FLASHCARD or QUIZ');
     }
+    let resolvedTitle = title;
+    const defaultTitle =
+      body.type === ModuleType.QUIZ ? 'New quiz module' : 'New module';
+    if (title === defaultTitle) {
+      resolvedTitle = await this.generateUniqueDefaultModuleTitle(
+        userId,
+        body.type,
+      );
+    } else {
+      await this.ensureUniqueModuleTitle(userId, title);
+    }
     return this.prisma.module.create({
       data: {
         userId,
-        title,
+        title: resolvedTitle,
         description:
           body.description === undefined || body.description === null
             ? null
@@ -345,6 +421,7 @@ export class ModulesService {
       if (!t) {
         throw new BadRequestException('title cannot be empty');
       }
+      await this.ensureUniqueModuleTitle(userId, t, moduleId);
       data.title = t;
     }
     if (body.description !== undefined) {
@@ -589,9 +666,12 @@ export class ModulesService {
           userAnswer = null;
         } else {
           const allPairs = q.matchingPairs;
-          const entries = allPairs.map(
-            (p) => [p.id, String((map as any)[p.id] ?? '')] as const,
-          );
+          const matchingAnswerMap = map as Record<string, unknown>;
+          const entries = allPairs.map((p) => {
+            const rawValue = matchingAnswerMap[p.id];
+            const value = typeof rawValue === 'string' ? rawValue : '';
+            return [p.id, value] as const;
+          });
           const allAnswered = entries.every(([, v]) => v.length > 0);
           isCorrect =
             allAnswered &&
@@ -673,7 +753,7 @@ export class ModulesService {
         id: a.id,
         questionId: a.questionId,
         isCorrect: a.isCorrect,
-        userAnswer: a.userAnswer ? JSON.parse(a.userAnswer) : null,
+        userAnswer: a.userAnswer ? (JSON.parse(a.userAnswer) as unknown) : null,
         question: a.question,
       })),
     };
@@ -987,7 +1067,97 @@ export class ModulesService {
     if (!q) {
       throw new NotFoundException('Question not found');
     }
+    if (q.questionImageMime) {
+      try {
+        await unlink(this.questionImageFilePath(questionId));
+      } catch {
+        // file may already be missing
+      }
+    }
     await this.prisma.question.delete({ where: { id: questionId } });
+    return { ok: true as const };
+  }
+
+  async saveQuestionImage(
+    userId: string,
+    moduleId: string,
+    questionId: string,
+    buffer: Buffer,
+    mime: string,
+  ) {
+    await this.assertQuizModule(moduleId, userId);
+    const question = await this.prisma.question.findFirst({
+      where: { id: questionId, moduleId },
+      select: { id: true },
+    });
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+    if (buffer.length > QUESTION_IMAGE_MAX_BYTES) {
+      throw new BadRequestException(
+        `Image must be at most ${QUESTION_IMAGE_MAX_BYTES / (1024 * 1024)} MB`,
+      );
+    }
+    if (!(QUESTION_IMAGE_ALLOWED_MIMES as readonly string[]).includes(mime)) {
+      throw new BadRequestException('Allowed formats: JPEG, PNG, or WebP');
+    }
+    await writeFile(this.questionImageFilePath(questionId), buffer);
+    await this.prisma.question.update({
+      where: { id: questionId },
+      data: { questionImageMime: mime },
+    });
+    return this.prisma.question.findFirst({
+      where: { id: questionId },
+      include: { questionOptions: true, matchingPairs: true },
+    });
+  }
+
+  async getQuestionImageForDownload(
+    userId: string,
+    moduleId: string,
+    questionId: string,
+  ): Promise<{ path: string; mime: string } | null> {
+    await this.assertQuizModule(moduleId, userId);
+    const question = await this.prisma.question.findFirst({
+      where: { id: questionId, moduleId },
+      select: { questionImageMime: true },
+    });
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+    if (!question.questionImageMime) {
+      return null;
+    }
+    return {
+      path: this.questionImageFilePath(questionId),
+      mime: question.questionImageMime,
+    };
+  }
+
+  async clearQuestionImage(
+    userId: string,
+    moduleId: string,
+    questionId: string,
+  ) {
+    await this.assertQuizModule(moduleId, userId);
+    const question = await this.prisma.question.findFirst({
+      where: { id: questionId, moduleId },
+      select: { id: true, questionImageMime: true },
+    });
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+    if (question.questionImageMime) {
+      try {
+        await unlink(this.questionImageFilePath(questionId));
+      } catch {
+        // file may already be missing
+      }
+    }
+    await this.prisma.question.update({
+      where: { id: questionId },
+      data: { questionImageMime: null },
+    });
     return { ok: true as const };
   }
 

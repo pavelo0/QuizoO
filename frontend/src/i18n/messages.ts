@@ -355,6 +355,8 @@ export const messages: Record<Locale, Record<string, string>> = {
       'This will permanently remove {title} and all its cards. This action cannot be undone.',
     'edit.common.deleteAction': 'Delete module',
     'edit.common.titleRequired': 'Title cannot be empty.',
+    'edit.common.titleAlreadyExists':
+      'A module with this title already exists.',
     'edit.common.saveTitleFailed': 'Could not save the module title.',
     'edit.common.unsavedDescriptionQuiz':
       'You have unsaved changes to the title. Do you want to save before you leave? If you do not save, the title you typed will be lost. Your questions are already kept on the server.',
@@ -376,6 +378,20 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.questionsTitle': 'Questions ({count})',
     'editQuiz.searchQuestions': 'Search questions',
     'editQuiz.searchPlaceholder': 'Search questions…',
+    'editQuiz.reorder': 'Reorder question',
+    'editQuiz.moveUp': 'Move question up',
+    'editQuiz.moveDown': 'Move question down',
+    'editQuiz.reorderFailed': 'Could not save the new order.',
+    'editQuiz.reorderSearchHint':
+      'Disable search to reorder questions by drag and drop.',
+    'editQuiz.imageLabel': 'Question image',
+    'editQuiz.imageChoose': 'Choose image',
+    'editQuiz.imageRemove': 'Remove image',
+    'editQuiz.imageHint': 'JPG, PNG, or WebP. Max size 5 MB. One image only.',
+    'editQuiz.imagePreviewAlt': 'Question image preview',
+    'editQuiz.imageAttached': 'Image attached',
+    'editQuiz.imageTypeError': 'Allowed formats: JPG, PNG, or WebP.',
+    'editQuiz.imageSizeError': 'Image must be at most 5 MB.',
     'editQuiz.noQuestions': 'No questions yet. Add your first question below.',
     'editQuiz.noQuestionsMatch': 'No questions match your search.',
     'editQuiz.addQuestion': 'Add new question',
@@ -425,6 +441,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.importFormatHelpTitle': 'Quiz JSON format',
     'editQuiz.importFormatHelpDescription':
       'Use this structure for import/export. Supported types: CHOICE, TEXT, MATCHING.',
+    'editQuiz.importImagesNotSupported':
+      'Question images are not exported to JSON and cannot be restored by JSON import.',
     'editQuiz.importInvalidStructure': 'JSON root must be an object.',
     'editQuiz.importUnsupportedVersion':
       'Unsupported formatVersion. Expected: {version}.',
@@ -512,6 +530,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.selectOne': 'Select one option',
     'quizStudy.typeAnswer': 'Type your answer',
     'quizStudy.typeAnswerPlaceholder': 'Type your answer…',
+    'quizStudy.questionImageAlt': 'Question illustration',
     'quizStudy.selectMatchingValue': 'Select matching value',
     'quizStudy.selectMatch': 'Select match',
     'quizStudy.finishQuiz': 'Finish quiz',
@@ -586,7 +605,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'profile.sameEmailError': 'This is already your email',
     'profile.emailNotVerified': 'Email not verified',
     'profile.emailNotVerifiedHint':
-      'Confirm your address with the code we sent (in lab mode, check the server log). Until then, some actions may be limited.',
+      'Confirm your address with the code we sent to your email. Until then, some actions may be limited.',
     'profile.photoHint':
       'Your photo defaults to your initial and a unique color. You can upload a JPEG, PNG, or WebP up to 2 MB.',
     'profile.displayNameHint':
@@ -610,7 +629,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'profile.showPasswords': 'Show passwords',
     'profile.updatePassword': 'Update password',
     'profile.changeEmailHint':
-      'Your account email is updated immediately. We send a verification code to the new address — please confirm it (same flow as registration; in lab mode, check the server log).',
+      'Your account email is updated immediately. We send a verification code to the new address — please confirm it (same flow as registration).',
     'profile.newEmail': 'New email',
     'profile.updateEmail': 'Update email',
   },
@@ -970,6 +989,8 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Это действие навсегда удалит {title} и все его карточки. Отменить нельзя.',
     'edit.common.deleteAction': 'Удалить модуль',
     'edit.common.titleRequired': 'Название не может быть пустым.',
+    'edit.common.titleAlreadyExists':
+      'Модуль с таким названием уже существует.',
     'edit.common.saveTitleFailed': 'Не удалось сохранить название модуля.',
     'edit.common.unsavedDescriptionQuiz':
       'У вас есть несохраненные изменения названия. Сохранить перед выходом? Если не сохранить, введенное название будет потеряно. Вопросы уже сохранены на сервере.',
@@ -991,6 +1012,21 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.questionsTitle': 'Вопросы ({count})',
     'editQuiz.searchQuestions': 'Поиск вопросов',
     'editQuiz.searchPlaceholder': 'Поиск вопросов…',
+    'editQuiz.reorder': 'Перетащить вопрос',
+    'editQuiz.moveUp': 'Переместить вопрос вверх',
+    'editQuiz.moveDown': 'Переместить вопрос вниз',
+    'editQuiz.reorderFailed': 'Не удалось сохранить новый порядок вопросов.',
+    'editQuiz.reorderSearchHint':
+      'Чтобы перетаскивать вопросы, очистите строку поиска.',
+    'editQuiz.imageLabel': 'Изображение к вопросу',
+    'editQuiz.imageChoose': 'Выбрать изображение',
+    'editQuiz.imageRemove': 'Удалить изображение',
+    'editQuiz.imageHint':
+      'JPG, PNG или WebP. Максимальный размер 5 МБ. Только одно изображение.',
+    'editQuiz.imagePreviewAlt': 'Предпросмотр изображения вопроса',
+    'editQuiz.imageAttached': 'Изображение добавлено',
+    'editQuiz.imageTypeError': 'Допустимые форматы: JPG, PNG или WebP.',
+    'editQuiz.imageSizeError': 'Размер изображения должен быть не более 5 МБ.',
     'editQuiz.noQuestions': 'Пока нет вопросов. Добавьте первый ниже.',
     'editQuiz.noQuestionsMatch': 'Поиск не дал результатов.',
     'editQuiz.addQuestion': 'Добавить новый вопрос',
@@ -1044,6 +1080,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.importFormatHelpTitle': 'Формат JSON для теста',
     'editQuiz.importFormatHelpDescription':
       'Используйте эту структуру для импорта/экспорта. Поддерживаемые типы: CHOICE, TEXT, MATCHING.',
+    'editQuiz.importImagesNotSupported':
+      'Изображения вопросов не экспортируются в JSON и не могут быть восстановлены через импорт JSON.',
     'editQuiz.importInvalidStructure': 'Корневой JSON должен быть объектом.',
     'editQuiz.importUnsupportedVersion':
       'Неподдерживаемый formatVersion. Ожидается: {version}.',
@@ -1133,6 +1171,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.selectOne': 'Выберите один вариант',
     'quizStudy.typeAnswer': 'Введите ваш ответ',
     'quizStudy.typeAnswerPlaceholder': 'Введите ваш ответ…',
+    'quizStudy.questionImageAlt': 'Иллюстрация к вопросу',
     'quizStudy.selectMatchingValue': 'Выберите соответствие',
     'quizStudy.selectMatch': 'Выберите пару',
     'quizStudy.finishQuiz': 'Завершить тест',
@@ -1207,7 +1246,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'profile.sameEmailError': 'Это уже ваш email',
     'profile.emailNotVerified': 'Email не подтвержден',
     'profile.emailNotVerifiedHint':
-      'Подтвердите адрес кодом, который мы отправили (в лабораторном режиме смотрите логи сервера). До подтверждения часть действий может быть ограничена.',
+      'Подтвердите адрес кодом, который мы отправили на почту. До подтверждения часть действий может быть ограничена.',
     'profile.photoHint':
       'По умолчанию используется инициал и уникальный цвет. Можно загрузить JPEG, PNG или WebP до 2 МБ.',
     'profile.displayNameHint':
@@ -1231,7 +1270,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'profile.showPasswords': 'Показать пароли',
     'profile.updatePassword': 'Обновить пароль',
     'profile.changeEmailHint':
-      'Email аккаунта меняется сразу. На новый адрес отправляется код подтверждения — подтвердите его (тот же сценарий, что при регистрации; в лабораторном режиме смотрите логи сервера).',
+      'Email аккаунта меняется сразу. На новый адрес отправляется код подтверждения — подтвердите его (тот же сценарий, что при регистрации).',
     'profile.newEmail': 'Новый email',
     'profile.updateEmail': 'Обновить email',
   },

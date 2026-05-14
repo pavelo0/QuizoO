@@ -18,7 +18,7 @@ export class AuthController {
       password: string;
       username?: string;
     },
-  ): Promise<{ message: string; verificationCode?: string }> {
+  ): Promise<{ message: string }> {
     return this.auth.register(body);
   }
 
@@ -61,7 +61,7 @@ export class AuthController {
   @Post('forgot-password')
   forgotPassword(
     @Body() body: { email: string },
-  ): Promise<{ message: string; resetCode?: string }> {
+  ): Promise<{ message: string }> {
     return this.auth.requestPasswordReset(body.email);
   }
 
@@ -83,7 +83,7 @@ export class AuthController {
   @Post('resend-verification')
   resendVerification(
     @Body() body: { email: string },
-  ): Promise<{ message: string; verificationCode?: string }> {
+  ): Promise<{ message: string }> {
     return this.auth.resendEmailVerification(body.email);
   }
 

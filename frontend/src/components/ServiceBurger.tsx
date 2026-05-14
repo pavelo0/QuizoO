@@ -9,12 +9,10 @@ import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/theme/useTheme';
 import {
-  BarChart2,
   BarChart3,
   BookOpen,
   LayoutDashboard,
   Moon,
-  Settings,
   Sun,
   Users,
   X,
@@ -137,7 +135,7 @@ const ServiceBurger = ({
         >
           <NavLink
             to={isAdmin ? '/app/admin' : '/app'}
-            end={!isAdmin}
+            end
             onClick={onDismiss}
             className={linkClass}
           >
@@ -162,28 +160,18 @@ const ServiceBurger = ({
                 <BookOpen className="size-5 shrink-0" strokeWidth={1.75} />
                 {t('common.modules')}
               </NavLink>
-              <NavLink
-                to="/app/admin/analytics"
-                onClick={onDismiss}
-                className={linkClass}
-              >
-                <BarChart2 className="size-5 shrink-0" strokeWidth={1.75} />
-                {t('common.analytics')}
-              </NavLink>
             </>
           ) : null}
-          <NavLink
-            to="/app/statistics"
-            onClick={onDismiss}
-            className={linkClass}
-          >
-            <BarChart3 className="size-5 shrink-0" strokeWidth={1.75} />
-            {t('common.statistics')}
-          </NavLink>
-          <NavLink to="/app/settings" onClick={onDismiss} className={linkClass}>
-            <Settings className="size-5 shrink-0" strokeWidth={1.75} />
-            {t('common.settings')}
-          </NavLink>
+          {!isAdmin ? (
+            <NavLink
+              to="/app/statistics"
+              onClick={onDismiss}
+              className={linkClass}
+            >
+              <BarChart3 className="size-5 shrink-0" strokeWidth={1.75} />
+              {t('common.statistics')}
+            </NavLink>
+          ) : null}
         </nav>
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-(--border-default) p-5">

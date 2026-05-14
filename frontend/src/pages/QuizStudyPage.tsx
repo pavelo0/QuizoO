@@ -9,7 +9,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { createQuizSession, fetchQuizQuestionsPage } from '@/lib/api/modules';
+import {
+  createQuizSession,
+  fetchQuizQuestionsPage,
+  questionImageUrl,
+} from '@/lib/api/modules';
 import { apiErrorMessage, apiErrorText } from '@/lib/apiErrorMessage';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
@@ -112,10 +116,7 @@ function toSessionAnswerPayload(
   };
 }
 
-function renderCorrectAnswer(
-  answer: QuizSessionAnswerDetail,
-  t: (key: string, vars?: Record<string, string | number>) => string,
-) {
+function renderCorrectAnswer(answer: QuizSessionAnswerDetail) {
   const q = answer.question;
   if (q.type === 'CHOICE') {
     const correct = q.questionOptions
@@ -202,6 +203,8 @@ export default function QuizStudyPage() {
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [session, setSession] = useState<QuizSessionDetail | null>(null);
+  const [imageLoadFailedByQuestionId, setImageLoadFailedByQuestionId] =
+    useState<Record<string, true>>({});
   const [allowNavigation, setAllowNavigation] = useState(false);
   const [animatedPercent, setAnimatedPercent] = useState(0);
   const nextCursorRef = useRef<string | null>(null);
@@ -236,6 +239,7 @@ export default function QuizStudyPage() {
       setSession(null);
       setSubmitState('idle');
       setSubmitError(null);
+      setImageLoadFailedByQuestionId({});
       setAllowNavigation(false);
       setLoadState('ok');
     } catch (e) {
@@ -246,7 +250,7 @@ export default function QuizStudyPage() {
       }
       setLoadState('notfound');
     }
-  }, [moduleId, shuffleEnabled]);
+  }, [moduleId, shuffleEnabled, t]);
 
   const loadMore = useCallback(async () => {
     const cursor = nextCursorRef.current;
@@ -446,6 +450,13 @@ export default function QuizStudyPage() {
     }
   }, [answers, canSubmit, moduleId, questions, submitState, t]);
 
+  const onQuestionImageError = useCallback((questionId: string) => {
+    setImageLoadFailedByQuestionId((prev) => {
+      if (prev[questionId]) return prev;
+      return { ...prev, [questionId]: true };
+    });
+  }, []);
+
   const restart = useCallback(() => {
     void loadInitial();
   }, [loadInitial]);
@@ -614,7 +625,7 @@ export default function QuizStudyPage() {
               type="button"
               variant="outline"
               size="outlineCompact"
-              className="h-11 min-w-36 rounded-xl"
+              className="h-11 min-w-36 gap-2 rounded-xl"
               onClick={restart}
             >
               <RotateCcw className="size-4" />
@@ -661,6 +672,19 @@ export default function QuizStudyPage() {
                     {answer.question.questionText}
                   </p>
                 </div>
+                {answer.question.questionImageMime &&
+                !imageLoadFailedByQuestionId[answer.question.id] ? (
+                  <div className="mb-3 ml-6 overflow-hidden rounded-xl border border-(--border-default) bg-(--input-bg)/25 p-2">
+                    <img
+                      src={questionImageUrl(moduleId, answer.question.id, {
+                        version: answer.question.createdAt,
+                      })}
+                      alt={t('quizStudy.questionImageAlt')}
+                      className="max-h-56 w-full rounded-lg object-contain"
+                      onError={() => onQuestionImageError(answer.question.id)}
+                    />
+                  </div>
+                ) : null}
                 <p className="ml-6 text-sm text-(--text-secondary)">
                   {t('quizStudy.yourAnswer', {
                     value: renderUserAnswer(answer, t),
@@ -668,7 +692,7 @@ export default function QuizStudyPage() {
                 </p>
                 <p className="ml-6 mt-1 text-sm text-(--text-secondary)">
                   {t('quizStudy.correctAnswer', {
-                    value: renderCorrectAnswer(answer, t),
+                    value: renderCorrectAnswer(answer),
                   })}
                 </p>
               </li>
@@ -788,6 +812,19 @@ export default function QuizStudyPage() {
         <h2 className="font-(family-name:--font-syne) text-2xl leading-tight font-extrabold tracking-[-0.03em] sm:text-3xl">
           {currentQuestion.questionText}
         </h2>
+        {currentQuestion.questionImageMime &&
+        !imageLoadFailedByQuestionId[currentQuestion.id] ? (
+          <div className="mt-4 overflow-hidden rounded-2xl border border-(--border-default) bg-(--input-bg)/30 p-2">
+            <img
+              src={questionImageUrl(moduleId, currentQuestion.id, {
+                version: currentQuestion.createdAt,
+              })}
+              alt={t('quizStudy.questionImageAlt')}
+              className="max-h-80 w-full rounded-xl object-contain"
+              onError={() => onQuestionImageError(currentQuestion.id)}
+            />
+          </div>
+        ) : null}
 
         {currentQuestion.type === 'CHOICE' ? (
           <div className="mt-6 space-y-2.5">

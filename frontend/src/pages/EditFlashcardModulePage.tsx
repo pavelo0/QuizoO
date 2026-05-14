@@ -65,6 +65,7 @@ import {
   useParams,
   type Location,
 } from 'react-router-dom';
+import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const cardTextareaClass = cn(
@@ -469,6 +470,7 @@ export default function EditFlashcardModulePage() {
   >('loading');
   const [title, setTitle] = useState(t('edit.common.newFlashModule'));
   const [savedTitle, setSavedTitle] = useState(t('edit.common.newFlashModule'));
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [cards, setCards] = useState<ModuleCard[]>([]);
   const [search, setSearch] = useState('');
   const [shuffle, setShuffle] = useState(true);
@@ -477,6 +479,7 @@ export default function EditFlashcardModulePage() {
   const [editingCard, setEditingCard] = useState<ModuleCard | null>(null);
   const [deleteModuleOpen, setDeleteModuleOpen] = useState(false);
   const [deleteModulePending, setDeleteModulePending] = useState(false);
+  const [titleSaving, setTitleSaving] = useState(false);
   const [allowNavigation, setAllowNavigation] = useState(false);
   const [importHelpOpen, setImportHelpOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -516,6 +519,7 @@ export default function EditFlashcardModulePage() {
       }
       setTitle(m.title);
       setSavedTitle(m.title);
+      setTitleError(null);
       setCards(m.cards);
       setShuffle(readShuffle(m.id));
       setLoadState('ok');
@@ -713,20 +717,47 @@ export default function EditFlashcardModulePage() {
     toast.success(t('editFlash.exportSuccess'));
   }, [cards, t, title]);
 
+  const saveTitle = useCallback(
+    async (options?: { proceedIfBlocked?: boolean }) => {
+      const nextTitle = title.trim();
+      if (!nextTitle) {
+        toast.error(t('edit.common.titleRequired'));
+        return false;
+      }
+      if (nextTitle === savedTitle) {
+        if (options?.proceedIfBlocked && blocker.state === 'blocked') {
+          blocker.proceed();
+        }
+        return true;
+      }
+      setTitleSaving(true);
+      try {
+        await updateModule(moduleId, { title: nextTitle });
+        setSavedTitle(nextTitle);
+        setTitleError(null);
+        if (options?.proceedIfBlocked && blocker.state === 'blocked') {
+          blocker.proceed();
+        }
+        return true;
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 409) {
+          setTitleError(t('edit.common.titleAlreadyExists'));
+          return false;
+        }
+        toast.error(t('edit.common.saveTitleFailed'));
+        return false;
+      } finally {
+        setTitleSaving(false);
+      }
+    },
+    [blocker, moduleId, savedTitle, t, title],
+  );
+
   const finishLeaveSave = useCallback(async () => {
-    const t = title.trim();
-    if (!t) {
-      toast.error(t('edit.common.titleRequired'));
-      return;
-    }
-    try {
-      await updateModule(moduleId, { title: t });
-      setSavedTitle(t);
-      if (blocker.state === 'blocked') blocker.proceed();
-    } catch {
-      toast.error(t('edit.common.saveTitleFailed'));
-    }
-  }, [blocker, moduleId, title]);
+    const nextTitle = title.trim();
+    if (!nextTitle) return;
+    await saveTitle({ proceedIfBlocked: true });
+  }, [saveTitle, title]);
 
   const finishLeaveNoSave = useCallback(() => {
     if (blocker.state === 'blocked') blocker.proceed();
@@ -834,11 +865,21 @@ export default function EditFlashcardModulePage() {
                 autoCorrect="off"
                 spellCheck={false}
                 maxLength={MAX_MODULE_TITLE_LENGTH}
-                onChange={(e) =>
-                  setTitle(e.target.value.slice(0, MAX_MODULE_TITLE_LENGTH))
-                }
+                onChange={(e) => {
+                  setTitle(e.target.value.slice(0, MAX_MODULE_TITLE_LENGTH));
+                  setTitleError(null);
+                }}
+                aria-invalid={titleError !== null}
                 className="w-full min-w-0 border-0 bg-transparent font-(family-name:--font-syne) text-2xl font-bold leading-tight tracking-[0.02em] wrap-break-word text-(--text-primary) outline-none placeholder:text-(--text-secondary) sm:text-3xl md:text-4xl"
               />
+              {titleError ? (
+                <p
+                  className="mt-2 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                  role="alert"
+                >
+                  {titleError}
+                </p>
+              ) : null}
               <ul
                 className="mt-4 flex list-none flex-col gap-3 p-0 text-sm text-(--text-secondary)"
                 aria-label={t('aria.moduleStatistics')}
@@ -866,7 +907,16 @@ export default function EditFlashcardModulePage() {
               </ul>
             </div>
             <div className="shrink-0 self-stretch">
-              <div className="mb-3 flex justify-end">
+              <div className="mb-3 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 cursor-pointer rounded-[12px] px-4"
+                  onClick={() => void saveTitle()}
+                  disabled={!isDirty || titleSaving}
+                >
+                  {titleSaving ? t('common.saving') : t('common.save')}
+                </Button>
                 <Button
                   type="button"
                   variant="outlineSoft"

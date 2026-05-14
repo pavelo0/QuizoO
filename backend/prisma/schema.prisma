@@ -103,6 +103,7 @@ model Question {
   questionText String
   type         QuestionType
   allowMultipleAnswers Boolean @default(false)
+  questionImageMime String?
   orderIndex   Int          @default(0)
   createdAt    DateTime     @default(now())
 

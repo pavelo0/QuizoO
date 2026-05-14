@@ -21,6 +21,7 @@ type AuthContextValue = {
   user: ApiPublicUser | null;
   loading: boolean;
   refresh: () => Promise<void>;
+  signOutLocal: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,6 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setUser(null);
     }
+  }, []);
+
+  const signOutLocal = useCallback(() => {
+    userRef.current = null;
+    setUser(null);
+    resetSessionExpiredNotification();
   }, []);
 
   useEffect(() => {
@@ -89,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, refresh }),
-    [user, loading, refresh],
+    () => ({ user, loading, refresh, signOutLocal }),
+    [user, loading, refresh, signOutLocal],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

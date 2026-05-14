@@ -63,9 +63,8 @@ const RegisterPage = () => {
 
     setPending(true);
     try {
-      const { data } = await apiClient.post<{
+      await apiClient.post<{
         message: string;
-        verificationCode?: string;
       }>('/auth/register', {
         email: validatedData.data.email,
         password: validatedData.data.password,
@@ -73,19 +72,11 @@ const RegisterPage = () => {
       });
 
       setRegisterEmail(validatedData.data.email);
-      if (data.verificationCode) {
-        toast.success(
-          locale === 'ru'
-            ? `Код подтверждения (lab): ${data.verificationCode}`
-            : `Verification code (lab): ${data.verificationCode}`,
-        );
-      } else {
-        toast.success(
-          locale === 'ru'
-            ? 'Аккаунт создан. Проверьте консоль API-сервера для кода подтверждения.'
-            : 'Account created. Check the API server console for the verification code.',
-        );
-      }
+      toast.success(
+        locale === 'ru'
+          ? 'Аккаунт создан. Код подтверждения отправлен на вашу почту.'
+          : 'Account created. A verification code was sent to your email.',
+      );
       setStep('verification');
       setVerificationCode('');
       setCodeError(null);
@@ -138,23 +129,11 @@ const RegisterPage = () => {
     if (pending || !registerEmail) return;
     setPending(true);
     try {
-      const { data } = await apiClient.post<{
-        message: string;
-        verificationCode?: string;
-      }>('/auth/resend-verification', { email: registerEmail });
-      if (data.verificationCode) {
-        toast.success(
-          locale === 'ru'
-            ? `Новый код (lab): ${data.verificationCode}`
-            : `New code (lab): ${data.verificationCode}`,
-        );
-      } else {
-        toast.success(
-          locale === 'ru'
-            ? 'Новый код записан в лог сервера.'
-            : 'A new code was logged on the server.',
-        );
-      }
+      const { data } = await apiClient.post<{ message: string }>(
+        '/auth/resend-verification',
+        { email: registerEmail },
+      );
+      toast.success(data.message);
     } catch (err) {
       toast.error(apiErrorMessage(err));
     } finally {
@@ -183,8 +162,8 @@ const RegisterPage = () => {
               </h2>
               <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
                 {locale === 'ru'
-                  ? 'Введите код из лога сервера (режим lab).'
-                  : 'Enter the code from the server log (lab mode).'}
+                  ? 'Введите код, который пришел на вашу почту.'
+                  : 'Enter the code sent to your email.'}
               </p>
             </div>
             <div>
