@@ -13,6 +13,14 @@ import { apiErrorText } from '@/lib/apiErrorMessage';
 import { useI18n } from '@/i18n/useI18n';
 import { MAX_MODULE_TITLE_LENGTH } from '@/lib/moduleConstants';
 import { clearQuizDraftInflight } from '@/lib/quizModuleDraft';
+import {
+  readQuizTimerDurationSec,
+  readQuizTimerEnabled,
+  SESSION_TIMER_DURATION_OPTIONS_SEC,
+  writeQuizTimerDurationSec,
+  writeQuizTimerEnabled,
+  type SessionTimerDurationSec,
+} from '@/lib/sessionTimerPrefs';
 import { cn } from '@/lib/utils';
 import type { ModuleId, ModuleQuestion, QuestionType } from '@/types/module';
 import {
@@ -34,6 +42,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -1331,6 +1346,9 @@ export default function EditQuizModulePage() {
   const [questions, setQuestions] = useState<ModuleQuestion[]>([]);
   const [search, setSearch] = useState('');
   const [shuffle, setShuffle] = useState(true);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerDurationSec, setTimerDurationSec] =
+    useState<SessionTimerDurationSec>(600);
 
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<ModuleQuestion | null>(
@@ -1382,6 +1400,8 @@ export default function EditQuizModulePage() {
       setTitleError(null);
       setQuestions(m.questions);
       setShuffle(readShuffle(m.id));
+      setTimerEnabled(readQuizTimerEnabled(m.id));
+      setTimerDurationSec(readQuizTimerDurationSec(m.id));
       setLoadState('ok');
     } catch {
       setLoadState('notfound');
@@ -1584,6 +1604,22 @@ export default function EditQuizModulePage() {
     (v: boolean) => {
       setShuffle(v);
       writeShuffle(moduleId, v);
+    },
+    [moduleId],
+  );
+
+  const onTimerEnabled = useCallback(
+    (v: boolean) => {
+      setTimerEnabled(v);
+      writeQuizTimerEnabled(moduleId, v);
+    },
+    [moduleId],
+  );
+
+  const onTimerDuration = useCallback(
+    (sec: SessionTimerDurationSec) => {
+      setTimerDurationSec(sec);
+      writeQuizTimerDurationSec(moduleId, sec);
     },
     [moduleId],
   );
@@ -1924,19 +1960,78 @@ export default function EditQuizModulePage() {
         >
           {t('editQuiz.settings')}
         </h2>
-        <div className="mt-3 flex items-center justify-between gap-3 sm:mt-0 sm:ml-6">
-          <span
-            className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
-            id="switch-shuffle-label"
-          >
-            {t('editQuiz.shuffle')}
-          </span>
-          <Switch
-            checked={shuffle}
-            onCheckedChange={onShuffle}
-            className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
-            aria-labelledby="switch-shuffle-label"
-          />
+        <div className="mt-3 flex flex-col gap-4 sm:mt-0 sm:ml-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-x-8 sm:gap-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+            <span
+              className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
+              id="switch-quiz-timer-label"
+            >
+              {t('editQuiz.timer')}
+            </span>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <label
+                className={cn(
+                  'flex items-center gap-2',
+                  !timerEnabled && 'opacity-60',
+                )}
+              >
+                <span className="sr-only" id="quiz-timer-duration-label">
+                  {t('editQuiz.timerDuration')}
+                </span>
+                <Select
+                  value={String(timerDurationSec)}
+                  disabled={!timerEnabled}
+                  onValueChange={(v) => {
+                    const n = Number.parseInt(v, 10);
+                    if (
+                      SESSION_TIMER_DURATION_OPTIONS_SEC.includes(
+                        n as SessionTimerDurationSec,
+                      )
+                    ) {
+                      onTimerDuration(n as SessionTimerDurationSec);
+                    }
+                  }}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="min-w-30"
+                    aria-labelledby="quiz-timer-duration-label"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SESSION_TIMER_DURATION_OPTIONS_SEC.map((sec) => (
+                      <SelectItem key={sec} value={String(sec)}>
+                        {t('sessionTimer.minutesShort', {
+                          count: sec / 60,
+                        })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <Switch
+                checked={timerEnabled}
+                onCheckedChange={onTimerEnabled}
+                className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
+                aria-labelledby="switch-quiz-timer-label"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 sm:justify-end">
+            <span
+              className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
+              id="switch-shuffle-label"
+            >
+              {t('editQuiz.shuffle')}
+            </span>
+            <Switch
+              checked={shuffle}
+              onCheckedChange={onShuffle}
+              className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
+              aria-labelledby="switch-shuffle-label"
+            />
+          </div>
         </div>
       </section>
 

@@ -374,6 +374,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.questionDeleteFailed': 'Could not delete the question.',
     'editQuiz.startQuiz': 'Start quiz',
     'editQuiz.settings': 'Quiz settings',
+    'editQuiz.timer': 'Session timer',
+    'editQuiz.timerDuration': 'Time limit',
     'editQuiz.shuffle': 'Shuffle questions',
     'editQuiz.questionsTitle': 'Questions ({count})',
     'editQuiz.searchQuestions': 'Search questions',
@@ -479,6 +481,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editFlash.cardDeleteFailed': 'Could not delete the card.',
     'editFlash.startStudy': 'Study with flashcards',
     'editFlash.settings': 'Flashcard settings',
+    'editFlash.timer': 'Session timer',
+    'editFlash.timerDuration': 'Time limit',
     'editFlash.shuffle': 'Shuffle',
     'editFlash.cardsTitle': 'Cards ({count})',
     'editFlash.searchCards': 'Search cards',
@@ -537,10 +541,12 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.submitting': 'Submitting…',
     'quizStudy.lazyLoadHint':
       'For big quizzes, questions are loaded in small pages so the app stays responsive.',
+    'quizStudy.timerPrefetching': 'Preparing timed quiz…',
+    'quizStudy.timerRemainingAria': 'Time remaining in this quiz',
     'quizStudy.submitFailed': 'Could not submit: {error}',
     'quizStudy.leaveTitle': 'Leave quiz session?',
     'quizStudy.leaveDescription':
-      'Your current progress in this quiz is not submitted yet. Are you sure you want to leave?',
+      'Your current progress in this quiz is not submitted yet. If you leave, the session timer stops and your answers may be lost. Are you sure you want to leave?',
     'quizStudy.leaveAction': 'Leave session',
     'quizStudy.stayAction': 'Stay here',
     'quizStudy.resultsTitle': '{title} - Quiz results',
@@ -587,9 +593,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'flashStudy.flipHint':
       'Tap card to flip. Use left/right arrows to mark unknown/known.',
     'flashStudy.remaining': 'Remaining',
+    'flashStudy.timerRemainingAria': 'Time remaining in this session',
     'flashStudy.leaveTitle': 'Leave study session?',
     'flashStudy.leaveDescription':
-      'Your current progress in this session is not saved yet. Are you sure you want to leave?',
+      'Your current progress in this session is not saved yet. If you leave, the session timer stops and your card marks may be lost. Are you sure you want to leave?',
     'flashStudy.leaveAction': 'Leave session',
     'flashStudy.stayAction': 'Stay here',
     'errors.generic': 'Something went wrong',
@@ -632,6 +639,11 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Your account email is updated immediately. We send a verification code to the new address — please confirm it (same flow as registration).',
     'profile.newEmail': 'New email',
     'profile.updateEmail': 'Update email',
+    'sessionTimer.minutesShort': '{count} min',
+    'sessionTimer.timeUpToast': "Time's up — finishing the session.",
+    'sessionTimer.completedInMinutesSeconds':
+      'Completed in {minutes} min {seconds} s',
+    'sessionTimer.completedInSecondsOnly': 'Completed in {seconds} s',
   },
   ru: {
     'common.refresh': 'Обновить',
@@ -1008,6 +1020,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.questionDeleteFailed': 'Не удалось удалить вопрос.',
     'editQuiz.startQuiz': 'Начать тест',
     'editQuiz.settings': 'Настройки теста',
+    'editQuiz.timer': 'Таймер сессии',
+    'editQuiz.timerDuration': 'Лимит времени',
     'editQuiz.shuffle': 'Перемешивать вопросы',
     'editQuiz.questionsTitle': 'Вопросы ({count})',
     'editQuiz.searchQuestions': 'Поиск вопросов',
@@ -1118,6 +1132,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editFlash.cardDeleteFailed': 'Не удалось удалить карточку.',
     'editFlash.startStudy': 'Учить с карточками',
     'editFlash.settings': 'Настройки карточек',
+    'editFlash.timer': 'Таймер сессии',
+    'editFlash.timerDuration': 'Лимит времени',
     'editFlash.shuffle': 'Перемешивать',
     'editFlash.cardsTitle': 'Карточки ({count})',
     'editFlash.searchCards': 'Поиск карточек',
@@ -1178,10 +1194,12 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.submitting': 'Отправка…',
     'quizStudy.lazyLoadHint':
       'Для больших тестов вопросы подгружаются страницами, чтобы интерфейс оставался быстрым.',
+    'quizStudy.timerPrefetching': 'Подготовка теста с таймером…',
+    'quizStudy.timerRemainingAria': 'Оставшееся время теста',
     'quizStudy.submitFailed': 'Не удалось отправить: {error}',
     'quizStudy.leaveTitle': 'Выйти из теста?',
     'quizStudy.leaveDescription':
-      'Текущий прогресс по тесту еще не отправлен. Вы уверены, что хотите выйти?',
+      'Текущий прогресс по тесту еще не отправлен. Если выйти, таймер остановится, а ответы могут быть потеряны. Продолжить?',
     'quizStudy.leaveAction': 'Выйти из сессии',
     'quizStudy.stayAction': 'Остаться',
     'quizStudy.resultsTitle': '{title} - Результаты теста',
@@ -1228,9 +1246,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'flashStudy.flipHint':
       'Нажмите на карточку для переворота. Используйте стрелки влево/вправо для отметки.',
     'flashStudy.remaining': 'Осталось',
+    'flashStudy.timerRemainingAria': 'Оставшееся время сессии',
     'flashStudy.leaveTitle': 'Выйти из сессии?',
     'flashStudy.leaveDescription':
-      'Текущий прогресс в этой сессии еще не сохранен. Вы уверены, что хотите выйти?',
+      'Текущий прогресс в этой сессии еще не сохранен. Если выйти, таймер остановится, а отметки по карточкам могут быть потеряны. Продолжить?',
     'flashStudy.leaveAction': 'Выйти из сессии',
     'flashStudy.stayAction': 'Остаться',
     'errors.generic': 'Что-то пошло не так',
@@ -1273,5 +1292,10 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Email аккаунта меняется сразу. На новый адрес отправляется код подтверждения — подтвердите его (тот же сценарий, что при регистрации).',
     'profile.newEmail': 'Новый email',
     'profile.updateEmail': 'Обновить email',
+    'sessionTimer.minutesShort': '{count} мин',
+    'sessionTimer.timeUpToast': 'Время вышло — завершаем сессию.',
+    'sessionTimer.completedInMinutesSeconds':
+      'Пройдено за {minutes} мин {seconds} с',
+    'sessionTimer.completedInSecondsOnly': 'Пройдено за {seconds} с',
   },
 };

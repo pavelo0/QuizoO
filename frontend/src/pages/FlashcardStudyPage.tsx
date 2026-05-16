@@ -8,8 +8,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useDeadlineCountdown } from '@/hooks/useDeadlineCountdown';
 import { createFlashcardSession, fetchModuleById } from '@/lib/api/modules';
-import { apiErrorMessage, apiErrorText } from '@/lib/apiErrorMessage';
+import { apiErrorText } from '@/lib/apiErrorMessage';
+import {
+  formatCountdownMmSs,
+  formatStudyElapsed,
+  readFlashTimerDurationSec,
+  readFlashTimerEnabled,
+} from '@/lib/sessionTimerPrefs';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type { ModuleCard, ModuleId } from '@/types/module';
@@ -21,9 +28,11 @@ import {
   CircleX,
   Layers,
   RotateCcw,
+  Timer,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useBlocker, useParams, type Location } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 type Mark = 'known' | 'unknown';
 type PersistState = 'idle' | 'saving' | 'saved' | 'error';
@@ -82,6 +91,11 @@ export default function FlashcardStudyPage() {
   const [persistState, setPersistState] = useState<PersistState>('idle');
   const [persistError, setPersistError] = useState<string | null>(null);
   const [animatedPercent, setAnimatedPercent] = useState(0);
+  const [flashElapsedMs, setFlashElapsedMs] = useState<number | null>(null);
+
+  const countdownResetRef = useRef<() => void>(() => {});
+  const studyStartedAtRef = useRef<number | null>(null);
+  const flashElapsedCapturedRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!moduleId) {
@@ -94,6 +108,7 @@ export default function FlashcardStudyPage() {
         setLoadState('wrongType');
         return;
       }
+      countdownResetRef.current();
       const prepared = readShuffle(m.id) ? shuffleCards(m.cards) : [...m.cards];
       setModuleTitle(m.title);
       setSourceCards(m.cards);
@@ -103,6 +118,9 @@ export default function FlashcardStudyPage() {
       setShowAnswer(false);
       setPersistState('idle');
       setPersistError(null);
+      studyStartedAtRef.current = null;
+      flashElapsedCapturedRef.current = false;
+      setFlashElapsedMs(null);
       setLoadState('ok');
     } catch {
       setLoadState('notfound');
@@ -129,6 +147,63 @@ export default function FlashcardStudyPage() {
   const remainingCount = Math.max(0, cards.length - answeredCount);
   const allAnswered = cards.length > 0 && remainingCount === 0;
   const hasActiveProgress = answeredCount > 0 && !allAnswered;
+
+  useEffect(() => {
+    if (loadState !== 'ok' || cards.length === 0) return;
+    if (allAnswered) return;
+    if (studyStartedAtRef.current !== null) return;
+    studyStartedAtRef.current = Date.now();
+  }, [loadState, cards.length, allAnswered]);
+
+  useEffect(() => {
+    if (!allAnswered) {
+      flashElapsedCapturedRef.current = false;
+      return;
+    }
+    if (flashElapsedCapturedRef.current) return;
+    if (studyStartedAtRef.current === null) return;
+    flashElapsedCapturedRef.current = true;
+    setFlashElapsedMs(Date.now() - studyStartedAtRef.current);
+  }, [allAnswered]);
+
+  const timerEnabled = useMemo(
+    () => readFlashTimerEnabled(moduleId),
+    [moduleId],
+  );
+  const timerDurationSec = useMemo(
+    () => readFlashTimerDurationSec(moduleId),
+    [moduleId],
+  );
+  const shouldRunTimer =
+    loadState === 'ok' && timerEnabled && cards.length > 0 && !allAnswered;
+
+  const onTimerDeadline = useCallback(() => {
+    toast.success(t('sessionTimer.timeUpToast'));
+    setMarks((prev) => {
+      const next = { ...prev };
+      for (const c of cards) {
+        if (!next[c.id]) next[c.id] = 'unknown';
+      }
+      return next;
+    });
+  }, [cards, t]);
+
+  const {
+    remainingSec,
+    isActive: timerActive,
+    reset: resetCountdown,
+  } = useDeadlineCountdown({
+    enabled: timerEnabled,
+    durationSec: timerDurationSec,
+    shouldRun: shouldRunTimer,
+    onDeadline: onTimerDeadline,
+  });
+
+  countdownResetRef.current = resetCountdown;
+
+  const shouldWarnLeave =
+    hasActiveProgress ||
+    (timerEnabled && timerActive && loadState === 'ok' && !allAnswered);
   const scorePercent =
     cards.length > 0 ? Math.round((knownCount / cards.length) * 100) : 0;
   const performanceLabel =
@@ -151,10 +226,10 @@ export default function FlashcardStudyPage() {
         nextLocation: Location;
       }) => {
         if (allowNavigation) return false;
-        if (!hasActiveProgress) return false;
+        if (!shouldWarnLeave) return false;
         return currentLocation.pathname !== nextLocation.pathname;
       },
-      [allowNavigation, hasActiveProgress],
+      [allowNavigation, shouldWarnLeave],
     ),
   );
   const leaveDialogOpen = blocker.state === 'blocked';
@@ -188,6 +263,10 @@ export default function FlashcardStudyPage() {
   );
 
   const restartSession = useCallback(() => {
+    countdownResetRef.current();
+    studyStartedAtRef.current = null;
+    flashElapsedCapturedRef.current = false;
+    setFlashElapsedMs(null);
     const prepared = readShuffle(moduleId)
       ? shuffleCards(sourceCards)
       : [...sourceCards];
@@ -237,13 +316,13 @@ export default function FlashcardStudyPage() {
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!hasActiveProgress || allowNavigation) return;
+      if (!shouldWarnLeave || allowNavigation) return;
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [allowNavigation, hasActiveProgress]);
+  }, [allowNavigation, shouldWarnLeave]);
 
   useEffect(() => {
     if (!allAnswered || persistState !== 'idle') return;
@@ -345,6 +424,19 @@ export default function FlashcardStudyPage() {
   const sideArrowDisabled = cards.length < 2;
 
   if (allAnswered) {
+    const flashElapsedSummary =
+      flashElapsedMs !== null
+        ? (() => {
+            const { minutes, seconds } = formatStudyElapsed(flashElapsedMs);
+            return minutes > 0
+              ? t('sessionTimer.completedInMinutesSeconds', {
+                  minutes,
+                  seconds,
+                })
+              : t('sessionTimer.completedInSecondsOnly', { seconds });
+          })()
+        : null;
+
     return (
       <article className="mx-auto flex w-full max-w-[980px] flex-1 flex-col pb-4 text-(--text-primary)">
         <h1 className="sr-only">
@@ -354,6 +446,11 @@ export default function FlashcardStudyPage() {
           <h2 className="font-(family-name:--font-syne) text-2xl font-extrabold tracking-[-0.04em] sm:text-3xl">
             {t('flashStudy.resultsTitle', { title: titleTrimmed })}
           </h2>
+          {flashElapsedSummary ? (
+            <p className="mt-2 text-sm text-(--text-secondary)">
+              {flashElapsedSummary}
+            </p>
+          ) : null}
         </header>
 
         <section className="mx-auto w-full max-w-2xl rounded-3xl border border-(--border-default) bg-(--input-bg)/20 p-5 sm:p-7">
@@ -555,16 +652,35 @@ export default function FlashcardStudyPage() {
           </ol>
         </nav>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="outlineCompact"
-          className="h-10 rounded-xl"
-          onClick={restartSession}
-        >
-          <RotateCcw className="size-4" aria-hidden />
-          {t('common.restart')}
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {timerEnabled ? (
+            <div
+              className={cn(
+                'inline-flex items-center gap-2 rounded-full border border-(--border-default) bg-(--input-bg)/40 px-3 py-1.5 font-(family-name:--font-dm-sans) text-sm font-semibold tabular-nums',
+                timerActive && remainingSec <= 60
+                  ? 'border-amber-500/40 text-amber-600 dark:text-amber-300'
+                  : 'text-(--text-primary)',
+              )}
+              role="timer"
+              aria-live="polite"
+              aria-label={t('flashStudy.timerRemainingAria')}
+            >
+              <Timer className="size-4 shrink-0 opacity-80" aria-hidden />
+              {formatCountdownMmSs(remainingSec)}
+            </div>
+          ) : null}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="outlineCompact"
+            className="h-10 rounded-xl"
+            onClick={restartSession}
+          >
+            <RotateCcw className="size-4" aria-hidden />
+            {t('common.restart')}
+          </Button>
+        </div>
       </div>
 
       <section

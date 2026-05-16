@@ -9,12 +9,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useDeadlineCountdown } from '@/hooks/useDeadlineCountdown';
 import {
   createQuizSession,
   fetchQuizQuestionsPage,
   questionImageUrl,
 } from '@/lib/api/modules';
 import { apiErrorMessage, apiErrorText } from '@/lib/apiErrorMessage';
+import {
+  formatCountdownMmSs,
+  formatStudyElapsed,
+  readQuizTimerDurationSec,
+  readQuizTimerEnabled,
+} from '@/lib/sessionTimerPrefs';
 import { useI18n } from '@/i18n/useI18n';
 import { cn } from '@/lib/utils';
 import type {
@@ -30,6 +37,7 @@ import {
   CircleX,
   ClipboardList,
   RotateCcw,
+  Timer,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -183,6 +191,15 @@ function renderUserAnswer(
     .join(' · ');
 }
 
+function isArrowNavBlockedTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      'input, textarea, select, [contenteditable="true"], [role="combobox"]',
+    ),
+  );
+}
+
 export default function QuizStudyPage() {
   const { t } = useI18n();
   const { moduleId: rawId } = useParams();
@@ -207,9 +224,20 @@ export default function QuizStudyPage() {
     useState<Record<string, true>>({});
   const [allowNavigation, setAllowNavigation] = useState(false);
   const [animatedPercent, setAnimatedPercent] = useState(0);
+  const [quizElapsedMs, setQuizElapsedMs] = useState<number | null>(null);
   const nextCursorRef = useRef<string | null>(null);
+  const countdownResetRef = useRef<() => void>(() => {});
+  const studyStartedAtRef = useRef<number | null>(null);
 
   const shuffleEnabled = useMemo(() => readShuffle(moduleId), [moduleId]);
+  const timerEnabled = useMemo(
+    () => readQuizTimerEnabled(moduleId),
+    [moduleId],
+  );
+  const timerDurationSec = useMemo(
+    () => readQuizTimerDurationSec(moduleId),
+    [moduleId],
+  );
 
   const mergeQuestions = useCallback((newItems: ModuleQuestion[]) => {
     setQuestions((prev) => {
@@ -227,6 +255,7 @@ export default function QuizStudyPage() {
       return;
     }
     setLoadState('loading');
+    countdownResetRef.current();
     try {
       const page = await fetchQuizQuestionsPage(moduleId, { take: PAGE_SIZE });
       setModuleTitle(page.moduleTitle?.trim() || t('quizStudy.quizModule'));
@@ -241,6 +270,8 @@ export default function QuizStudyPage() {
       setSubmitError(null);
       setImageLoadFailedByQuestionId({});
       setAllowNavigation(false);
+      studyStartedAtRef.current = null;
+      setQuizElapsedMs(null);
       setLoadState('ok');
     } catch (e) {
       const msg = apiErrorMessage(e);
@@ -275,11 +306,45 @@ export default function QuizStudyPage() {
   }, [isLoadingMore, mergeQuestions, moduleId, shuffleEnabled, t]);
 
   useEffect(() => {
+    if (!timerEnabled || loadState !== 'ok' || session || totalQuestions < 1) {
+      return;
+    }
+    if (nextCursorRef.current === null && questions.length >= totalQuestions) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      while (!cancelled && nextCursorRef.current) {
+        const before = nextCursorRef.current;
+        await loadMore();
+        if (nextCursorRef.current === before) break;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    timerEnabled,
+    loadState,
+    session,
+    totalQuestions,
+    questions.length,
+    loadMore,
+  ]);
+
+  useEffect(() => {
     const t = window.setTimeout(() => {
       void loadInitial();
     }, 0);
     return () => window.clearTimeout(t);
   }, [loadInitial]);
+
+  useEffect(() => {
+    if (loadState !== 'ok' || session !== null) return;
+    if (questions.length < 1) return;
+    if (studyStartedAtRef.current !== null) return;
+    studyStartedAtRef.current = Date.now();
+  }, [loadState, session, questions.length]);
 
   useEffect(() => {
     if (session) return;
@@ -336,6 +401,76 @@ export default function QuizStudyPage() {
   const progressPercent =
     totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
 
+  const fullyLoaded = useMemo(
+    () =>
+      totalQuestions > 0 &&
+      questions.length === totalQuestions &&
+      nextCursor === null &&
+      !isLoadingMore,
+    [totalQuestions, questions.length, nextCursor, isLoadingMore],
+  );
+
+  const shouldRunTimer =
+    loadState === 'ok' &&
+    timerEnabled &&
+    !session &&
+    fullyLoaded &&
+    totalQuestions > 0;
+
+  const forceSubmitOnTimeout = useCallback(async () => {
+    if (session) return;
+    if (submitState === 'saving') return;
+    if (totalQuestions < 1) return;
+    if (questions.length !== totalQuestions) return;
+    setSubmitState('saving');
+    setSubmitError(null);
+    try {
+      const payload = questions.map((q) =>
+        toSessionAnswerPayload(q, answers[q.id]),
+      );
+      const nextSession = await createQuizSession(moduleId, {
+        answers: payload,
+      });
+      const elapsed =
+        studyStartedAtRef.current !== null
+          ? Date.now() - studyStartedAtRef.current
+          : null;
+      setQuizElapsedMs(elapsed);
+      setSession(nextSession);
+      setAllowNavigation(true);
+      setSubmitState('idle');
+      toast.success(t('sessionTimer.timeUpToast'));
+    } catch (e) {
+      const message = apiErrorText(e, t);
+      setSubmitState('error');
+      setSubmitError(message);
+      toast.error(message);
+    }
+  }, [answers, moduleId, questions, session, submitState, t, totalQuestions]);
+
+  const {
+    remainingSec,
+    isActive: timerActive,
+    reset: resetCountdown,
+  } = useDeadlineCountdown({
+    enabled: timerEnabled,
+    durationSec: timerDurationSec,
+    shouldRun: shouldRunTimer,
+    onDeadline: () => {
+      void forceSubmitOnTimeout();
+    },
+  });
+
+  countdownResetRef.current = resetCountdown;
+
+  const shouldWarnLeave =
+    hasActiveProgress ||
+    (timerEnabled &&
+      timerActive &&
+      loadState === 'ok' &&
+      !session &&
+      fullyLoaded);
+
   const blocker = useBlocker(
     useCallback(
       ({
@@ -346,13 +481,23 @@ export default function QuizStudyPage() {
         nextLocation: Location;
       }) => {
         if (allowNavigation) return false;
-        if (!hasActiveProgress) return false;
+        if (!shouldWarnLeave) return false;
         return currentLocation.pathname !== nextLocation.pathname;
       },
-      [allowNavigation, hasActiveProgress],
+      [allowNavigation, shouldWarnLeave],
     ),
   );
   const leaveDialogOpen = blocker.state === 'blocked';
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!shouldWarnLeave || allowNavigation) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [allowNavigation, shouldWarnLeave]);
 
   const setChoiceAnswer = useCallback(
     (
@@ -439,6 +584,11 @@ export default function QuizStudyPage() {
       const nextSession = await createQuizSession(moduleId, {
         answers: payload,
       });
+      const elapsed =
+        studyStartedAtRef.current !== null
+          ? Date.now() - studyStartedAtRef.current
+          : null;
+      setQuizElapsedMs(elapsed);
       setSession(nextSession);
       setAllowNavigation(true);
       setSubmitState('idle');
@@ -449,6 +599,27 @@ export default function QuizStudyPage() {
       toast.error(message);
     }
   }, [answers, canSubmit, moduleId, questions, submitState, t]);
+
+  useEffect(() => {
+    if (session) return;
+    if (loadState !== 'ok') return;
+    if (!currentQuestion) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (isArrowNavBlockedTarget(e.target)) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrev();
+        return;
+      }
+      e.preventDefault();
+      void goNext();
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [session, loadState, currentQuestion, goPrev, goNext]);
 
   const onQuestionImageError = useCallback((questionId: string) => {
     setImageLoadFailedByQuestionId((prev) => {
@@ -551,6 +722,19 @@ export default function QuizStudyPage() {
             ? t('quizStudy.performanceKeep')
             : t('quizStudy.performanceMore');
 
+    const elapsedSummary =
+      quizElapsedMs !== null
+        ? (() => {
+            const { minutes, seconds } = formatStudyElapsed(quizElapsedMs);
+            return minutes > 0
+              ? t('sessionTimer.completedInMinutesSeconds', {
+                  minutes,
+                  seconds,
+                })
+              : t('sessionTimer.completedInSecondsOnly', { seconds });
+          })()
+        : null;
+
     return (
       <article className="mx-auto flex w-full max-w-[1040px] flex-1 flex-col pb-4 text-(--text-primary)">
         <h1 className="sr-only">
@@ -566,6 +750,11 @@ export default function QuizStudyPage() {
               total: session.totalQuestions,
             })}
           </p>
+          {elapsedSummary ? (
+            <p className="mt-1 text-sm text-(--text-secondary)">
+              {elapsedSummary}
+            </p>
+          ) : null}
         </header>
 
         <section className="mx-auto w-full rounded-3xl border border-(--border-default) bg-(--input-bg)/20 p-5 sm:p-7">
@@ -763,16 +952,45 @@ export default function QuizStudyPage() {
           </ol>
         </nav>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="outlineCompact"
-          className="h-10 rounded-xl"
-          onClick={restart}
-        >
-          <RotateCcw className="size-4" aria-hidden />
-          {t('quizStudy.restart')}
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {timerEnabled ? (
+            !fullyLoaded ? (
+              <p
+                className="max-w-56 text-right text-xs text-(--text-secondary)"
+                role="status"
+                aria-live="polite"
+              >
+                {t('quizStudy.timerPrefetching')}
+              </p>
+            ) : (
+              <div
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-full border border-(--border-default) bg-(--input-bg)/40 px-3 py-1.5 font-(family-name:--font-dm-sans) text-sm font-semibold tabular-nums',
+                  timerActive && remainingSec <= 60
+                    ? 'border-amber-500/40 text-amber-600 dark:text-amber-300'
+                    : 'text-(--text-primary)',
+                )}
+                role="timer"
+                aria-live="polite"
+                aria-label={t('quizStudy.timerRemainingAria')}
+              >
+                <Timer className="size-4 shrink-0 opacity-80" aria-hidden />
+                {formatCountdownMmSs(remainingSec)}
+              </div>
+            )
+          ) : null}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="outlineCompact"
+            className="h-10 rounded-xl"
+            onClick={restart}
+          >
+            <RotateCcw className="size-4" aria-hidden />
+            {t('quizStudy.restart')}
+          </Button>
+        </div>
       </div>
 
       <section
@@ -966,7 +1184,7 @@ export default function QuizStudyPage() {
         </div>
 
         <p className="mt-4 text-xs text-(--text-secondary)">
-          {t('quizStudy.lazyLoadHint')}
+          {timerEnabled ? null : t('quizStudy.lazyLoadHint')}
         </p>
         {submitState === 'error' && submitError ? (
           <p className="mt-2 text-xs text-destructive">
