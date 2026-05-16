@@ -1,13 +1,13 @@
+import { useAuthContext } from '@/auth/AuthContext';
 import { GuestOnlyOutlet } from '@/components/auth/GuestOnlyOutlet';
 import { RequireAdmin } from '@/components/auth/RequireAdmin';
 import { RedirectIfSignedIn } from '@/components/auth/RedirectIfSignedIn';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import type { DataRouter } from 'react-router-dom';
-import { createBrowserRouter } from 'react-router-dom';
+import { Navigate, createBrowserRouter } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
 import LandingLayout from './layouts/LandingLayout';
 import ServiceLayout from './layouts/ServiceLayout';
-import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminModulesPage from './pages/AdminModulesPage';
 import AdminUsersPage from './pages/AdminUsersPage';
@@ -26,7 +26,14 @@ import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
 import StatisticsPage from './pages/statistics';
-import SettingsPage from './pages/SettingsPage';
+
+function StatisticsRoute() {
+  const { user } = useAuthContext();
+  if (user?.role === 'ADMIN') {
+    return <Navigate to="/app/admin" replace />;
+  }
+  return <StatisticsPage />;
+}
 
 export const router: DataRouter = createBrowserRouter([
   {
@@ -70,8 +77,11 @@ export const router: DataRouter = createBrowserRouter([
       },
       { path: 'modules/:moduleId/quiz-study', element: <QuizStudyPage /> },
       { path: 'modules/:moduleId/quiz-edit', element: <EditQuizModulePage /> },
-      { path: 'statistics', element: <StatisticsPage /> },
-      { path: 'settings', element: <SettingsPage /> },
+      { path: 'statistics', element: <StatisticsRoute /> },
+      {
+        path: 'settings',
+        element: <Navigate to="/app" replace />,
+      },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'onboarding', element: <OnboardingPage /> },
       {
@@ -100,11 +110,7 @@ export const router: DataRouter = createBrowserRouter([
       },
       {
         path: 'admin/analytics',
-        element: (
-          <RequireAdmin>
-            <AdminAnalyticsPage />
-          </RequireAdmin>
-        ),
+        element: <Navigate to="/app/admin" replace />,
       },
       { path: '*', element: <NotFoundPage inService /> },
     ],

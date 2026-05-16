@@ -64,26 +64,14 @@ const ForgotPasswordPage = () => {
 
     setPending(true);
     try {
-      const { data } = await apiClient.post<{
-        message: string;
-        resetCode?: string;
-      }>('/auth/forgot-password', { email: parsed.data.email });
+      const { data } = await apiClient.post<{ message: string }>(
+        '/auth/forgot-password',
+        { email: parsed.data.email },
+      );
 
       setEmail(parsed.data.email);
       setCodeSent(true);
-      if (data.resetCode) {
-        toast.success(
-          locale === 'ru'
-            ? `Код сброса (lab): ${data.resetCode}`
-            : `Reset code (lab): ${data.resetCode}`,
-        );
-      } else {
-        toast.success(
-          locale === 'ru'
-            ? 'Если аккаунт существует, код сброса записан в лог сервера.'
-            : 'If the account exists, a reset code was logged on the server.',
-        );
-      }
+      toast.success(data.message);
     } catch (err) {
       toast.error(apiErrorMessage(err));
     } finally {
@@ -141,23 +129,11 @@ const ForgotPasswordPage = () => {
     if (pending || !email) return;
     setPending(true);
     try {
-      const { data } = await apiClient.post<{
-        message: string;
-        resetCode?: string;
-      }>('/auth/forgot-password', { email });
-      if (data.resetCode) {
-        toast.success(
-          locale === 'ru'
-            ? `Новый код (lab): ${data.resetCode}`
-            : `New code (lab): ${data.resetCode}`,
-        );
-      } else {
-        toast.success(
-          locale === 'ru'
-            ? 'Новый код записан в лог сервера.'
-            : 'A new code was logged on the server.',
-        );
-      }
+      const { data } = await apiClient.post<{ message: string }>(
+        '/auth/forgot-password',
+        { email },
+      );
+      toast.success(data.message);
     } catch (err) {
       toast.error(apiErrorMessage(err));
     } finally {
@@ -184,14 +160,14 @@ const ForgotPasswordPage = () => {
                     {user?.email}
                   </span>
                   {locale === 'ru'
-                    ? '. Используйте его ниже для установки нового пароля — старый пароль не нужен. В режиме lab код также есть в логе API-сервера.'
-                    : '. Use it below to set a new password — no need to know the old one. In lab mode the code is also in the API server log.'}
+                    ? '. Используйте его ниже для установки нового пароля — старый пароль не нужен.'
+                    : '. Use it below to set a new password — no need to know the old one.'}
                 </>
               ) : (
                 <>
                   {locale === 'ru'
-                    ? 'Введите email аккаунта. Одноразовый код будет записан в лог API-сервера (режим lab).'
-                    : 'Enter the email for your account. A one-time code is written to the API server log (lab mode).'}
+                    ? 'Введите email аккаунта. Мы отправим одноразовый код на эту почту.'
+                    : 'Enter the email for your account. We will send a one-time code to this email.'}
                 </>
               )}
             </p>

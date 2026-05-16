@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui';
 import { useI18n } from '@/i18n/useI18n';
-import { Home, LayoutDashboard, Search } from 'lucide-react';
+import { LayoutDashboard, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type NotFoundPageProps = {
@@ -28,18 +28,6 @@ export default function NotFoundPage({ inService = false }: NotFoundPageProps) {
           </p>
 
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <Button
-              asChild
-              variant="cta"
-              size="outlineCompact"
-              className="gap-2"
-            >
-              <Link to="/">
-                <Home className="size-4" strokeWidth={1.75} />
-                {t('notFound.goHome')}
-              </Link>
-            </Button>
-
             <Button
               asChild
               variant={inService ? 'cta' : 'outlineSoft'}

@@ -171,7 +171,7 @@ export class AuthService {
     email: string;
     password: string;
     username?: string | null;
-  }): Promise<{ message: string; verificationCode?: string }> {
+  }): Promise<{ message: string }> {
     const email = input.email.trim().toLowerCase();
     this.assertPassword(input.password);
 
@@ -196,15 +196,10 @@ export class AuthService {
       },
     });
 
-    this.codes.emailVerification(email, code);
-
-    const verificationCode = this.codes.includeCodeInApiResponse()
-      ? code
-      : undefined;
+    await this.codes.emailVerification(email, code);
 
     return {
-      message: 'Check the server log for the verification code (lab mode).',
-      ...(verificationCode !== undefined && { verificationCode }),
+      message: 'Verification code sent to your email address.',
     };
   }
 
@@ -291,15 +286,12 @@ export class AuthService {
     });
   }
 
-  async requestPasswordReset(
-    emailRaw: string,
-  ): Promise<{ message: string; resetCode?: string }> {
+  async requestPasswordReset(emailRaw: string): Promise<{ message: string }> {
     const email = emailRaw.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || user.isBlocked) {
       return {
-        message:
-          'If an account exists for this email, a reset code was logged on the server.',
+        message: 'If an account exists for this email, a reset code was sent.',
       };
     }
 
@@ -314,14 +306,10 @@ export class AuthService {
       },
     });
 
-    this.codes.passwordReset(email, code);
-
-    const resetCode = this.codes.includeCodeInApiResponse() ? code : undefined;
+    await this.codes.passwordReset(email, code);
 
     return {
-      message:
-        'If an account exists for this email, a reset code was logged on the server.',
-      ...(resetCode !== undefined && { resetCode }),
+      message: 'If an account exists for this email, a reset code was sent.',
     };
   }
 
@@ -390,7 +378,7 @@ export class AuthService {
     userId: string,
     currentPassword: string,
     newEmailRaw: string,
-  ): Promise<{ user: PublicUser; message: string; verificationCode?: string }> {
+  ): Promise<{ user: PublicUser; message: string }> {
     const newEmail = newEmailRaw.trim().toLowerCase();
     if (!newEmail || !newEmail.includes('@')) {
       throw new BadRequestException('Invalid email');
@@ -429,23 +417,18 @@ export class AuthService {
       select: userPublicSelect,
     });
 
-    this.codes.emailVerification(newEmail, code);
-
-    const verificationCode = this.codes.includeCodeInApiResponse()
-      ? code
-      : undefined;
+    await this.codes.emailVerification(newEmail, code);
 
     return {
       user: updated,
       message:
-        'Email updated. Confirm the new address with the code sent to your inbox (see server log in lab mode).',
-      ...(verificationCode !== undefined && { verificationCode }),
+        'Email updated. Confirm the new address with the code sent to your inbox.',
     };
   }
 
   async resendEmailVerification(
     emailRaw: string,
-  ): Promise<{ message: string; verificationCode?: string }> {
+  ): Promise<{ message: string }> {
     const email = emailRaw.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || user.isBlocked) {
@@ -466,15 +449,10 @@ export class AuthService {
       },
     });
 
-    this.codes.emailVerification(email, code);
-
-    const verificationCode = this.codes.includeCodeInApiResponse()
-      ? code
-      : undefined;
+    await this.codes.emailVerification(email, code);
 
     return {
-      message: 'A new verification code was generated (see server log).',
-      ...(verificationCode !== undefined && { verificationCode }),
+      message: 'A new verification code was sent to your email.',
     };
   }
 

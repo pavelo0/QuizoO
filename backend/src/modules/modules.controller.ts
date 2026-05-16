@@ -1,20 +1,31 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
+import { createReadStream } from 'fs';
+import { memoryStorage } from 'multer';
 import { CurrentUserId } from '../auth/current-user.decorator';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { ModulesService } from './modules.service';
+import { QUESTION_IMAGE_MAX_BYTES } from './question-image.constants';
 
 @Controller('modules')
 export class ModulesController {
@@ -176,6 +187,65 @@ export class ModulesController {
     },
   ) {
     return this.modules.updateQuestion(userId, moduleId, questionId, body);
+  }
+
+  @Post(':moduleId/questions/:questionId/image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: QUESTION_IMAGE_MAX_BYTES },
+    }),
+  )
+  uploadQuestionImage(
+    @CurrentUserId() userId: string,
+    @Param('moduleId') moduleId: string,
+    @Param('questionId') questionId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ) {
+    if (!file?.buffer) {
+      throw new BadRequestException('Image file is required');
+    }
+    return this.modules.saveQuestionImage(
+      userId,
+      moduleId,
+      questionId,
+      file.buffer,
+      file.mimetype,
+    );
+  }
+
+  @Get(':moduleId/questions/:questionId/image')
+  async getQuestionImage(
+    @CurrentUserId() userId: string,
+    @Param('moduleId') moduleId: string,
+    @Param('questionId') questionId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const meta = await this.modules.getQuestionImageForDownload(
+      userId,
+      moduleId,
+      questionId,
+    );
+    if (!meta) {
+      throw new NotFoundException();
+    }
+    res.setHeader('Content-Type', meta.mime);
+    res.setHeader(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate, private',
+    );
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    return new StreamableFile(createReadStream(meta.path));
+  }
+
+  @Delete(':moduleId/questions/:questionId/image')
+  removeQuestionImage(
+    @CurrentUserId() userId: string,
+    @Param('moduleId') moduleId: string,
+    @Param('questionId') questionId: string,
+  ) {
+    return this.modules.clearQuestionImage(userId, moduleId, questionId);
   }
 
   @Delete(':moduleId/questions/:questionId')

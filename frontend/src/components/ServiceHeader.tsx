@@ -9,14 +9,12 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { useTheme } from '@/theme/useTheme';
 import {
-  BarChart2,
   BarChart3,
   BookOpen,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
   Moon,
-  Settings,
   Sun,
   Users,
 } from 'lucide-react';
@@ -109,7 +107,7 @@ const ServiceHeader = () => {
       >
         <NavLink
           to={isAdmin ? '/app/admin' : '/app'}
-          end={!isAdmin}
+          end
           title={t('common.dashboard')}
           className={linkClass}
         >
@@ -140,38 +138,20 @@ const ServiceHeader = () => {
                 {t('common.modules')}
               </span>
             </NavLink>
-            <NavLink
-              to="/app/admin/analytics"
-              title={t('common.analytics')}
-              className={linkClass}
-            >
-              <BarChart2 className="size-4.5 shrink-0" strokeWidth={1.75} />
-              <span className={cn(isCompact && 'sr-only')}>
-                {t('common.analytics')}
-              </span>
-            </NavLink>
           </>
         ) : null}
-        <NavLink
-          to="/app/statistics"
-          title={t('common.statistics')}
-          className={linkClass}
-        >
-          <BarChart3 className="size-4.5 shrink-0" strokeWidth={1.75} />
-          <span className={cn(isCompact && 'sr-only')}>
-            {t('common.statistics')}
-          </span>
-        </NavLink>
-        <NavLink
-          to="/app/settings"
-          title={t('common.settings')}
-          className={linkClass}
-        >
-          <Settings className="size-4.5 shrink-0" strokeWidth={1.75} />
-          <span className={cn(isCompact && 'sr-only')}>
-            {t('common.settings')}
-          </span>
-        </NavLink>
+        {!isAdmin ? (
+          <NavLink
+            to="/app/statistics"
+            title={t('common.statistics')}
+            className={linkClass}
+          >
+            <BarChart3 className="size-4.5 shrink-0" strokeWidth={1.75} />
+            <span className={cn(isCompact && 'sr-only')}>
+              {t('common.statistics')}
+            </span>
+          </NavLink>
+        ) : null}
       </nav>
 
       <div

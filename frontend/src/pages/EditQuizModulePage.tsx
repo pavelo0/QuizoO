@@ -1,8 +1,11 @@
 import {
   createQuestion,
+  deleteQuestionImage,
   deleteModule,
   deleteQuestion,
   fetchModuleById,
+  questionImageUrl,
+  uploadQuestionImage,
   updateModule,
   updateQuestion,
 } from '@/lib/api/modules';
@@ -10,6 +13,14 @@ import { apiErrorText } from '@/lib/apiErrorMessage';
 import { useI18n } from '@/i18n/useI18n';
 import { MAX_MODULE_TITLE_LENGTH } from '@/lib/moduleConstants';
 import { clearQuizDraftInflight } from '@/lib/quizModuleDraft';
+import {
+  readQuizTimerDurationSec,
+  readQuizTimerEnabled,
+  SESSION_TIMER_DURATION_OPTIONS_SEC,
+  writeQuizTimerDurationSec,
+  writeQuizTimerEnabled,
+  type SessionTimerDurationSec,
+} from '@/lib/sessionTimerPrefs';
 import { cn } from '@/lib/utils';
 import type { ModuleId, ModuleQuestion, QuestionType } from '@/types/module';
 import {
@@ -31,17 +42,46 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   BookOpen,
   CircleHelp,
   Clock,
   Download,
+  Image as ImageIcon,
+  GripVertical,
   IdCard,
   ListChecks,
+  MoveDown,
+  MoveUp,
   Pencil,
   Plus,
+  X,
   Search,
   Trash2,
   Upload,
@@ -63,10 +103,13 @@ import {
   useParams,
   type Location,
 } from 'react-router-dom';
+import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const MAX_QUESTIONS_PER_MODULE = 30;
 const QUIZ_IMPORT_FORMAT_VERSION = 1;
+const QUESTION_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const QUESTION_IMAGE_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
 type QuestionPayload = {
   questionText: string;
@@ -80,6 +123,7 @@ const quizJsonExample = JSON.stringify(
   {
     formatVersion: QUIZ_IMPORT_FORMAT_VERSION,
     moduleType: 'QUIZ',
+    _comment: 'Question images are not included in JSON import/export.',
     title: 'Sample quiz module',
     questions: [
       {
@@ -402,18 +446,164 @@ function summarizeQuestion(
   return t('questionType.text');
 }
 
+function reorderQuestions(questions: ModuleQuestion[]) {
+  return questions.map((question, index) => ({
+    ...question,
+    orderIndex: index,
+  }));
+}
+
+type SortableQuestionRowProps = {
+  q: ModuleQuestion;
+  index: number;
+  total: number;
+  canReorder: boolean;
+  onEdit: (q: ModuleQuestion) => void;
+  onDelete: (q: ModuleQuestion) => Promise<void>;
+  onMoveUp: (questionId: string) => void;
+  onMoveDown: (questionId: string) => void;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+};
+
+const SortableQuestionRow = memo(function SortableQuestionRow({
+  q,
+  index,
+  total,
+  canReorder,
+  onEdit,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  t,
+}: SortableQuestionRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: q.id,
+    disabled: !canReorder,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  const n = String(index + 1).padStart(2, '0');
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'flex items-stretch gap-3 rounded-2xl border border-(--border-default) bg-(--input-bg)/35 px-3 py-3 transition-colors duration-300 sm:px-4',
+        isDragging && 'opacity-80 shadow-lg',
+      )}
+    >
+      <span
+        className="w-7 shrink-0 select-none pt-0.5 font-(family-name:--font-jetbrains-mono) text-xs text-(--text-secondary)"
+        aria-label={t('aria.order', { number: n })}
+      >
+        {n}
+      </span>
+      <div className="min-w-0 flex-1 text-left">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-sm font-semibold text-(--text-primary) sm:text-base">
+            {q.questionText}
+          </h3>
+          <span className="inline-flex items-center rounded-full bg-(--module-badge-violet-bg) px-2.5 py-1 text-[0.625rem] font-bold tracking-[0.08em] text-(--module-badge-violet-fg) uppercase">
+            {labelByType(q.type, t)}
+          </span>
+        </div>
+        <p className="mt-1 text-sm text-(--text-secondary) sm:text-sm">
+          {summarizeQuestion(q, t)}
+        </p>
+        {q.questionImageMime ? (
+          <p className="mt-1 inline-flex items-center gap-1 text-xs text-(--text-secondary)">
+            <ImageIcon className="size-3.5" />
+            {t('editQuiz.imageAttached')}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 items-center gap-0.5">
+        {canReorder ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="cursor-grab text-(--text-secondary) hover:text-(--text-primary) active:cursor-grabbing"
+            aria-label={t('editQuiz.reorder')}
+            title={t('editQuiz.reorder')}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-4" strokeWidth={2} />
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-(--text-secondary) hover:text-(--text-primary)"
+          onClick={() => onMoveUp(q.id)}
+          aria-label={t('editQuiz.moveUp')}
+          disabled={!canReorder || index === 0}
+        >
+          <MoveUp className="size-4" strokeWidth={2} />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-(--text-secondary) hover:text-(--text-primary)"
+          onClick={() => onMoveDown(q.id)}
+          aria-label={t('editQuiz.moveDown')}
+          disabled={!canReorder || index === total - 1}
+        >
+          <MoveDown className="size-4" strokeWidth={2} />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-(--text-secondary) hover:text-(--text-primary)"
+          onClick={() => onEdit(q)}
+          aria-label={t('aria.editQuestion')}
+        >
+          <Pencil className="size-4" strokeWidth={2} />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-(--text-secondary) hover:text-(--danger-color)"
+          onClick={() => void onDelete(q)}
+          aria-label={t('aria.deleteQuestion')}
+        >
+          <Trash2 className="size-4" strokeWidth={2} />
+        </Button>
+      </div>
+    </li>
+  );
+});
+SortableQuestionRow.displayName = 'SortableQuestionRow';
+
 type QuestionDialogProps = {
   open: boolean;
   editingQuestion: ModuleQuestion | null;
   questionsCount: number;
   onOpenChange: (open: boolean) => void;
-  onCreateQuestion: (payload: {
-    questionText: string;
-    type: QuestionType;
-    allowMultipleAnswers?: boolean;
-    options?: Array<{ text: string; isCorrect: boolean }>;
-    matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
-  }) => Promise<void>;
+  onCreateQuestion: (
+    payload: {
+      questionText: string;
+      type: QuestionType;
+      allowMultipleAnswers?: boolean;
+      options?: Array<{ text: string; isCorrect: boolean }>;
+      matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+    },
+    imageFile: File | null,
+  ) => Promise<void>;
   onUpdateQuestion: (
     questionId: string,
     payload: {
@@ -423,7 +613,13 @@ type QuestionDialogProps = {
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
     },
+    imageUpdate: {
+      file: File | null;
+      removeExisting: boolean;
+      hasExisting: boolean;
+    },
   ) => Promise<void>;
+  moduleId: ModuleId;
 };
 
 const QuizQuestionDialog = memo(function QuizQuestionDialog({
@@ -433,6 +629,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
   onOpenChange,
   onCreateQuestion,
   onUpdateQuestion,
+  moduleId,
 }: QuestionDialogProps) {
   const { t } = useI18n();
   const QUESTION_TYPES = useMemo(() => getQuestionTypes(t), [t]);
@@ -446,18 +643,44 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
   ]);
   const [pairs, setPairs] = useState(DEFAULT_MATCHING_PAIRS);
   const [saving, setSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [errors, setErrors] = useState<{
     questionText?: string;
     textAnswer?: string;
     options?: string;
     matching?: string;
+    image?: string;
     form?: string;
   }>({});
+  const hasExistingImage = Boolean(editingQuestion?.questionImageMime);
+  const existingImageUrl = editingQuestion
+    ? questionImageUrl(moduleId, editingQuestion.id, {
+        version: editingQuestion.createdAt,
+      })
+    : null;
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
 
   useEffect(() => {
     if (!open) return;
     setErrors({});
     setSaving(false);
+    setImageFile(null);
+    setRemoveExistingImage(false);
+    setImagePreviewUrl((previousUrl) => {
+      if (previousUrl) {
+        URL.revokeObjectURL(previousUrl);
+      }
+      return null;
+    });
     if (!editingQuestion) {
       setType('CHOICE');
       setQuestionText('');
@@ -509,6 +732,58 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     setPairs((prev) => [...prev, { leftItem: '', rightItem: '' }]);
   }, []);
 
+  const onImageChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const nextFile = event.target.files?.[0] ?? null;
+      event.target.value = '';
+      if (!nextFile) return;
+      if (!QUESTION_IMAGE_ALLOWED_MIMES.includes(nextFile.type)) {
+        setErrors((prev) => ({
+          ...prev,
+          image: t('editQuiz.imageTypeError'),
+          form: undefined,
+        }));
+        return;
+      }
+      if (nextFile.size > QUESTION_IMAGE_MAX_BYTES) {
+        setErrors((prev) => ({
+          ...prev,
+          image: t('editQuiz.imageSizeError'),
+          form: undefined,
+        }));
+        return;
+      }
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setImageFile(nextFile);
+      setImagePreviewUrl(URL.createObjectURL(nextFile));
+      setRemoveExistingImage(false);
+      setErrors((prev) => ({
+        ...prev,
+        image: undefined,
+        form: undefined,
+      }));
+    },
+    [imagePreviewUrl, t],
+  );
+
+  const clearSelectedImage = useCallback(() => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImageFile(null);
+    setImagePreviewUrl(null);
+    if (hasExistingImage) {
+      setRemoveExistingImage(true);
+    }
+    setErrors((prev) => ({
+      ...prev,
+      image: undefined,
+      form: undefined,
+    }));
+  }, [hasExistingImage, imagePreviewUrl]);
+
   const onSubmit = useCallback(async () => {
     const question = questionText.trim();
     const nextErrors: {
@@ -516,6 +791,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       textAnswer?: string;
       options?: string;
       matching?: string;
+      image?: string;
       form?: string;
     } = {};
 
@@ -597,9 +873,13 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     setErrors({});
     try {
       if (editingQuestion) {
-        await onUpdateQuestion(editingQuestion.id, payload);
+        await onUpdateQuestion(editingQuestion.id, payload, {
+          file: imageFile,
+          removeExisting: removeExistingImage,
+          hasExisting: hasExistingImage,
+        });
       } else {
-        await onCreateQuestion(payload);
+        await onCreateQuestion(payload, imageFile);
       }
       onOpenChange(false);
     } catch (err) {
@@ -609,6 +889,9 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     }
   }, [
     editingQuestion,
+    imageFile,
+    removeExistingImage,
+    hasExistingImage,
     onCreateQuestion,
     onOpenChange,
     onUpdateQuestion,
@@ -631,10 +914,10 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       }}
     >
       <DialogContent
-        className="w-[min(44rem,calc(100%-2rem))] max-w-3xl gap-0 p-0 sm:max-w-3xl"
+        className="flex max-h-[calc(100dvh-2rem)] w-[min(44rem,calc(100%-2rem))] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl"
         showCloseButton
       >
-        <div className="p-6 sm:p-8">
+        <div className="min-h-0 overflow-y-auto p-6 sm:p-8">
           <DialogHeader className="mb-0 gap-0 space-y-0 text-left sm:text-left">
             <DialogTitle className="font-(family-name:--font-syne) text-lg font-bold tracking-[0.02em] text-(--text-primary) sm:text-xl">
               {editingQuestion
@@ -715,6 +998,55 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                   role="alert"
                 >
                   {errors.questionText}
+                </p>
+              ) : null}
+            </div>
+
+            <div>
+              <p className={labelClass}>{t('editQuiz.imageLabel')}</p>
+              {imagePreviewUrl || (hasExistingImage && !removeExistingImage) ? (
+                <div className="mb-3 overflow-hidden rounded-xl border border-(--border-default) bg-(--input-bg)/30 p-2">
+                  <img
+                    src={imagePreviewUrl ?? existingImageUrl ?? ''}
+                    alt={t('editQuiz.imagePreviewAlt')}
+                    className="max-h-52 w-full rounded-lg object-contain"
+                  />
+                </div>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    onChange={onImageChange}
+                    aria-label={t('editQuiz.imageChoose')}
+                  />
+                  <span className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-(--border-default) px-4 text-sm text-(--text-primary) transition-colors hover:bg-(--input-bg)/60">
+                    {t('editQuiz.imageChoose')}
+                  </span>
+                </label>
+                {imageFile || (hasExistingImage && !removeExistingImage) ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-10 rounded-xl text-(--text-secondary)"
+                    onClick={clearSelectedImage}
+                  >
+                    <X className="size-4" />
+                    {t('editQuiz.imageRemove')}
+                  </Button>
+                ) : null}
+              </div>
+              <p className="mt-2 text-xs text-(--text-secondary)">
+                {t('editQuiz.imageHint')}
+              </p>
+              {errors.image ? (
+                <p
+                  className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                  role="alert"
+                >
+                  {errors.image}
                 </p>
               ) : null}
             </div>
@@ -1010,16 +1342,22 @@ export default function EditQuizModulePage() {
   >('loading');
   const [title, setTitle] = useState(t('edit.common.newQuizModule'));
   const [savedTitle, setSavedTitle] = useState(t('edit.common.newQuizModule'));
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<ModuleQuestion[]>([]);
   const [search, setSearch] = useState('');
   const [shuffle, setShuffle] = useState(true);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerDurationSec, setTimerDurationSec] =
+    useState<SessionTimerDurationSec>(600);
 
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<ModuleQuestion | null>(
     null,
   );
+  const [isReordering, setIsReordering] = useState(false);
   const [deleteModuleOpen, setDeleteModuleOpen] = useState(false);
   const [deleteModulePending, setDeleteModulePending] = useState(false);
+  const [titleSaving, setTitleSaving] = useState(false);
   const [allowNavigation, setAllowNavigation] = useState(false);
   const [importHelpOpen, setImportHelpOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -1059,8 +1397,11 @@ export default function EditQuizModulePage() {
       }
       setTitle(m.title);
       setSavedTitle(m.title);
+      setTitleError(null);
       setQuestions(m.questions);
       setShuffle(readShuffle(m.id));
+      setTimerEnabled(readQuizTimerEnabled(m.id));
+      setTimerDurationSec(readQuizTimerDurationSec(m.id));
       setLoadState('ok');
     } catch {
       setLoadState('notfound');
@@ -1099,6 +1440,73 @@ export default function EditQuizModulePage() {
     });
   }, [questions, search]);
 
+  const canDragReorder = search.trim().length === 0;
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const persistQuestionOrder = useCallback(
+    async (nextQuestions: ModuleQuestion[]) => {
+      const normalized = reorderQuestions(nextQuestions);
+      const previous = questions;
+      setQuestions(normalized);
+      setIsReordering(true);
+      try {
+        await Promise.all(
+          normalized.map((question) =>
+            updateQuestion(moduleId, question.id, {
+              orderIndex: question.orderIndex,
+            }),
+          ),
+        );
+      } catch {
+        setQuestions(previous);
+        toast.error(t('editQuiz.reorderFailed'));
+      } finally {
+        setIsReordering(false);
+      }
+    },
+    [moduleId, questions, t],
+  );
+
+  const onMoveQuestion = useCallback(
+    (questionId: string, delta: -1 | 1) => {
+      if (isReordering) return;
+      const currentIndex = questions.findIndex(
+        (question) => question.id === questionId,
+      );
+      if (currentIndex < 0) return;
+      const nextIndex = currentIndex + delta;
+      if (nextIndex < 0 || nextIndex >= questions.length) return;
+      void persistQuestionOrder(arrayMove(questions, currentIndex, nextIndex));
+    },
+    [isReordering, persistQuestionOrder, questions],
+  );
+
+  const onDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      if (!canDragReorder || isReordering) return;
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = questions.findIndex(
+        (question) => question.id === active.id,
+      );
+      const newIndex = questions.findIndex(
+        (question) => question.id === over.id,
+      );
+      if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+      void persistQuestionOrder(arrayMove(questions, oldIndex, newIndex));
+    },
+    [canDragReorder, isReordering, persistQuestionOrder, questions],
+  );
+
   const openAddQuestion = useCallback(() => {
     if (questions.length >= MAX_QUESTIONS_PER_MODULE) {
       toast.error(
@@ -1118,17 +1526,23 @@ export default function EditQuizModulePage() {
   }, []);
 
   const onCreateQuestion = useCallback(
-    async (payload: {
-      questionText: string;
-      type: QuestionType;
-      allowMultipleAnswers?: boolean;
-      options?: Array<{ text: string; isCorrect: boolean }>;
-      matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
-    }) => {
-      const created = await createQuestion(moduleId, {
+    async (
+      payload: {
+        questionText: string;
+        type: QuestionType;
+        allowMultipleAnswers?: boolean;
+        options?: Array<{ text: string; isCorrect: boolean }>;
+        matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+      },
+      imageFile: File | null,
+    ) => {
+      let created = await createQuestion(moduleId, {
         ...payload,
         orderIndex: questions.length,
       });
+      if (imageFile) {
+        created = await uploadQuestionImage(moduleId, created.id, imageFile);
+      }
       setQuestions((prev) =>
         [...prev, created].sort((x, y) => x.orderIndex - y.orderIndex),
       );
@@ -1147,8 +1561,24 @@ export default function EditQuizModulePage() {
         options?: Array<{ text: string; isCorrect: boolean }>;
         matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
       },
+      imageUpdate: {
+        file: File | null;
+        removeExisting: boolean;
+        hasExisting: boolean;
+      },
     ) => {
-      const updated = await updateQuestion(moduleId, questionId, payload);
+      let updated = await updateQuestion(moduleId, questionId, payload);
+      if (imageUpdate.removeExisting && imageUpdate.hasExisting) {
+        await deleteQuestionImage(moduleId, questionId);
+        updated = { ...updated, questionImageMime: null };
+      }
+      if (imageUpdate.file) {
+        updated = await uploadQuestionImage(
+          moduleId,
+          questionId,
+          imageUpdate.file,
+        );
+      }
       setQuestions((prev) =>
         prev.map((q) => (q.id === updated.id ? updated : q)),
       );
@@ -1174,6 +1604,22 @@ export default function EditQuizModulePage() {
     (v: boolean) => {
       setShuffle(v);
       writeShuffle(moduleId, v);
+    },
+    [moduleId],
+  );
+
+  const onTimerEnabled = useCallback(
+    (v: boolean) => {
+      setTimerEnabled(v);
+      writeQuizTimerEnabled(moduleId, v);
+    },
+    [moduleId],
+  );
+
+  const onTimerDuration = useCallback(
+    (sec: SessionTimerDurationSec) => {
+      setTimerDurationSec(sec);
+      writeQuizTimerDurationSec(moduleId, sec);
     },
     [moduleId],
   );
@@ -1278,20 +1724,47 @@ export default function EditQuizModulePage() {
     toast.success(t('editQuiz.exportSuccess'));
   }, [questions, t, title]);
 
+  const saveTitle = useCallback(
+    async (options?: { proceedIfBlocked?: boolean }) => {
+      const nextTitle = title.trim();
+      if (!nextTitle) {
+        toast.error(t('edit.common.titleRequired'));
+        return false;
+      }
+      if (nextTitle === savedTitle) {
+        if (options?.proceedIfBlocked && blocker.state === 'blocked') {
+          blocker.proceed();
+        }
+        return true;
+      }
+      setTitleSaving(true);
+      try {
+        await updateModule(moduleId, { title: nextTitle });
+        setSavedTitle(nextTitle);
+        setTitleError(null);
+        if (options?.proceedIfBlocked && blocker.state === 'blocked') {
+          blocker.proceed();
+        }
+        return true;
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 409) {
+          setTitleError(t('edit.common.titleAlreadyExists'));
+          return false;
+        }
+        toast.error(t('edit.common.saveTitleFailed'));
+        return false;
+      } finally {
+        setTitleSaving(false);
+      }
+    },
+    [blocker, moduleId, savedTitle, t, title],
+  );
+
   const finishLeaveSave = useCallback(async () => {
     const nextTitle = title.trim();
-    if (!nextTitle) {
-      toast.error(t('edit.common.titleRequired'));
-      return;
-    }
-    try {
-      await updateModule(moduleId, { title: nextTitle });
-      setSavedTitle(nextTitle);
-      if (blocker.state === 'blocked') blocker.proceed();
-    } catch {
-      toast.error(t('edit.common.saveTitleFailed'));
-    }
-  }, [blocker, moduleId, t, title]);
+    if (!nextTitle) return;
+    await saveTitle({ proceedIfBlocked: true });
+  }, [saveTitle, title]);
 
   const finishLeaveNoSave = useCallback(() => {
     if (blocker.state === 'blocked') blocker.proceed();
@@ -1399,11 +1872,21 @@ export default function EditQuizModulePage() {
                 autoCorrect="off"
                 spellCheck={false}
                 maxLength={MAX_MODULE_TITLE_LENGTH}
-                onChange={(e) =>
-                  setTitle(e.target.value.slice(0, MAX_MODULE_TITLE_LENGTH))
-                }
+                onChange={(e) => {
+                  setTitle(e.target.value.slice(0, MAX_MODULE_TITLE_LENGTH));
+                  setTitleError(null);
+                }}
+                aria-invalid={titleError !== null}
                 className="w-full min-w-0 border-0 bg-transparent font-(family-name:--font-syne) text-2xl font-bold leading-tight tracking-[0.02em] wrap-break-word text-(--text-primary) outline-none placeholder:text-(--text-secondary) sm:text-3xl md:text-4xl"
               />
+              {titleError ? (
+                <p
+                  className="mt-2 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                  role="alert"
+                >
+                  {titleError}
+                </p>
+              ) : null}
               <ul
                 className="mt-4 flex list-none flex-col gap-3 p-0 text-sm text-(--text-secondary)"
                 aria-label={t('aria.moduleStatistics')}
@@ -1413,10 +1896,7 @@ export default function EditQuizModulePage() {
                     <IdCard className="size-4" strokeWidth={2} aria-hidden />
                   </span>
                   <span className="font-(family-name:--font-dm-sans) text-(--text-primary)">
-                    {questions.length}{' '}
-                    {questions.length === 1
-                      ? t('modules.questions', { count: 1 })
-                      : t('modules.questions', { count: questions.length })}
+                    {t('modules.questions', { count: questions.length })}
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
@@ -1434,7 +1914,16 @@ export default function EditQuizModulePage() {
               </ul>
             </div>
             <div className="shrink-0 self-stretch">
-              <div className="mb-3 flex justify-end">
+              <div className="mb-3 flex items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 cursor-pointer rounded-[12px] px-4"
+                  onClick={() => void saveTitle()}
+                  disabled={!isDirty || titleSaving}
+                >
+                  {titleSaving ? t('common.saving') : t('common.save')}
+                </Button>
                 <Button
                   type="button"
                   variant="outlineSoft"
@@ -1471,19 +1960,78 @@ export default function EditQuizModulePage() {
         >
           {t('editQuiz.settings')}
         </h2>
-        <div className="mt-3 flex items-center justify-between gap-3 sm:mt-0 sm:ml-6">
-          <span
-            className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
-            id="switch-shuffle-label"
-          >
-            {t('editQuiz.shuffle')}
-          </span>
-          <Switch
-            checked={shuffle}
-            onCheckedChange={onShuffle}
-            className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
-            aria-labelledby="switch-shuffle-label"
-          />
+        <div className="mt-3 flex flex-col gap-4 sm:mt-0 sm:ml-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-x-8 sm:gap-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+            <span
+              className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
+              id="switch-quiz-timer-label"
+            >
+              {t('editQuiz.timer')}
+            </span>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <label
+                className={cn(
+                  'flex items-center gap-2',
+                  !timerEnabled && 'opacity-60',
+                )}
+              >
+                <span className="sr-only" id="quiz-timer-duration-label">
+                  {t('editQuiz.timerDuration')}
+                </span>
+                <Select
+                  value={String(timerDurationSec)}
+                  disabled={!timerEnabled}
+                  onValueChange={(v) => {
+                    const n = Number.parseInt(v, 10);
+                    if (
+                      SESSION_TIMER_DURATION_OPTIONS_SEC.includes(
+                        n as SessionTimerDurationSec,
+                      )
+                    ) {
+                      onTimerDuration(n as SessionTimerDurationSec);
+                    }
+                  }}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="min-w-30"
+                    aria-labelledby="quiz-timer-duration-label"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SESSION_TIMER_DURATION_OPTIONS_SEC.map((sec) => (
+                      <SelectItem key={sec} value={String(sec)}>
+                        {t('sessionTimer.minutesShort', {
+                          count: sec / 60,
+                        })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <Switch
+                checked={timerEnabled}
+                onCheckedChange={onTimerEnabled}
+                className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
+                aria-labelledby="switch-quiz-timer-label"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 sm:justify-end">
+            <span
+              className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
+              id="switch-shuffle-label"
+            >
+              {t('editQuiz.shuffle')}
+            </span>
+            <Switch
+              checked={shuffle}
+              onCheckedChange={onShuffle}
+              className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
+              aria-labelledby="switch-shuffle-label"
+            />
+          </div>
         </div>
       </section>
 
@@ -1571,61 +2119,42 @@ export default function EditQuizModulePage() {
                 className="list-none space-y-2.5 p-0 sm:space-y-3"
                 role="list"
               >
-                {filtered.map((q) => {
-                  const n = String(
-                    1 + questions.findIndex((x) => x.id === q.id),
-                  ).padStart(2, '0');
-                  return (
-                    <li
-                      key={q.id}
-                      className="flex items-stretch gap-3 rounded-2xl border border-(--border-default) bg-(--input-bg)/35 px-3 py-3 transition-colors duration-300 sm:px-4"
-                    >
-                      <span
-                        className="w-7 shrink-0 select-none pt-0.5 font-(family-name:--font-jetbrains-mono) text-xs text-(--text-secondary)"
-                        aria-label={t('aria.order', { number: n })}
-                      >
-                        {n}
-                      </span>
-                      <div className="min-w-0 flex-1 text-left">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-semibold text-(--text-primary) sm:text-base">
-                            {q.questionText}
-                          </h3>
-                          <span className="inline-flex items-center rounded-full bg-(--module-badge-violet-bg) px-2.5 py-1 text-[0.625rem] font-bold tracking-[0.08em] text-(--module-badge-violet-fg) uppercase">
-                            {labelByType(q.type, t)}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-sm text-(--text-secondary) sm:text-sm">
-                          {summarizeQuestion(q, t)}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-0.5">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-(--text-secondary) hover:text-(--text-primary)"
-                          onClick={() => openEditQuestion(q)}
-                          aria-label={t('aria.editQuestion')}
-                        >
-                          <Pencil className="size-4" strokeWidth={2} />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-(--text-secondary) hover:text-(--danger-color)"
-                          onClick={() => void onDeleteQuestion(q)}
-                          aria-label={t('aria.deleteQuestion')}
-                        >
-                          <Trash2 className="size-4" strokeWidth={2} />
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={onDragEnd}
+                >
+                  <SortableContext
+                    items={filtered.map((question) => question.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {filtered.map((q, index) => (
+                      <SortableQuestionRow
+                        key={q.id}
+                        q={q}
+                        index={index}
+                        total={filtered.length}
+                        canReorder={canDragReorder}
+                        onEdit={openEditQuestion}
+                        onDelete={onDeleteQuestion}
+                        onMoveUp={(questionId) =>
+                          onMoveQuestion(questionId, -1)
+                        }
+                        onMoveDown={(questionId) =>
+                          onMoveQuestion(questionId, 1)
+                        }
+                        t={t}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </ul>
             )}
+            {!canDragReorder ? (
+              <p className="mt-2 px-1 text-xs text-(--text-secondary)">
+                {t('editQuiz.reorderSearchHint')}
+              </p>
+            ) : null}
           </div>
         </Panel>
 
@@ -1647,6 +2176,7 @@ export default function EditQuizModulePage() {
         open={questionDialogOpen}
         editingQuestion={editingQuestion}
         questionsCount={questions.length}
+        moduleId={moduleId}
         onOpenChange={(nextOpen) => {
           setQuestionDialogOpen(nextOpen);
           if (!nextOpen) setEditingQuestion(null);
@@ -1671,6 +2201,9 @@ export default function EditQuizModulePage() {
               {t('editQuiz.importFormatHelpDescription')}
             </DialogDescription>
           </DialogHeader>
+          <p className="text-xs text-(--text-secondary)">
+            {t('editQuiz.importImagesNotSupported')}
+          </p>
           <pre className="max-h-[50vh] overflow-auto rounded-xl border border-(--border-default) bg-(--input-bg)/30 p-4 text-xs leading-relaxed text-(--text-primary)">
             {quizJsonExample}
           </pre>

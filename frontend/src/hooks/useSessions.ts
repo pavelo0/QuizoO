@@ -180,7 +180,12 @@ export function useSessions() {
 
     for (const row of filteredSessions) {
       const prev = byModule.get(row.moduleId);
-      const score = row.kind === 'QUIZ_SESSION' ? row.scorePercent : null;
+      const score =
+        row.kind === 'QUIZ_SESSION'
+          ? row.scorePercent
+          : row.totalCards > 0
+            ? (row.knownCount / row.totalCards) * 100
+            : null;
       if (!prev) {
         byModule.set(row.moduleId, {
           moduleId: row.moduleId,
