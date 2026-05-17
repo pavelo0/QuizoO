@@ -501,6 +501,7 @@ export default function EditFlashcardModulePage() {
   const [allowNavigation, setAllowNavigation] = useState(false);
   const [importHelpOpen, setImportHelpOpen] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const isDirty = title.trim() !== savedTitle;
@@ -671,21 +672,8 @@ export default function EditFlashcardModulePage() {
     importInputRef.current?.click();
   }, []);
 
-  const onImportFile = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = '';
-      if (!file) return;
-
-      if (
-        cards.length > 0 &&
-        !window.confirm(
-          t('editFlash.importReplaceConfirm', { count: cards.length }),
-        )
-      ) {
-        return;
-      }
-
+  const runFlashImport = useCallback(
+    async (file: File) => {
       setImporting(true);
       try {
         const rawText = await file.text();
@@ -726,6 +714,28 @@ export default function EditFlashcardModulePage() {
     },
     [cards, moduleId, t],
   );
+
+  const onImportFile = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      if (cards.length > 0) {
+        setPendingImportFile(file);
+        return;
+      }
+
+      await runFlashImport(file);
+    },
+    [cards.length, runFlashImport],
+  );
+
+  const confirmImportReplace = useCallback(() => {
+    const next = pendingImportFile;
+    setPendingImportFile(null);
+    if (next) void runFlashImport(next);
+  }, [pendingImportFile, runFlashImport]);
 
   const onExportJson = useCallback(() => {
     const exportData = {
@@ -1232,6 +1242,45 @@ export default function EditFlashcardModulePage() {
         onCreateCard={onCreateCard}
         onUpdateCard={onUpdateCard}
       />
+
+      <AlertDialog
+        open={pendingImportFile !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingImportFile(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-sm border-(--border-default) bg-(--bg-color) text-(--text-primary)">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
+              {t('editFlash.importReplaceTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
+              {t('editFlash.importReplaceDescription', {
+                count: cards.length,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:flex-col sm:gap-2">
+            <AlertDialogCancel
+              className="w-full border-(--border-default) sm:w-full"
+              disabled={importing}
+            >
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full sm:w-full"
+              disabled={importing}
+              onClick={() => void confirmImportReplace()}
+            >
+              {importing
+                ? t('common.loading')
+                : t('edit.common.importReplaceAction')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <DeleteModuleDialog
         open={deleteModuleOpen}
