@@ -1,7 +1,7 @@
 /** Session timer preferences per module (localStorage, mirrors shuffle pattern). */
 
 export const SESSION_TIMER_DURATION_OPTIONS_SEC = [
-  300, 600, 900, 1800, 3600,
+  60, 300, 600, 900, 1800, 3600,
 ] as const;
 
 export type SessionTimerDurationSec =

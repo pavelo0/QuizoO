@@ -354,6 +354,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'edit.common.deleteDescriptionFlash':
       'This will permanently remove {title} and all its cards. This action cannot be undone.',
     'edit.common.deleteAction': 'Delete module',
+    'edit.common.importReplaceAction': 'Replace and import',
     'edit.common.titleRequired': 'Title cannot be empty.',
     'edit.common.titleAlreadyExists':
       'A module with this title already exists.',
@@ -438,8 +439,9 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.importSuccess': 'Imported questions: {count}.',
     'editQuiz.importFailed': 'Could not import quiz JSON.',
     'editQuiz.importInvalidJson': 'Invalid JSON file.',
-    'editQuiz.importReplaceConfirm':
-      'Current questions ({count}) will be replaced. Continue?',
+    'editQuiz.importReplaceTitle': 'Replace all questions?',
+    'editQuiz.importReplaceDescription':
+      'This module already has {count} question(s). Import will delete them and replace them with the file. This cannot be undone.',
     'editQuiz.importFormatHelpTitle': 'Quiz JSON format',
     'editQuiz.importFormatHelpDescription':
       'Use this structure for import/export. Supported types: CHOICE, TEXT, MATCHING.',
@@ -508,8 +510,9 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editFlash.importSuccess': 'Imported cards: {count}.',
     'editFlash.importFailed': 'Could not import flashcard JSON.',
     'editFlash.importInvalidJson': 'Invalid JSON file.',
-    'editFlash.importReplaceConfirm':
-      'Current cards ({count}) will be replaced. Continue?',
+    'editFlash.importReplaceTitle': 'Replace all cards?',
+    'editFlash.importReplaceDescription':
+      'This module already has {count} card(s). Import will delete them and replace them with the file. This cannot be undone.',
     'editFlash.importFormatHelpTitle': 'Flashcard JSON format',
     'editFlash.importFormatHelpDescription':
       'Use this structure for import/export flashcards.',
@@ -1000,6 +1003,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'edit.common.deleteDescriptionFlash':
       'Это действие навсегда удалит {title} и все его карточки. Отменить нельзя.',
     'edit.common.deleteAction': 'Удалить модуль',
+    'edit.common.importReplaceAction': 'Заменить и импортировать',
     'edit.common.titleRequired': 'Название не может быть пустым.',
     'edit.common.titleAlreadyExists':
       'Модуль с таким названием уже существует.',
@@ -1089,8 +1093,9 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.importSuccess': 'Вопросов импортировано: {count}.',
     'editQuiz.importFailed': 'Не удалось импортировать JSON теста.',
     'editQuiz.importInvalidJson': 'Некорректный JSON файл.',
-    'editQuiz.importReplaceConfirm':
-      'Текущие вопросы ({count}) будут заменены. Продолжить?',
+    'editQuiz.importReplaceTitle': 'Заменить все вопросы?',
+    'editQuiz.importReplaceDescription':
+      'В модуле уже есть {count} вопрос(ов). Импорт удалит их и подставит данные из файла. Это действие нельзя отменить.',
     'editQuiz.importFormatHelpTitle': 'Формат JSON для теста',
     'editQuiz.importFormatHelpDescription':
       'Используйте эту структуру для импорта/экспорта. Поддерживаемые типы: CHOICE, TEXT, MATCHING.',
@@ -1158,8 +1163,9 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editFlash.importSuccess': 'Карточек импортировано: {count}.',
     'editFlash.importFailed': 'Не удалось импортировать JSON карточек.',
     'editFlash.importInvalidJson': 'Некорректный JSON файл.',
-    'editFlash.importReplaceConfirm':
-      'Текущие карточки ({count}) будут заменены. Продолжить?',
+    'editFlash.importReplaceTitle': 'Заменить все карточки?',
+    'editFlash.importReplaceDescription':
+      'В модуле уже есть {count} карточек. Импорт удалит их и подставит данные из файла. Это действие нельзя отменить.',
     'editFlash.importFormatHelpTitle': 'Формат JSON для карточек',
     'editFlash.importFormatHelpDescription':
       'Используйте эту структуру для импорта/экспорта карточек.',

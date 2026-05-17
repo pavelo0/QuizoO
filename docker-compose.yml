@@ -43,6 +43,7 @@ services:
   frontend-builder:
     build:
       context: ./frontend
+    restart: 'no'
     volumes:
       - frontend_dist:/out
     networks:
@@ -59,8 +60,10 @@ services:
       - ./nginx/certs:/etc/nginx/certs:ro
       - frontend_dist:/usr/share/nginx/html:ro
     depends_on:
-      - backend
-      - frontend-builder
+      backend:
+        condition: service_started
+      frontend-builder:
+        condition: service_completed_successfully
     networks:
       - app-network
 
