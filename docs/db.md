@@ -1,157 +1,176 @@
-# Database Structure (Current)
+## Актуальная схема БД QuizoO (по `backend/prisma/schema.prisma`)
 
-Актуальный источник структуры: `backend/prisma/schema.prisma`.
-СУБД: PostgreSQL, ORM: Prisma.
+Ниже зафиксирована структура, которая **должна считаться источником истины** и полностью соответствует Prisma-схеме.
 
-## Enums
+### Справочники и enum-ы
 
 - `UserRole`: `USER`, `ADMIN`
 - `ModuleType`: `FLASHCARD`, `QUIZ`
 - `QuestionType`: `CHOICE`, `TEXT`, `MATCHING`
 
-## `Click` (таблица в БД: `Click`)
+### Техническая модель
 
-| Поле        | Тип             | Ограничения                    | Описание                   |
-| ----------- | --------------- | ------------------------------ | -------------------------- |
-| `id`        | `String (CUID)` | `PK, NOT NULL, DEFAULT cuid()` | Идентификатор записи клика |
-| `createdAt` | `DateTime`      | `NOT NULL, DEFAULT now()`      | Время создания записи      |
+#### `Click` (таблица по умолчанию `Click`)
 
-## `User` (таблица в БД: `users`)
+- `id` (PK, `String`, `cuid()`)
+- `createdAt` (`DateTime`, `now()`)
 
-| Поле                         | Тип              | Ограничения                    | Описание                                |
-| ---------------------------- | ---------------- | ------------------------------ | --------------------------------------- |
-| `id`                         | `String (CUID)`  | `PK, NOT NULL, DEFAULT cuid()` | Идентификатор пользователя              |
-| `email`                      | `String`         | `UNIQUE, NOT NULL`             | Email пользователя                      |
-| `passwordHash`               | `String`         | `NOT NULL`                     | Хеш пароля                              |
-| `username`                   | `String`         | `NULL`                         | Отображаемое имя                        |
-| `role`                       | `Enum(UserRole)` | `NOT NULL, DEFAULT USER`       | Роль (`USER`/`ADMIN`)                   |
-| `isBlocked`                  | `Boolean`        | `NOT NULL, DEFAULT false`      | Флаг блокировки пользователя            |
-| `oauthProvider`              | `String`         | `NULL`                         | Провайдер OAuth (например, `google`)    |
-| `oauthId`                    | `String`         | `NULL`                         | Идентификатор пользователя у провайдера |
-| `emailVerified`              | `Boolean`        | `NOT NULL, DEFAULT false`      | Подтвержден ли email                    |
-| `emailVerificationCode`      | `String`         | `NULL`                         | Код подтверждения email                 |
-| `emailVerificationExpiresAt` | `DateTime`       | `NULL`                         | Срок действия кода подтверждения        |
-| `passwordResetCode`          | `String`         | `NULL`                         | Код сброса пароля                       |
-| `passwordResetExpiresAt`     | `DateTime`       | `NULL`                         | Срок действия кода сброса               |
-| `avatarMime`                 | `String`         | `NULL`                         | MIME-тип аватара                        |
-| `createdAt`                  | `DateTime`       | `NOT NULL, DEFAULT now()`      | Дата создания                           |
-| `updatedAt`                  | `DateTime`       | `NOT NULL, @updatedAt`         | Дата последнего обновления              |
+Используется как простая техническая сущность (в учебный контур не входит).
 
-Доп. ограничения:
+### Основные сущности
+
+#### `User` (`users`)
+
+- `id` (PK)
+- `email` (UNIQUE)
+- `passwordHash`
+- `username` (nullable)
+- `role` (`UserRole`, default `USER`)
+- `isBlocked` (default `false`)
+- `oauthProvider` (nullable)
+- `oauthId` (nullable)
+- `emailVerified` (default `false`)
+- `emailVerificationCode` (nullable)
+- `emailVerificationExpiresAt` (nullable)
+- `passwordResetCode` (nullable)
+- `passwordResetExpiresAt` (nullable)
+- `avatarMime` (nullable)
+- `createdAt`
+- `updatedAt`
+
+Ограничения:
 
 - `@@unique([oauthProvider, oauthId])`
 
-## `Module` (таблица в БД: `modules`)
+Связи:
 
-| Поле          | Тип                | Ограничения                       | Описание                        |
-| ------------- | ------------------ | --------------------------------- | ------------------------------- |
-| `id`          | `String (CUID)`    | `PK, NOT NULL, DEFAULT cuid()`    | Идентификатор модуля            |
-| `userId`      | `String`           | `FK -> users.id, NOT NULL, INDEX` | Владелец модуля                 |
-| `title`       | `String`           | `NOT NULL`                        | Название модуля                 |
-| `description` | `String`           | `NULL`                            | Описание модуля                 |
-| `type`        | `Enum(ModuleType)` | `NOT NULL`                        | Тип модуля (`FLASHCARD`/`QUIZ`) |
-| `createdAt`   | `DateTime`         | `NOT NULL, DEFAULT now()`         | Дата создания                   |
-| `updatedAt`   | `DateTime`         | `NOT NULL, @updatedAt`            | Дата последнего обновления      |
+- `User 1 -> M Module`
+- `User 1 -> M FlashcardSession`
+- `User 1 -> M QuizSession`
 
-## `Card` (таблица в БД: `cards`)
+#### `Module` (`modules`)
 
-| Поле         | Тип             | Ограничения                         | Описание                              |
-| ------------ | --------------- | ----------------------------------- | ------------------------------------- |
-| `id`         | `String (CUID)` | `PK, NOT NULL, DEFAULT cuid()`      | Идентификатор карточки                |
-| `moduleId`   | `String`        | `FK -> modules.id, NOT NULL, INDEX` | Модуль, к которому относится карточка |
-| `question`   | `String`        | `NOT NULL`                          | Вопрос карточки                       |
-| `answer`     | `String`        | `NOT NULL`                          | Ответ карточки                        |
-| `orderIndex` | `Int`           | `NOT NULL, DEFAULT 0`               | Порядок карточки в модуле             |
-| `createdAt`  | `DateTime`      | `NOT NULL, DEFAULT now()`           | Дата создания                         |
+- `id` (PK)
+- `userId` (FK -> `users.id`)
+- `title`
+- `description` (nullable)
+- `type` (`ModuleType`)
+- `createdAt`
+- `updatedAt`
 
-## `Question` (таблица в БД: `questions`)
+Связи:
 
-| Поле                   | Тип                  | Ограничения                         | Описание                                 |
-| ---------------------- | -------------------- | ----------------------------------- | ---------------------------------------- |
-| `id`                   | `String (CUID)`      | `PK, NOT NULL, DEFAULT cuid()`      | Идентификатор вопроса                    |
-| `moduleId`             | `String`             | `FK -> modules.id, NOT NULL, INDEX` | Модуль, к которому относится вопрос      |
-| `questionText`         | `String`             | `NOT NULL`                          | Текст вопроса                            |
-| `type`                 | `Enum(QuestionType)` | `NOT NULL`                          | Тип вопроса (`CHOICE`/`TEXT`/`MATCHING`) |
-| `allowMultipleAnswers` | `Boolean`            | `NOT NULL, DEFAULT false`           | Можно ли выбрать несколько ответов       |
-| `questionImageMime`    | `String`             | `NULL`                              | MIME-тип изображения вопроса             |
-| `orderIndex`           | `Int`                | `NOT NULL, DEFAULT 0`               | Порядок вопроса в модуле                 |
-| `createdAt`            | `DateTime`           | `NOT NULL, DEFAULT now()`           | Дата создания                            |
+- `Module M -> 1 User` (`onDelete: Cascade`)
+- `Module 1 -> M Card`
+- `Module 1 -> M Question`
+- `Module 1 -> M FlashcardSession`
+- `Module 1 -> M QuizSession`
 
-## `MatchingPair` (таблица в БД: `matching_pairs`)
+#### `Card` (`cards`)
 
-| Поле         | Тип             | Ограничения                           | Описание             |
-| ------------ | --------------- | ------------------------------------- | -------------------- |
-| `id`         | `String (CUID)` | `PK, NOT NULL, DEFAULT cuid()`        | Идентификатор пары   |
-| `questionId` | `String`        | `FK -> questions.id, NOT NULL, INDEX` | Вопрос типа MATCHING |
-| `leftItem`   | `String`        | `NOT NULL`                            | Левая часть пары     |
-| `rightItem`  | `String`        | `NOT NULL`                            | Правая часть пары    |
+- `id` (PK)
+- `moduleId` (FK -> `modules.id`)
+- `question`
+- `answer`
+- `orderIndex` (default `0`)
+- `createdAt`
 
-## `QuestionOption` (таблица в БД: `question_options`)
+Связи:
 
-| Поле         | Тип             | Ограничения                           | Описание                       |
-| ------------ | --------------- | ------------------------------------- | ------------------------------ |
-| `id`         | `String (CUID)` | `PK, NOT NULL, DEFAULT cuid()`        | Идентификатор варианта         |
-| `questionId` | `String`        | `FK -> questions.id, NOT NULL, INDEX` | Вопрос типа CHOICE             |
-| `text`       | `String`        | `NOT NULL`                            | Текст варианта ответа          |
-| `isCorrect`  | `Boolean`       | `NOT NULL, DEFAULT false`             | Является ли вариант правильным |
+- `Card M -> 1 Module` (`onDelete: Cascade`)
 
-## `FlashcardSession` (таблица в БД: `flashcard_sessions`)
+#### `Question` (`questions`)
 
-| Поле           | Тип             | Ограничения                         | Описание                         |
-| -------------- | --------------- | ----------------------------------- | -------------------------------- |
-| `id`           | `String (CUID)` | `PK, NOT NULL, DEFAULT cuid()`      | Идентификатор сессии             |
-| `userId`       | `String`        | `FK -> users.id, NOT NULL, INDEX`   | Пользователь, проходивший сессию |
-| `moduleId`     | `String`        | `FK -> modules.id, NOT NULL, INDEX` | Модуль с карточками              |
-| `totalCards`   | `Int`           | `NOT NULL`                          | Всего карточек в сессии          |
-| `knownCount`   | `Int`           | `NOT NULL`                          | Количество "знаю"                |
-| `unknownCount` | `Int`           | `NOT NULL`                          | Количество "не знаю"             |
-| `completedAt`  | `DateTime`      | `NULL`                              | Время завершения сессии          |
+- `id` (PK)
+- `moduleId` (FK -> `modules.id`)
+- `questionText`
+- `type` (`QuestionType`)
+- `allowMultipleAnswers` (default `false`)
+- `questionImageMime` (nullable)
+- `orderIndex` (default `0`)
+- `createdAt`
 
-## `QuizSession` (таблица в БД: `quiz_sessions`)
+Связи:
 
-| Поле             | Тип             | Ограничения                         | Описание                       |
-| ---------------- | --------------- | ----------------------------------- | ------------------------------ |
-| `id`             | `String (CUID)` | `PK, NOT NULL, DEFAULT cuid()`      | Идентификатор сессии квиза     |
-| `userId`         | `String`        | `FK -> users.id, NOT NULL, INDEX`   | Пользователь, проходивший квиз |
-| `moduleId`       | `String`        | `FK -> modules.id, NOT NULL, INDEX` | Модуль квиза                   |
-| `totalQuestions` | `Int`           | `NOT NULL`                          | Количество вопросов            |
-| `correctCount`   | `Int`           | `NOT NULL`                          | Количество правильных ответов  |
-| `scorePercent`   | `Float`         | `NOT NULL`                          | Результат в процентах          |
-| `completedAt`    | `DateTime`      | `NULL`                              | Время завершения сессии        |
+- `Question M -> 1 Module` (`onDelete: Cascade`)
+- `Question 1 -> M QuestionOption`
+- `Question 1 -> M MatchingPair`
+- `Question 1 -> M QuizAnswer`
 
-## `QuizAnswer` (таблица в БД: `quiz_answers`)
+#### `QuestionOption` (`question_options`)
 
-| Поле         | Тип             | Ограничения                               | Описание                                            |
-| ------------ | --------------- | ----------------------------------------- | --------------------------------------------------- |
-| `id`         | `String (CUID)` | `PK, NOT NULL, DEFAULT cuid()`            | Идентификатор ответа                                |
-| `sessionId`  | `String`        | `FK -> quiz_sessions.id, NOT NULL, INDEX` | Сессия квиза                                        |
-| `questionId` | `String`        | `FK -> questions.id, NOT NULL, INDEX`     | Вопрос, на который дан ответ                        |
-| `userAnswer` | `String`        | `NULL`                                    | Ответ пользователя (текст/сериализованное значение) |
-| `isCorrect`  | `Boolean`       | `NOT NULL`                                | Корректность ответа                                 |
+- `id` (PK)
+- `questionId` (FK -> `questions.id`)
+- `text`
+- `isCorrect` (default `false`)
 
-Доп. ограничения:
+Связи:
+
+- `QuestionOption M -> 1 Question` (`onDelete: Cascade`)
+
+#### `MatchingPair` (`matching_pairs`)
+
+- `id` (PK)
+- `questionId` (FK -> `questions.id`)
+- `leftItem`
+- `rightItem`
+
+Связи:
+
+- `MatchingPair M -> 1 Question` (`onDelete: Cascade`)
+
+### Сущности результатов обучения
+
+#### `FlashcardSession` (`flashcard_sessions`)
+
+- `id` (PK)
+- `userId` (FK -> `users.id`)
+- `moduleId` (FK -> `modules.id`)
+- `totalCards`
+- `knownCount`
+- `unknownCount`
+- `completedAt` (nullable)
+
+Связи:
+
+- `FlashcardSession M -> 1 User` (`onDelete: Cascade`)
+- `FlashcardSession M -> 1 Module` (`onDelete: Cascade`)
+
+#### `QuizSession` (`quiz_sessions`)
+
+- `id` (PK)
+- `userId` (FK -> `users.id`)
+- `moduleId` (FK -> `modules.id`)
+- `totalQuestions`
+- `correctCount`
+- `scorePercent` (`Float`)
+- `completedAt` (nullable)
+
+Связи:
+
+- `QuizSession M -> 1 User` (`onDelete: Cascade`)
+- `QuizSession M -> 1 Module` (`onDelete: Cascade`)
+- `QuizSession 1 -> M QuizAnswer`
+
+#### `QuizAnswer` (`quiz_answers`)
+
+- `id` (PK)
+- `sessionId` (FK -> `quiz_sessions.id`)
+- `questionId` (FK -> `questions.id`)
+- `userAnswer` (nullable)
+- `isCorrect`
+
+Ограничения:
 
 - `@@unique([sessionId, questionId])`
 
-## Summary of Relations
+Связи:
 
-- `users (1) -> (N) modules`
-- `users (1) -> (N) flashcard_sessions`
-- `users (1) -> (N) quiz_sessions`
-- `modules (1) -> (N) cards`
-- `modules (1) -> (N) questions`
-- `modules (1) -> (N) flashcard_sessions`
-- `modules (1) -> (N) quiz_sessions`
-- `questions (1) -> (N) matching_pairs`
-- `questions (1) -> (N) question_options`
-- `questions (1) -> (N) quiz_answers`
-- `quiz_sessions (1) -> (N) quiz_answers`
+- `QuizAnswer M -> 1 QuizSession` (`onDelete: Cascade`)
+- `QuizAnswer M -> 1 Question` (`onDelete: Cascade`)
 
-## Delete Rules
+### Важные замечания по соответствию
 
-По всем перечисленным внешним ключам используется `onDelete: Cascade`.
-
-## Notes for Coursework
-
-- Явные роли в БД только две: `USER` и `ADMIN`.
-- "Гость" не хранится в поле `role`; это неаутентифицированное состояние пользователя.
+- Все внешние ключи в Prisma заданы с `onDelete: Cascade`.
+- Для названий таблиц используются `@@map(...)` (кроме `Click`, где имя остается `Click`).
+- Поля `allowMultipleAnswers`, `questionImageMime` (в `Question`) и поля верификации/сброса пароля (в `User`) являются обязательной частью актуальной схемы и должны присутствовать в документации/диаграмме.

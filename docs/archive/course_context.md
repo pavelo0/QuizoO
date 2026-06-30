@@ -1,6 +1,8 @@
 # QuizoO — единый контекст для курсового проекта (`course_context`)
 
-**Файл:** `docs/course_context.md` (альтернативное имя запроса: `cource_context` — та же суть).  
+> **Архив.** Этот файл перенесён в `docs/archive/`. Для разработки используйте [`../AIContext.md`](../AIContext.md) и [`../TODO.md`](../TODO.md).
+
+**Файл:** `docs/archive/course_context.md` (ранее `docs/course_context.md`).  
 **Назначение:** один документ для контекста LLM, структуры записки, подготовки к защите.  
 **Сборка включает:** оглавление `docs/README.md`, корневой `README.md`, Docker-гайды, архитектуру, продукт, требования, выдержки задания, БД, auth, UI, промпты Stitch, начало чеклиста, актуальные `docker-compose.yml` и `schema.prisma`.  
 **Источник правды по данным:** `backend/prisma/schema.prisma`; по контейнерам — корневой `docker-compose.yml`.

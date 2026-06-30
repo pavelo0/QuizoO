@@ -2,6 +2,15 @@
 
 Вся проектная документация собрана в этой папке. Раньше часть файлов лежала в `ProjectInfo/` — содержимое перенесено сюда, дубликаты сведены: актуальный чеклист в [`checklist.md`](./checklist.md), устаревшие варианты — в [`archive/`](./archive/).
 
+## Для разработки и AI
+
+| Документ                         | Описание                                                                                             |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [`AIContext.md`](./AIContext.md) | **Единый dev-контекст** — старт для любой новой задачи: стек, структура, API, БД, auth, conventions  |
+| [`TODO.md`](./TODO.md)           | **Бэклог** — рефакторинг backend, нормализация ответов, новые типы вопросов, FSD, Playwright, Sentry |
+
+Правила кода для Cursor: [`.cursor/`](../.cursor/) (`index.mdc`, `rules/`).
+
 ## Быстрый старт
 
 | Документ                                           | Описание                                                                        |
@@ -18,6 +27,7 @@
 | [`requirements-and-diagrams.md`](./requirements-and-diagrams.md)                           | Функциональные требования, ER, use case                                                                  |
 | [`zapiska-assignment-excerpt.md`](./zapiska-assignment-excerpt.md)                         | Выдержка формулировок задания (п. 2.1–2.2)                                                               |
 | [`archive/architecture-coursework-legacy.md`](./archive/architecture-coursework-legacy.md) | Раннее ТЗ с примерами кода; **актуальная инфраструктура** — в `docker-stack-guide` / `docker-and-deploy` |
+| [`archive/course_context.md`](./archive/course_context.md)                                 | Устаревший LLM-дамп (~3800 строк); заменён на [`AIContext.md`](./AIContext.md)                           |
 
 ## Разработка
 
