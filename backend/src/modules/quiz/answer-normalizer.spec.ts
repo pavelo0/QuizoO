@@ -35,6 +35,15 @@ describe('gradeTextAnswer', () => {
     expect(result.isCorrect).toBe(true);
   });
 
+  it('засчитывает variant без учета регистра (Приж / приж)', () => {
+    expect(gradeTextAnswer('приж', 'Париж', ['Приж']).isCorrect).toBe(true);
+    expect(gradeTextAnswer('  ПРИЖ  ', 'Париж', ['Приж']).isCorrect).toBe(true);
+    expect(gradeTextAnswer('приж', 'Париж', ['Приж', 'Паариж']).isCorrect).toBe(
+      true,
+    );
+    expect(gradeTextAnswer('приж', 'Париж', ['Паариж']).isCorrect).toBe(false);
+  });
+
   it('отклоняет неверный ответ', () => {
     expect(gradeTextAnswer('London', 'Париж').isCorrect).toBe(false);
   });
