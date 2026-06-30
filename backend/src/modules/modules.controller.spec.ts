@@ -23,7 +23,7 @@ function createResponseMock(): Response {
   } as unknown as Response;
 }
 
-describe('ModulesController', () => {
+describe('ModulesController (русские сценарии)', () => {
   let controller: ModulesController;
   let modules: ReturnType<typeof createModulesServiceMock>;
 
@@ -32,37 +32,40 @@ describe('ModulesController', () => {
     controller = new ModulesController(modules);
   });
 
-  it('passes limit to recent activity service method', async () => {
+  it('передает limit в метод сервиса активности', async () => {
     modules.getRecentActivity = jest.fn().mockResolvedValue([]);
 
-    await controller.getActivity('u1', 15);
+    await controller.getActivity('u1', 15, undefined);
 
-    expect(modules.getRecentActivity).toHaveBeenCalledWith('u1', 15);
+    expect(modules.getRecentActivity).toHaveBeenCalledWith('u1', {
+      take: 15,
+      cursor: undefined,
+    });
   });
 
-  it('delegates module creation payload to service', async () => {
+  it('делегирует payload создания модуля в сервис', async () => {
     modules.createModule = jest
       .fn()
-      .mockResolvedValue({ id: 'm1', title: 'Biology quiz' });
+      .mockResolvedValue({ id: 'm1', title: 'Биология: контрольный квиз' });
 
     await controller.create('u1', {
-      title: 'Biology quiz',
+      title: 'Биология: контрольный квиз',
       type: 'QUIZ' as never,
     });
 
     expect(modules.createModule).toHaveBeenCalledWith('u1', {
-      title: 'Biology quiz',
+      title: 'Биология: контрольный квиз',
       type: 'QUIZ',
     });
   });
 
-  it('rejects image upload when multipart file is missing', async () => {
+  it('отклоняет загрузку изображения, если multipart-файл отсутствует', async () => {
     expect(() =>
       controller.uploadQuestionImage('u1', 'm1', 'q1', undefined),
     ).toThrow(BadRequestException);
   });
 
-  it('uploads question image through service with buffer and mime', async () => {
+  it('загружает изображение вопроса через сервис с buffer и mime', async () => {
     modules.saveQuestionImage = jest
       .fn()
       .mockResolvedValue({ id: 'q1', questionImageMime: 'image/png' });
@@ -81,7 +84,7 @@ describe('ModulesController', () => {
     );
   });
 
-  it('throws not found when question image is absent', async () => {
+  it('бросает not found, когда изображение вопроса отсутствует', async () => {
     modules.getQuestionImageForDownload = jest.fn().mockResolvedValue(null);
 
     await expect(
@@ -94,7 +97,7 @@ describe('ModulesController', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('sets response headers and returns streamable image file', async () => {
+  it('устанавливает заголовки ответа и возвращает streamable image file', async () => {
     modules.getQuestionImageForDownload = jest.fn().mockResolvedValue({
       path: '/etc/hosts',
       mime: 'image/png',

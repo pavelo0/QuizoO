@@ -29,3 +29,29 @@ export function gradeTextAnswer(
     normalizedUserInput,
   };
 }
+
+/** Trim, dedupe, drop empty and duplicates of canonical (after normalize). */
+export function sanitizeAcceptedVariants(
+  variants: string[] | undefined,
+  canonicalAnswer: string,
+): string[] {
+  if (!variants?.length) {
+    return [];
+  }
+  const canonicalNorm = normalizeTextAnswer(canonicalAnswer);
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of variants) {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const norm = normalizeTextAnswer(trimmed);
+    if (norm === canonicalNorm || seen.has(norm)) {
+      continue;
+    }
+    seen.add(norm);
+    result.push(trimmed);
+  }
+  return result;
+}

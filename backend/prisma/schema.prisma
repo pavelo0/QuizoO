@@ -105,6 +105,7 @@ model Question {
   allowMultipleAnswers Boolean @default(false)
   questionImageMime String?
   orderIndex   Int          @default(0)
+  acceptedVariants String[] @default([])
   createdAt    DateTime     @default(now())
 
   module          Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)

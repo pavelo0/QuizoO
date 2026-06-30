@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   OnModuleInit,
@@ -15,7 +16,10 @@ import {
 } from './question-image.constants';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
-import { gradeTextAnswer } from './quiz/answer-normalizer';
+import {
+  gradeTextAnswer,
+  sanitizeAcceptedVariants,
+} from './quiz/answer-normalizer';
 
 function isModuleType(v: unknown): v is ModuleType {
   return v === ModuleType.FLASHCARD || v === ModuleType.QUIZ;
@@ -28,6 +32,64 @@ function isQuestionType(v: unknown): v is QuestionType {
     v === QuestionType.MATCHING
   );
 }
+
+type ActivityKind = 'FLASHCARD_SESSION' | 'QUIZ_SESSION';
+type ActivityCursor = {
+  at: string;
+  kind: ActivityKind;
+  id: string;
+};
+
+function encodeActivityCursor(cursor: ActivityCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+}
+
+function decodeActivityCursor(
+  rawCursor: string | undefined,
+): ActivityCursor | null {
+  if (!rawCursor?.trim()) {
+    return null;
+  }
+  try {
+    const decoded = Buffer.from(rawCursor, 'base64url').toString('utf8');
+    const parsed = JSON.parse(decoded) as Partial<ActivityCursor>;
+    if (
+      !parsed ||
+      typeof parsed.at !== 'string' ||
+      (parsed.kind !== 'FLASHCARD_SESSION' && parsed.kind !== 'QUIZ_SESSION') ||
+      typeof parsed.id !== 'string' ||
+      !parsed.id.trim()
+    ) {
+      throw new Error('Invalid cursor shape');
+    }
+    const date = new Date(parsed.at);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error('Invalid cursor date');
+    }
+    return {
+      at: date.toISOString(),
+      kind: parsed.kind,
+      id: parsed.id.trim(),
+    };
+  } catch {
+    throw new BadRequestException('Invalid activity cursor');
+  }
+}
+
+type RawActivityRow = {
+  kind: ActivityKind;
+  id: string;
+  moduleId: string;
+  moduleTitle: string;
+  moduleType: ModuleType;
+  at: Date;
+  knownCount: number | null;
+  unknownCount: number | null;
+  totalCards: number | null;
+  scorePercent: number | null;
+  correctCount: number | null;
+  totalQuestions: number | null;
+};
 
 function validateChoiceOptions(
   options: Array<{ text?: string; isCorrect?: boolean }>,
@@ -116,7 +178,23 @@ export class ModulesService implements OnModuleInit {
     return `${baseTitle} ${index}`;
   }
 
+  private async assertLearningModuleAccessAllowed(
+    userId: string,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.role === 'ADMIN') {
+      throw new ForbiddenException('Admin cannot manage learning modules');
+    }
+  }
+
   async getDashboardSummary(userId: string) {
+    await this.assertLearningModuleAccessAllowed(userId);
     const [totalModules, activeModules, flashAgg, quizAgg] = await Promise.all([
       this.prisma.module.count({ where: { userId } }),
       this.prisma.module.count({
@@ -154,84 +232,127 @@ export class ModulesService implements OnModuleInit {
     };
   }
 
-  async getRecentActivity(userId: string, limit = 10) {
-    const take = Math.min(Math.max(limit, 1), 30);
-    const [flash, quiz] = await Promise.all([
-      this.prisma.flashcardSession.findMany({
-        where: { userId, completedAt: { not: null } },
-        orderBy: { completedAt: 'desc' },
-        take,
-        include: {
-          module: { select: { id: true, title: true, type: true } },
-        },
-      }),
-      this.prisma.quizSession.findMany({
-        where: { userId, completedAt: { not: null } },
-        orderBy: { completedAt: 'desc' },
-        take,
-        include: {
-          module: { select: { id: true, title: true, type: true } },
-        },
-      }),
-    ]);
+  async getRecentActivity(
+    userId: string,
+    args: { take?: number; cursor?: string } = {},
+  ) {
+    await this.assertLearningModuleAccessAllowed(userId);
+    const take = Math.min(Math.max(args.take ?? 20, 1), 50);
+    const cursor = decodeActivityCursor(args.cursor);
+    const cursorDate = cursor ? new Date(cursor.at) : null;
+    const limit = take + 1;
+    const cursorFilterFlash =
+      cursor && cursorDate
+        ? Prisma.sql`AND (fs."completedAt", 'FLASHCARD_SESSION', fs.id) < (${cursorDate}, ${cursor.kind}, ${cursor.id})`
+        : Prisma.empty;
+    const cursorFilterQuiz =
+      cursor && cursorDate
+        ? Prisma.sql`AND (qs."completedAt", 'QUIZ_SESSION', qs.id) < (${cursorDate}, ${cursor.kind}, ${cursor.id})`
+        : Prisma.empty;
 
-    type Row =
-      | {
-          kind: 'FLASHCARD_SESSION';
-          at: Date;
-          moduleId: string;
-          moduleTitle: string;
-          moduleType: ModuleType;
-          knownCount: number;
-          unknownCount: number;
-          totalCards: number;
-        }
-      | {
-          kind: 'QUIZ_SESSION';
-          at: Date;
-          moduleId: string;
-          moduleTitle: string;
-          moduleType: ModuleType;
-          scorePercent: number;
-          correctCount: number;
-          totalQuestions: number;
+    const rows = await this.prisma.$queryRaw<RawActivityRow[]>(Prisma.sql`
+      SELECT
+        mixed.kind AS kind,
+        mixed.id AS id,
+        mixed."moduleId" AS "moduleId",
+        mixed."moduleTitle" AS "moduleTitle",
+        mixed."moduleType" AS "moduleType",
+        mixed.at AS at,
+        mixed."knownCount" AS "knownCount",
+        mixed."unknownCount" AS "unknownCount",
+        mixed."totalCards" AS "totalCards",
+        mixed."scorePercent" AS "scorePercent",
+        mixed."correctCount" AS "correctCount",
+        mixed."totalQuestions" AS "totalQuestions"
+      FROM (
+        SELECT
+          'FLASHCARD_SESSION'::text AS kind,
+          fs.id AS id,
+          fs."moduleId" AS "moduleId",
+          m.title AS "moduleTitle",
+          m.type AS "moduleType",
+          fs."completedAt" AS at,
+          fs."knownCount" AS "knownCount",
+          fs."unknownCount" AS "unknownCount",
+          fs."totalCards" AS "totalCards",
+          NULL::double precision AS "scorePercent",
+          NULL::int AS "correctCount",
+          NULL::int AS "totalQuestions"
+        FROM "flashcard_sessions" fs
+        INNER JOIN "modules" m ON m.id = fs."moduleId"
+        WHERE fs."userId" = ${userId}
+          AND fs."completedAt" IS NOT NULL
+          ${cursorFilterFlash}
+
+        UNION ALL
+
+        SELECT
+          'QUIZ_SESSION'::text AS kind,
+          qs.id AS id,
+          qs."moduleId" AS "moduleId",
+          m.title AS "moduleTitle",
+          m.type AS "moduleType",
+          qs."completedAt" AS at,
+          NULL::int AS "knownCount",
+          NULL::int AS "unknownCount",
+          NULL::int AS "totalCards",
+          qs."scorePercent" AS "scorePercent",
+          qs."correctCount" AS "correctCount",
+          qs."totalQuestions" AS "totalQuestions"
+        FROM "quiz_sessions" qs
+        INNER JOIN "modules" m ON m.id = qs."moduleId"
+        WHERE qs."userId" = ${userId}
+          AND qs."completedAt" IS NOT NULL
+          ${cursorFilterQuiz}
+      ) mixed
+      ORDER BY mixed.at DESC, mixed.kind DESC, mixed.id DESC
+      LIMIT ${limit}
+    `);
+
+    const pageRows = rows.slice(0, take);
+    const items = pageRows.map((row) => {
+      if (row.kind === 'FLASHCARD_SESSION') {
+        return {
+          kind: 'FLASHCARD_SESSION' as const,
+          id: row.id,
+          at: row.at.toISOString(),
+          moduleId: row.moduleId,
+          moduleTitle: row.moduleTitle,
+          moduleType: row.moduleType,
+          knownCount: Number(row.knownCount ?? 0),
+          unknownCount: Number(row.unknownCount ?? 0),
+          totalCards: Number(row.totalCards ?? 0),
         };
+      }
+      return {
+        kind: 'QUIZ_SESSION' as const,
+        id: row.id,
+        at: row.at.toISOString(),
+        moduleId: row.moduleId,
+        moduleTitle: row.moduleTitle,
+        moduleType: row.moduleType,
+        scorePercent: Number(row.scorePercent ?? 0),
+        correctCount: Number(row.correctCount ?? 0),
+        totalQuestions: Number(row.totalQuestions ?? 0),
+      };
+    });
 
-    const items: Row[] = [
-      ...flash.map(
-        (s): Row => ({
-          kind: 'FLASHCARD_SESSION',
-          at: s.completedAt!,
-          moduleId: s.moduleId,
-          moduleTitle: s.module.title,
-          moduleType: s.module.type,
-          knownCount: s.knownCount,
-          unknownCount: s.unknownCount,
-          totalCards: s.totalCards,
-        }),
-      ),
-      ...quiz.map(
-        (s): Row => ({
-          kind: 'QUIZ_SESSION',
-          at: s.completedAt!,
-          moduleId: s.moduleId,
-          moduleTitle: s.module.title,
-          moduleType: s.module.type,
-          scorePercent: s.scorePercent,
-          correctCount: s.correctCount,
-          totalQuestions: s.totalQuestions,
-        }),
-      ),
-    ];
-
-    items.sort((a, b) => b.at.getTime() - a.at.getTime());
-    return items.slice(0, take).map((i) => ({
-      ...i,
-      at: i.at.toISOString(),
-    }));
+    const last = pageRows[pageRows.length - 1];
+    return {
+      items,
+      nextCursor:
+        rows.length > take && last
+          ? encodeActivityCursor({
+              at: last.at.toISOString(),
+              kind: last.kind,
+              id: last.id,
+            })
+          : null,
+    };
   }
 
   async listModules(userId: string) {
+    await this.assertLearningModuleAccessAllowed(userId);
     const modules = await this.prisma.module.findMany({
       where: { userId },
       include: {
@@ -296,6 +417,7 @@ export class ModulesService implements OnModuleInit {
   }
 
   async getModule(userId: string, moduleId: string) {
+    await this.assertLearningModuleAccessAllowed(userId);
     const mod = await this.prisma.module.findFirst({
       where: { id: moduleId, userId },
       include: {
@@ -324,6 +446,7 @@ export class ModulesService implements OnModuleInit {
     moduleId: string,
     args: { take?: number; cursor?: string },
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     const module = await this.assertQuizModule(moduleId, userId);
     const take = Math.min(Math.max(args.take ?? 20, 1), 50);
     const cursor = args.cursor?.trim() ? args.cursor.trim() : null;
@@ -355,6 +478,7 @@ export class ModulesService implements OnModuleInit {
   }
 
   async createModule(userId: string, body: CreateModuleDto) {
+    await this.assertLearningModuleAccessAllowed(userId);
     const title = body.title.trim();
     if (!title) {
       throw new BadRequestException('title is required');
@@ -387,6 +511,7 @@ export class ModulesService implements OnModuleInit {
   }
 
   async updateModule(userId: string, moduleId: string, body: UpdateModuleDto) {
+    await this.assertLearningModuleAccessAllowed(userId);
     const existing = await this.prisma.module.findFirst({
       where: { id: moduleId, userId },
     });
@@ -444,6 +569,7 @@ export class ModulesService implements OnModuleInit {
   }
 
   async deleteModule(userId: string, moduleId: string) {
+    await this.assertLearningModuleAccessAllowed(userId);
     const existing = await this.prisma.module.findFirst({
       where: { id: moduleId, userId },
     });
@@ -459,6 +585,7 @@ export class ModulesService implements OnModuleInit {
     moduleId: string,
     body: { question?: string; answer?: string; orderIndex?: number },
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertFlashcardModule(moduleId, userId);
     if (!body.question?.trim() || !body.answer?.trim()) {
       throw new BadRequestException('question and answer are required');
@@ -479,6 +606,7 @@ export class ModulesService implements OnModuleInit {
     cardId: string,
     body: { question?: string; answer?: string; orderIndex?: number },
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertFlashcardModule(moduleId, userId);
     const card = await this.prisma.card.findFirst({
       where: { id: cardId, moduleId },
@@ -507,6 +635,7 @@ export class ModulesService implements OnModuleInit {
   }
 
   async deleteCard(userId: string, moduleId: string, cardId: string) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertFlashcardModule(moduleId, userId);
     const card = await this.prisma.card.findFirst({
       where: { id: cardId, moduleId },
@@ -523,6 +652,7 @@ export class ModulesService implements OnModuleInit {
     moduleId: string,
     body: { totalCards?: number; knownCount?: number; unknownCount?: number },
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertFlashcardModule(moduleId, userId);
     const totalCards = Number(body.totalCards ?? 0);
     const knownCount = Number(body.knownCount ?? 0);
@@ -570,6 +700,7 @@ export class ModulesService implements OnModuleInit {
       }>;
     },
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertQuizModule(moduleId, userId);
     const answers = body.answers ?? [];
     if (!Array.isArray(answers)) {
@@ -656,7 +787,11 @@ export class ModulesService implements OnModuleInit {
       } else if (q.type === QuestionType.TEXT) {
         const raw = a.textAnswer ?? '';
         const correct = q.questionOptions.find((o) => o.isCorrect)?.text ?? '';
-        const grade = gradeTextAnswer(String(raw), correct);
+        const grade = gradeTextAnswer(
+          String(raw),
+          correct,
+          q.acceptedVariants ?? [],
+        );
         isCorrect = grade.isCorrect;
         userAnswer = JSON.stringify({ textAnswer: grade.normalizedUserInput });
       } else if (q.type === QuestionType.MATCHING) {
@@ -721,6 +856,7 @@ export class ModulesService implements OnModuleInit {
   }
 
   async getQuizSession(userId: string, moduleId: string, sessionId: string) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertQuizModule(moduleId, userId);
     const sess = await this.prisma.quizSession.findFirst({
       where: { id: sessionId, userId, moduleId },
@@ -769,8 +905,10 @@ export class ModulesService implements OnModuleInit {
       orderIndex?: number;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
+      acceptedVariants?: string[];
     },
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertQuizModule(moduleId, userId);
     if (!body.questionText?.trim()) {
       throw new BadRequestException('questionText is required');
@@ -860,6 +998,10 @@ export class ModulesService implements OnModuleInit {
           'TEXT answer option must be marked as correct',
         );
       }
+      const acceptedVariants = sanitizeAcceptedVariants(
+        body.acceptedVariants,
+        normalized[0].text,
+      );
       return this.prisma.question.create({
         data: {
           moduleId,
@@ -867,6 +1009,7 @@ export class ModulesService implements OnModuleInit {
           type: QuestionType.TEXT,
           allowMultipleAnswers: false,
           orderIndex,
+          acceptedVariants,
           questionOptions: {
             create: [
               {
@@ -903,8 +1046,10 @@ export class ModulesService implements OnModuleInit {
       allowMultipleAnswers?: boolean;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
+      acceptedVariants?: string[];
     },
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertQuizModule(moduleId, userId);
     const q = await this.prisma.question.findFirst({
       where: { id: questionId, moduleId },
@@ -944,6 +1089,12 @@ export class ModulesService implements OnModuleInit {
       }
       await this.prisma.questionOption.deleteMany({ where: { questionId } });
       await this.prisma.matchingPair.deleteMany({ where: { questionId } });
+      if (body.type !== QuestionType.TEXT) {
+        await this.prisma.question.update({
+          where: { id: questionId },
+          data: { acceptedVariants: [] },
+        });
+      }
     }
 
     const data: Prisma.QuestionUpdateInput = {};
@@ -1048,6 +1199,36 @@ export class ModulesService implements OnModuleInit {
             isCorrect: true,
           },
         });
+        const variantsInput =
+          body.acceptedVariants !== undefined
+            ? body.acceptedVariants
+            : q.acceptedVariants;
+        await this.prisma.question.update({
+          where: { id: questionId },
+          data: {
+            acceptedVariants: sanitizeAcceptedVariants(
+              variantsInput,
+              normalized[0].text,
+            ),
+          },
+        });
+      } else if (body.acceptedVariants !== undefined) {
+        const canonical =
+          q.questionOptions.find((o) => o.isCorrect)?.text ?? '';
+        if (!canonical) {
+          throw new BadRequestException(
+            'TEXT questions require one correct text answer',
+          );
+        }
+        await this.prisma.question.update({
+          where: { id: questionId },
+          data: {
+            acceptedVariants: sanitizeAcceptedVariants(
+              body.acceptedVariants,
+              canonical,
+            ),
+          },
+        });
       } else if (body.matchingPairs !== undefined) {
         await this.prisma.matchingPair.deleteMany({ where: { questionId } });
       }
@@ -1060,6 +1241,7 @@ export class ModulesService implements OnModuleInit {
   }
 
   async deleteQuestion(userId: string, moduleId: string, questionId: string) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertQuizModule(moduleId, userId);
     const q = await this.prisma.question.findFirst({
       where: { id: questionId, moduleId },
@@ -1085,6 +1267,7 @@ export class ModulesService implements OnModuleInit {
     buffer: Buffer,
     mime: string,
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertQuizModule(moduleId, userId);
     const question = await this.prisma.question.findFirst({
       where: { id: questionId, moduleId },
@@ -1117,6 +1300,7 @@ export class ModulesService implements OnModuleInit {
     moduleId: string,
     questionId: string,
   ): Promise<{ path: string; mime: string } | null> {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertQuizModule(moduleId, userId);
     const question = await this.prisma.question.findFirst({
       where: { id: questionId, moduleId },
@@ -1139,6 +1323,7 @@ export class ModulesService implements OnModuleInit {
     moduleId: string,
     questionId: string,
   ) {
+    await this.assertLearningModuleAccessAllowed(userId);
     await this.assertQuizModule(moduleId, userId);
     const question = await this.prisma.question.findFirst({
       where: { id: questionId, moduleId },

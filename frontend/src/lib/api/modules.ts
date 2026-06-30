@@ -6,7 +6,7 @@ import type {
   ModuleId,
   ModuleListItem,
   ModuleQuestion,
-  ModuleSessionActivity,
+  ModuleSessionActivityPage,
   ModuleType,
   ModulesDashboardSummary,
   QuizQuestionsPage,
@@ -14,20 +14,36 @@ import type {
   QuestionType,
 } from '@/types/module';
 
+function normalizeActivityPage(
+  payload: ModuleSessionActivityPage | null | undefined,
+): ModuleSessionActivityPage {
+  return {
+    items: Array.isArray(payload?.items) ? payload.items : [],
+    nextCursor:
+      typeof payload?.nextCursor === 'string' ? payload.nextCursor : null,
+  };
+}
+
 export async function fetchModulesDashboardSummary() {
   const { data } =
     await apiClient.get<ModulesDashboardSummary>('/modules/summary');
   return data;
 }
 
-export async function fetchRecentModuleActivity(limit?: number) {
-  const { data } = await apiClient.get<ModuleSessionActivity[]>(
+export async function fetchRecentModuleActivity(params?: {
+  take?: number;
+  cursor?: string | null;
+}) {
+  const { data } = await apiClient.get<ModuleSessionActivityPage>(
     '/modules/activity',
     {
-      params: limit ? { limit } : undefined,
+      params: {
+        take: params?.take,
+        cursor: params?.cursor ?? undefined,
+      },
     },
   );
-  return data;
+  return normalizeActivityPage(data);
 }
 
 export async function fetchModuleList() {
@@ -156,6 +172,7 @@ export async function createQuestion(
     orderIndex?: number;
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+    acceptedVariants?: string[];
   },
 ) {
   const { data } = await apiClient.post<ModuleQuestion>(
@@ -175,6 +192,7 @@ export async function updateQuestion(
     orderIndex?: number;
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+    acceptedVariants?: string[];
   },
 ) {
   const { data } = await apiClient.patch<ModuleQuestion>(

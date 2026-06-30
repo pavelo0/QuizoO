@@ -39,9 +39,14 @@ export class ModulesController {
   @Get('activity')
   getActivity(
     @CurrentUserId() userId: string,
+    @Query('take', new ParseIntPipe({ optional: true })) take?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('cursor') cursor?: string,
   ) {
-    return this.modules.getRecentActivity(userId, limit);
+    return this.modules.getRecentActivity(userId, {
+      take: take ?? limit,
+      cursor,
+    });
   }
 
   @Get()
@@ -166,6 +171,7 @@ export class ModulesController {
       orderIndex?: number;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
+      acceptedVariants?: string[];
     },
   ) {
     return this.modules.createQuestion(userId, moduleId, body);
@@ -184,6 +190,7 @@ export class ModulesController {
       allowMultipleAnswers?: boolean;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
+      acceptedVariants?: string[];
     },
   ) {
     return this.modules.updateQuestion(userId, moduleId, questionId, body);
