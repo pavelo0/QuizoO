@@ -15,6 +15,7 @@ import {
 } from './question-image.constants';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
+import { gradeTextAnswer } from './quiz/answer-normalizer';
 
 function isModuleType(v: unknown): v is ModuleType {
   return v === ModuleType.FLASHCARD || v === ModuleType.QUIZ;
@@ -654,11 +655,10 @@ export class ModulesService implements OnModuleInit {
         }
       } else if (q.type === QuestionType.TEXT) {
         const raw = a.textAnswer ?? '';
-        const t = String(raw).trim();
         const correct = q.questionOptions.find((o) => o.isCorrect)?.text ?? '';
-        const norm = (s: string) => s.trim().toLowerCase();
-        isCorrect = t.length > 0 && norm(t) === norm(correct);
-        userAnswer = JSON.stringify({ textAnswer: t });
+        const grade = gradeTextAnswer(String(raw), correct);
+        isCorrect = grade.isCorrect;
+        userAnswer = JSON.stringify({ textAnswer: grade.normalizedUserInput });
       } else if (q.type === QuestionType.MATCHING) {
         const map = a.matchingAnswer ?? null;
         if (!map || typeof map !== 'object') {
