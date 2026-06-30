@@ -414,8 +414,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.dialogCorrectPlaceholder': 'e.g. Paris',
     'editQuiz.dialogAcceptedVariants': 'Accepted answer variants',
     'editQuiz.dialogAcceptedVariantsHint':
-      'Optional. One variant per line (e.g. Paris for canonical Париж).',
-    'editQuiz.dialogAcceptedVariantsPlaceholder': 'Paris\nparis',
+      'Optional. One variant per line. Case and extra spaces are ignored when checking (variant «Приж» accepts «приж», «ПРИЖ»). Spelling must still match a listed variant or the canonical answer.',
+    'editQuiz.dialogAcceptedVariantsPlaceholder': 'Paris\nПриж',
     'editQuiz.dialogAnswerMode': 'Answer mode',
     'editQuiz.dialogAllowMultiple': 'Allow multiple answers',
     'editQuiz.dialogOptions': 'Options',
@@ -1078,8 +1078,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.dialogCorrectPlaceholder': 'Например: Париж',
     'editQuiz.dialogAcceptedVariants': 'Допустимые варианты ответа',
     'editQuiz.dialogAcceptedVariantsHint':
-      'Необязательно. По одному варианту на строку (например Paris для эталона Париж).',
-    'editQuiz.dialogAcceptedVariantsPlaceholder': 'Paris\nparis',
+      'Необязательно. По одному варианту на строку. При проверке регистр и лишние пробелы не учитываются (variant «Приж» примет «приж», «ПРИЖ»). Написание должно совпасть с эталоном или одним из перечисленных variants.',
+    'editQuiz.dialogAcceptedVariantsPlaceholder': 'Paris\nПриж',
     'editQuiz.dialogAnswerMode': 'Режим ответа',
     'editQuiz.dialogAllowMultiple': 'Разрешить несколько ответов',
     'editQuiz.dialogOptions': 'Варианты',
