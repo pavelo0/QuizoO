@@ -73,15 +73,13 @@ flowchart TB
 
 ### B.1 Модель данных
 
-- [ ] Расширить схему — один из вариантов:
-  - **Вариант A:** JSON-поле `acceptedVariants String[]` на `Question`
-  - **Вариант B:** таблица `QuestionTextVariant` (`questionId`, `text`, `isCanonical`)
-- [ ] Prisma migration + seed для demo-модулей при необходимости
-- [ ] Для TEXT: эталон хранится в `QuestionOption` с `isCorrect: true` (текущая модель)
+- [x] Расширить схему — **Вариант A:** `acceptedVariants String[]` на `Question`
+- [x] Prisma migration + seed для demo-модулей (`seed_ru_quiz_q03`: Paris/paris)
+- [x] Для TEXT: эталон хранится в `QuestionOption` с `isCorrect: true` (текущая модель)
 
 ### B.2 Answer normalizer
 
-- [ ] Создать [`backend/src/modules/quiz/answer-normalizer.ts`](../backend/src/modules/quiz/answer-normalizer.ts)
+- [x] Создать [`backend/src/modules/quiz/answer-normalizer.ts`](../backend/src/modules/quiz/answer-normalizer.ts)
   - Базовая нормализация: trim, lowercase, Unicode NFKC, схлопывание пробелов
   - Сравнение с эталоном + списком допустимых вариантов
   - Возврат: `{ isCorrect, canonicalAnswer, normalizedUserInput }`
@@ -89,16 +87,16 @@ flowchart TB
 
 ### B.3 Persist и UI
 
-- [ ] В `QuizAnswer.userAnswer` хранить нормализованный ввод
+- [x] В `QuizAnswer.userAnswer` хранить нормализованный ввод
 - [ ] В разборе ошибок показывать **каноническую форму** («Париж», а не «paris»)
-- [ ] Frontend: поле «Допустимые варианты ответа» в [`EditQuizModulePage.tsx`](../frontend/src/pages/EditQuizModulePage.tsx)
-- [ ] Import/export JSON — поддержка `acceptedVariants` в [`EditQuizModulePage.tsx`](../frontend/src/pages/EditQuizModulePage.tsx)
+- [x] Frontend: поле «Допустимые варианты ответа» в [`EditQuizModulePage.tsx`](../frontend/src/pages/EditQuizModulePage.tsx)
+- [x] Import/export JSON — поддержка `acceptedVariants` в [`EditQuizModulePage.tsx`](../frontend/src/pages/EditQuizModulePage.tsx)
 
 ### B.4 Тесты
 
-- [ ] Unit: Paris / париж / Париж, лишние пробелы, регистр, NFKC
-- [ ] Unit: пустой ответ, только пробелы
-- [ ] Integration: quiz session с вариантами ответа
+- [x] Unit: Paris / париж / Париж, лишние пробелы, регистр, NFKC
+- [x] Unit: пустой ответ, только пробелы
+- [x] Integration: quiz session с вариантами ответа
 
 ---
 

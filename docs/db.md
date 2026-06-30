@@ -88,6 +88,7 @@
 - `allowMultipleAnswers` (default `false`)
 - `questionImageMime` (nullable)
 - `orderIndex` (default `0`)
+- `acceptedVariants` (`String[]`, default `[]`) — допустимые синонимы для TEXT (напр. `Paris` при эталоне `Париж`)
 - `createdAt`
 
 Связи:

@@ -42,6 +42,7 @@ export interface ModuleQuestion {
   createdAt: string;
   questionOptions: ModuleQuestionOption[];
   matchingPairs: ModuleMatchingPair[];
+  acceptedVariants?: string[];
 }
 
 /** Детали модуля из `GET /modules/:id` */
@@ -91,6 +92,7 @@ export interface ModulesDashboardSummary {
 }
 
 type SessionActivityBase = {
+  id: string;
   moduleId: string;
   moduleTitle: string;
   moduleType: ModuleType;
@@ -114,6 +116,11 @@ export type QuizSessionActivity = SessionActivityBase & {
 export type ModuleSessionActivity =
   | FlashcardSessionActivity
   | QuizSessionActivity;
+
+export interface ModuleSessionActivityPage {
+  items: ModuleSessionActivity[];
+  nextCursor: string | null;
+}
 
 export type QuizChoiceUserAnswer = {
   choiceOptionId?: string;

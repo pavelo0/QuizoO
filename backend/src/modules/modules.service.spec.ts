@@ -13,6 +13,9 @@ jest.mock('fs/promises', () => ({
 
 function createPrismaMock() {
   return {
+    user: {
+      findUnique: jest.fn(),
+    },
     module: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
@@ -42,6 +45,7 @@ describe('ModulesService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma = createPrismaMock();
+    prisma.user.findUnique = jest.fn().mockResolvedValue({ role: 'USER' });
     service = new ModulesService(prisma);
   });
 
@@ -135,6 +139,7 @@ describe('ModulesService', () => {
           id: 'q1',
           type: QuestionType.TEXT,
           allowMultipleAnswers: false,
+          acceptedVariants: [],
           questionOptions: [{ id: 'o1', text: 'Paris', isCorrect: true }],
           matchingPairs: [],
         },
@@ -188,6 +193,58 @@ describe('ModulesService', () => {
         }),
       );
       expect(result.scorePercent).toBe(100);
+    });
+
+    it('scores TEXT answer via acceptedVariants when canonical is Cyrillic', async () => {
+      prisma.question.findMany = jest.fn().mockResolvedValue([
+        {
+          id: 'q1',
+          type: QuestionType.TEXT,
+          allowMultipleAnswers: false,
+          acceptedVariants: ['Paris', 'paris'],
+          questionOptions: [{ id: 'o1', text: 'Париж', isCorrect: true }],
+          matchingPairs: [],
+        },
+      ]);
+
+      const tx = {
+        quizSession: {
+          create: jest.fn().mockResolvedValue({ id: 'sess-2' }),
+        },
+      };
+      prisma.$transaction = jest.fn(async (cb) => cb(tx));
+      prisma.quizSession.findFirst = jest.fn().mockResolvedValue({
+        id: 'sess-2',
+        userId: 'u1',
+        moduleId: 'm-quiz',
+        totalQuestions: 1,
+        correctCount: 1,
+        scorePercent: 100,
+        completedAt: new Date('2026-05-10T07:00:00.000Z'),
+        module: { id: 'm-quiz', title: 'Quiz module' },
+        answers: [],
+      });
+
+      await service.createQuizSession('u1', 'm-quiz', {
+        answers: [{ questionId: 'q1', textAnswer: 'Paris' }],
+      });
+
+      expect(tx.quizSession.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            correctCount: 1,
+            answers: {
+              create: [
+                expect.objectContaining({
+                  questionId: 'q1',
+                  isCorrect: true,
+                  userAnswer: '{"textAnswer":"paris"}',
+                }),
+              ],
+            },
+          }),
+        }),
+      );
     });
 
     it('rejects CHOICE answer with option from another question', async () => {

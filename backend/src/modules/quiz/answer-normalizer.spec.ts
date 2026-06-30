@@ -1,4 +1,8 @@
-import { gradeTextAnswer, normalizeTextAnswer } from './answer-normalizer';
+import {
+  gradeTextAnswer,
+  normalizeTextAnswer,
+  sanitizeAcceptedVariants,
+} from './answer-normalizer';
 
 describe('normalizeTextAnswer', () => {
   it('приводит к нижнему регистру и обрезает пробелы', () => {
@@ -38,5 +42,13 @@ describe('gradeTextAnswer', () => {
   it('отклоняет пустой ответ', () => {
     expect(gradeTextAnswer('', 'Париж').isCorrect).toBe(false);
     expect(gradeTextAnswer('   ', 'Париж').isCorrect).toBe(false);
+  });
+});
+
+describe('sanitizeAcceptedVariants', () => {
+  it('убирает пустые, дубликаты и совпадение с эталоном', () => {
+    expect(
+      sanitizeAcceptedVariants([' Paris ', 'paris', 'Paris', ''], 'Париж'),
+    ).toEqual(['Paris']);
   });
 });

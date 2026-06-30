@@ -58,18 +58,49 @@ cd backend && npm test -- --testPathPatterns="answer-normalizer|modules.service"
 
 ## Что ещё не сделано (следующие шаги)
 
-| Задача                                   | Фаза | Комментарий                                |
-| ---------------------------------------- | ---- | ------------------------------------------ |
-| `acceptedVariants` в Prisma              | B.1  | Paris / Париж — только через variants в БД |
-| UI «Допустимые варианты»                 | B.3  | `EditQuizModulePage.tsx`                   |
-| Import/export variants                   | B.3  | JSON импорт квизов                         |
-| Перенос grading в `QuizGradingService`   | A.1  | декомпозиция god object                    |
-| Integration-тест quiz session с variants | B.4  | после B.1                                  |
+| Задача                                  | Фаза | Комментарий                 |
+| --------------------------------------- | ---- | --------------------------- |
+| Показ canonical answer в разборе ошибок | B.3  | `QuizStudyPage.tsx`         |
+| Перенос grading в `QuizGradingService`  | A.1  | декомпозиция god object     |
+| Fuzzy для опечаток (`Парж`)             | P2   | Levenshtein, порог 1 символ |
 
 ---
 
 ## Как проверить вручную
 
-1. Создать квиз с TEXT-вопросом, эталон «Париж»
-2. Пройти study, ответить `  ПАРИЖ  ` или `париж` → засчитывается
-3. Ответ `Paris` без variant в БД → **не** засчитывается (ожидаемо до B.1)
+1. Создать квиз с TEXT-вопросом, эталон «Париж», variants `Paris`
+2. Пройти study, ответить `Paris` или `  ПАРИЖ  ` → засчитывается
+3. Ответ `Парж` без fuzzy → **не** засчитывается (ожидаемо)
+
+---
+
+## Дополнение: фаза B.1 (acceptedVariants)
+
+**Коммит:** после B.2, в той же ветке `docs_improve-docs`.
+
+### Модель
+
+- `Question.acceptedVariants: String[]` (PostgreSQL, default `[]`)
+- Migration: `20260630120000_add_question_accepted_variants`
+- Demo: `seed_ru_quiz_q03` → `['Paris', 'paris']`
+
+### Backend
+
+- `sanitizeAcceptedVariants()` в `answer-normalizer.ts`
+- CRUD TEXT: create/update принимают `acceptedVariants`
+- Grading: `gradeTextAnswer(..., q.acceptedVariants ?? [])`
+
+### Frontend
+
+- Поле «Допустимые варианты» в редакторе TEXT (textarea, по строке)
+- JSON import/export: `acceptedVariants` для TEXT
+
+### Тесты
+
+- 19 passed (`answer-normalizer` + `modules.service`)
+- Новый кейс: эталон `Париж`, variant `Paris`, ответ `Paris` → correct
+
+### Остаётся
+
+- Показ canonical answer в UI разбора ошибок (B.3)
+- Fuzzy для опечаток (`Парж`) — отдельная задача P2

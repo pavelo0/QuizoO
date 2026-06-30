@@ -117,36 +117,56 @@ type QuestionPayload = {
   allowMultipleAnswers?: boolean;
   options?: Array<{ text: string; isCorrect: boolean }>;
   matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+  acceptedVariants?: string[];
 };
+
+function parseAcceptedVariantsText(raw: string): string[] {
+  return Array.from(
+    new Set(
+      raw
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0),
+    ),
+  );
+}
+
+function formatAcceptedVariantsText(variants: string[] | undefined): string {
+  return (variants ?? []).join('\n');
+}
 
 const quizJsonExample = JSON.stringify(
   {
     formatVersion: QUIZ_IMPORT_FORMAT_VERSION,
     moduleType: 'QUIZ',
-    _comment: 'Question images are not included in JSON import/export.',
-    title: 'Sample quiz module',
+    _comment: 'Изображения вопросов не включаются в JSON импорта/экспорта.',
+    title: 'Контрольный квиз',
     questions: [
       {
         type: 'CHOICE',
-        questionText: 'What is 2 + 2?',
+        questionText: 'Какой HTTP-метод обычно используют для создания записи?',
         allowMultipleAnswers: false,
         options: [
-          { text: '3', isCorrect: false },
-          { text: '4', isCorrect: true },
-          { text: '5', isCorrect: false },
+          { text: 'POST', isCorrect: true },
+          { text: 'GET', isCorrect: false },
+          { text: 'DELETE', isCorrect: false },
         ],
       },
       {
         type: 'TEXT',
-        questionText: 'Capital of France',
-        answer: 'Paris',
+        questionText: 'Назовите столицу Франции',
+        answer: 'Париж',
+        acceptedVariants: ['Paris', 'paris'],
       },
       {
         type: 'MATCHING',
-        questionText: 'Match countries to capitals',
+        questionText: 'Сопоставьте термин и определение',
         pairs: [
-          { left: 'France', right: 'Paris' },
-          { left: 'Spain', right: 'Madrid' },
+          { left: 'Инкапсуляция', right: 'Сокрытие внутренней реализации' },
+          {
+            left: 'Полиморфизм',
+            right: 'Единый интерфейс для разных реализаций',
+          },
         ],
       },
     ],
@@ -177,11 +197,21 @@ function toExportQuestion(q: ModuleQuestion) {
     };
   }
   if (q.type === 'TEXT') {
-    return {
+    const answer = q.questionOptions.find((o) => o.isCorrect)?.text ?? '';
+    const exported: {
+      type: 'TEXT';
+      questionText: string;
+      answer: string;
+      acceptedVariants?: string[];
+    } = {
       type: 'TEXT',
       questionText: q.questionText,
-      answer: q.questionOptions.find((o) => o.isCorrect)?.text ?? '',
+      answer,
     };
+    if (q.acceptedVariants && q.acceptedVariants.length > 0) {
+      exported.acceptedVariants = q.acceptedVariants;
+    }
+    return exported;
   }
   return {
     type: 'MATCHING',
@@ -238,6 +268,7 @@ function parseQuizImportJson(
       allowMultipleAnswers?: boolean;
       options?: unknown;
       answer?: string;
+      acceptedVariants?: unknown;
       pairs?: unknown;
     };
     const questionText = q.questionText?.trim() ?? '';
@@ -295,10 +326,22 @@ function parseQuizImportJson(
           t('editQuiz.importTextAnswerRequired', { index: idx + 1 }),
         );
       }
+      let acceptedVariants: string[] | undefined;
+      if (q.acceptedVariants !== undefined) {
+        if (!Array.isArray(q.acceptedVariants)) {
+          throw new Error(
+            t('editQuiz.importTextVariantsInvalid', { index: idx + 1 }),
+          );
+        }
+        acceptedVariants = q.acceptedVariants
+          .map((item) => (typeof item === 'string' ? item.trim() : ''))
+          .filter((item) => item.length > 0);
+      }
       return {
         questionText,
         type: 'TEXT' as const,
         options: [{ text: answer, isCorrect: true }],
+        acceptedVariants,
       };
     }
 
@@ -601,6 +644,7 @@ type QuestionDialogProps = {
       allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+      acceptedVariants?: string[];
     },
     imageFile: File | null,
   ) => Promise<void>;
@@ -612,6 +656,7 @@ type QuestionDialogProps = {
       allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+      acceptedVariants?: string[];
     },
     imageUpdate: {
       file: File | null;
@@ -636,6 +681,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
   const [type, setType] = useState<QuestionType>('CHOICE');
   const [questionText, setQuestionText] = useState('');
   const [textAnswer, setTextAnswer] = useState('');
+  const [acceptedVariantsText, setAcceptedVariantsText] = useState('');
   const [allowMultipleAnswers, setAllowMultipleAnswers] = useState(false);
   const [options, setOptions] = useState([
     { text: '', isCorrect: false },
@@ -685,6 +731,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       setType('CHOICE');
       setQuestionText('');
       setTextAnswer('');
+      setAcceptedVariantsText('');
       setAllowMultipleAnswers(false);
       setOptions([
         { text: '', isCorrect: false },
@@ -702,6 +749,9 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     );
     setTextAnswer(
       editingQuestion.questionOptions.find((o) => o.isCorrect)?.text ?? '',
+    );
+    setAcceptedVariantsText(
+      formatAcceptedVariantsText(editingQuestion.acceptedVariants),
     );
     setOptions(
       editingQuestion.questionOptions.length > 0
@@ -856,6 +906,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+      acceptedVariants?: string[];
     } = { questionText: question, type };
 
     if (type === 'CHOICE') {
@@ -864,6 +915,8 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     }
     if (type === 'TEXT') {
       payload.options = [{ text: cleanTextAnswer, isCorrect: true }];
+      payload.acceptedVariants =
+        parseAcceptedVariantsText(acceptedVariantsText);
     }
     if (type === 'MATCHING') {
       payload.matchingPairs = cleanPairs;
@@ -899,6 +952,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     pairs,
     questionText,
     textAnswer,
+    acceptedVariantsText,
     questionsCount,
     type,
     allowMultipleAnswers,
@@ -1082,6 +1136,26 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                     {errors.textAnswer}
                   </p>
                 ) : null}
+                <label
+                  className={cn(labelClass, 'mt-4 block')}
+                  htmlFor="quiz-accepted-variants"
+                >
+                  {t('editQuiz.dialogAcceptedVariants')}
+                </label>
+                <p className="mb-2 font-(family-name:--font-dm-sans) text-xs text-(--text-secondary)">
+                  {t('editQuiz.dialogAcceptedVariantsHint')}
+                </p>
+                <Textarea
+                  id="quiz-accepted-variants"
+                  value={acceptedVariantsText}
+                  onChange={(e) => {
+                    setAcceptedVariantsText(e.target.value);
+                    setErrors((prev) => ({ ...prev, form: undefined }));
+                  }}
+                  placeholder={t('editQuiz.dialogAcceptedVariantsPlaceholder')}
+                  rows={3}
+                  className="min-h-[5.5rem] rounded-xl"
+                />
               </div>
             ) : null}
 
@@ -1534,6 +1608,7 @@ export default function EditQuizModulePage() {
         allowMultipleAnswers?: boolean;
         options?: Array<{ text: string; isCorrect: boolean }>;
         matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+        acceptedVariants?: string[];
       },
       imageFile: File | null,
     ) => {
@@ -1561,6 +1636,7 @@ export default function EditQuizModulePage() {
         allowMultipleAnswers?: boolean;
         options?: Array<{ text: string; isCorrect: boolean }>;
         matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+        acceptedVariants?: string[];
       },
       imageUpdate: {
         file: File | null;
