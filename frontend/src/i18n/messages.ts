@@ -373,9 +373,17 @@ export const messages: Record<Locale, Record<string, string>> = {
     'questionType.choice': 'Choice',
     'questionType.text': 'Text answer',
     'questionType.matching': 'Matching',
+    'questionType.ordering': 'Ordering',
     'questionType.badgeChoice': 'Choice',
     'questionType.badgeText': 'Text',
     'questionType.badgeMatching': 'Matching',
+    'questionType.badgeOrdering': 'Order',
+    'editQuiz.orderingItemPlaceholder': 'Enter item text',
+    'editQuiz.validationOrderingMinItems': 'At least 2 items required',
+    'editQuiz.dialogOrderingItems': 'Ordering items and their correct order',
+    'editQuiz.dialogAddOrderingItem': 'Add item',
+    'editQuiz.orderingHint':
+      'Arrange items in the correct order. Drag to reorder.',
     'editQuiz.questionAdded': 'Question added',
     'editQuiz.questionUpdated': 'Question updated',
     'editQuiz.questionRemoved': 'Question removed',
@@ -444,6 +452,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.summaryCorrectAnswer': 'Correct answer: {value}',
     'editQuiz.summaryCorrectNotSet': 'Correct answer is not set',
     'editQuiz.summaryNoPairs': 'No pairs yet',
+    'editQuiz.summaryNoOrderingItems': 'No ordering items yet',
     'editQuiz.importJson': 'Import JSON',
     'editQuiz.exportJson': 'Export JSON',
     'editQuiz.exportSuccess': 'Quiz JSON file exported.',
@@ -455,7 +464,7 @@ export const messages: Record<Locale, Record<string, string>> = {
       'This module already has {count} question(s). Import will delete them and replace them with the file. This cannot be undone.',
     'editQuiz.importFormatHelpTitle': 'Quiz JSON format',
     'editQuiz.importFormatHelpDescription':
-      'Use this structure for import/export. Supported types: CHOICE, TEXT, MATCHING.',
+      'Use this structure for import/export. Supported types: CHOICE, TEXT, MATCHING, ORDERING.',
     'editQuiz.importImagesNotSupported':
       'Question images are not exported to JSON and cannot be restored by JSON import.',
     'editQuiz.importInvalidStructure': 'JSON root must be an object.',
@@ -469,7 +478,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.importQuestionTextRequired':
       'Question #{index}: questionText is required.',
     'editQuiz.importUnknownType':
-      'Question #{index}: unsupported type. Use CHOICE, TEXT, or MATCHING.',
+      'Question #{index}: unsupported type. Use CHOICE, TEXT, MATCHING, or ORDERING.',
     'editQuiz.importChoiceOptionsMin':
       'Question #{index}: CHOICE requires at least 2 options.',
     'editQuiz.importChoiceOptionInvalid':
@@ -490,6 +499,10 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Question #{index}: each pair must be an object.',
     'editQuiz.importMatchingPairValuesRequired':
       'Question #{index}: each pair must include left and right.',
+    'editQuiz.importOrderingItemsMin':
+      'Question #{index}: ORDERING requires at least 2 items.',
+    'editQuiz.importOrderingItemTextRequired':
+      'Question #{index}: each ORDERING item must be a non-empty string.',
     'editFlash.cardAdded': 'Card added',
     'editFlash.cardUpdated': 'Card updated',
     'editFlash.cardRemoved': 'Card removed',
@@ -553,6 +566,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.questionImageAlt': 'Question illustration',
     'quizStudy.selectMatchingValue': 'Select matching value',
     'quizStudy.selectMatch': 'Select match',
+    'quizStudy.orderingInstruction':
+      'Arrange the items in the correct order by dragging them.',
     'quizStudy.finishQuiz': 'Finish quiz',
     'quizStudy.submitting': 'Submitting…',
     'quizStudy.lazyLoadHint':
@@ -1036,9 +1051,18 @@ export const messages: Record<Locale, Record<string, string>> = {
     'questionType.choice': 'Выбор',
     'questionType.text': 'Текстовый ответ',
     'questionType.matching': 'Сопоставление',
+    'questionType.ordering': 'Упорядочивание',
     'questionType.badgeChoice': 'Выбор',
     'questionType.badgeText': 'Текст',
     'questionType.badgeMatching': 'Пары',
+    'questionType.badgeOrdering': 'Порядок',
+    'editQuiz.orderingItemPlaceholder': 'Введите текст элемента',
+    'editQuiz.validationOrderingMinItems': 'Требуется минимум 2 элемента',
+    'editQuiz.dialogOrderingItems':
+      'Элементы для упорядочивания и их правильный порядок',
+    'editQuiz.dialogAddOrderingItem': 'Добавить элемент',
+    'editQuiz.orderingHint':
+      'Расположите элементы в правильном порядке. Перетаскивайте для изменения.',
     'editQuiz.questionAdded': 'Вопрос добавлен',
     'editQuiz.questionUpdated': 'Вопрос обновлен',
     'editQuiz.questionRemoved': 'Вопрос удален',
@@ -1112,6 +1136,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.summaryCorrectAnswer': 'Правильный ответ: {value}',
     'editQuiz.summaryCorrectNotSet': 'Правильный ответ не задан',
     'editQuiz.summaryNoPairs': 'Пары пока не добавлены',
+    'editQuiz.summaryNoOrderingItems': 'Элементы порядка пока не добавлены',
     'editQuiz.importJson': 'Импорт JSON',
     'editQuiz.exportJson': 'Экспорт JSON',
     'editQuiz.exportSuccess': 'JSON файл теста экспортирован.',
@@ -1123,7 +1148,7 @@ export const messages: Record<Locale, Record<string, string>> = {
       'В модуле уже есть {count} вопрос(ов). Импорт удалит их и подставит данные из файла. Это действие нельзя отменить.',
     'editQuiz.importFormatHelpTitle': 'Формат JSON для теста',
     'editQuiz.importFormatHelpDescription':
-      'Используйте эту структуру для импорта/экспорта. Поддерживаемые типы: CHOICE, TEXT, MATCHING.',
+      'Используйте эту структуру для импорта/экспорта. Поддерживаемые типы: CHOICE, TEXT, MATCHING, ORDERING.',
     'editQuiz.importImagesNotSupported':
       'Изображения вопросов не экспортируются в JSON и не могут быть восстановлены через импорт JSON.',
     'editQuiz.importInvalidStructure': 'Корневой JSON должен быть объектом.',
@@ -1137,7 +1162,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.importQuestionTextRequired':
       'Вопрос №{index}: поле questionText обязательно.',
     'editQuiz.importUnknownType':
-      'Вопрос №{index}: неизвестный тип. Используйте CHOICE, TEXT или MATCHING.',
+      'Вопрос №{index}: неизвестный тип. Используйте CHOICE, TEXT, MATCHING или ORDERING.',
     'editQuiz.importChoiceOptionsMin':
       'Вопрос №{index}: для CHOICE нужно минимум 2 варианта.',
     'editQuiz.importChoiceOptionInvalid':
@@ -1158,6 +1183,10 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Вопрос №{index}: каждая пара должна быть объектом.',
     'editQuiz.importMatchingPairValuesRequired':
       'Вопрос №{index}: каждая пара должна содержать left и right.',
+    'editQuiz.importOrderingItemsMin':
+      'Вопрос №{index}: для ORDERING нужно минимум 2 элемента.',
+    'editQuiz.importOrderingItemTextRequired':
+      'Вопрос №{index}: каждый элемент ORDERING должен быть непустой строкой.',
     'editFlash.cardAdded': 'Карточка добавлена',
     'editFlash.cardUpdated': 'Карточка обновлена',
     'editFlash.cardRemoved': 'Карточка удалена',
@@ -1223,6 +1252,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.questionImageAlt': 'Иллюстрация к вопросу',
     'quizStudy.selectMatchingValue': 'Выберите соответствие',
     'quizStudy.selectMatch': 'Выберите пару',
+    'quizStudy.orderingInstruction':
+      'Расположите элементы в правильном порядке, перетаскивая их.',
     'quizStudy.finishQuiz': 'Завершить тест',
     'quizStudy.submitting': 'Отправка…',
     'quizStudy.lazyLoadHint':

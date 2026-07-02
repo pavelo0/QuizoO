@@ -24,6 +24,24 @@ function normalizeActivityPage(
   };
 }
 
+export function normalizeModuleQuestion(q: ModuleQuestion): ModuleQuestion {
+  return {
+    ...q,
+    questionOptions: Array.isArray(q.questionOptions) ? q.questionOptions : [],
+    matchingPairs: Array.isArray(q.matchingPairs) ? q.matchingPairs : [],
+    orderingItems: Array.isArray(q.orderingItems) ? q.orderingItems : [],
+  };
+}
+
+function normalizeModuleDetail(module: ModuleDetail): ModuleDetail {
+  return {
+    ...module,
+    questions: Array.isArray(module.questions)
+      ? module.questions.map(normalizeModuleQuestion)
+      : [],
+  };
+}
+
 export async function fetchModulesDashboardSummary() {
   const { data } =
     await apiClient.get<ModulesDashboardSummary>('/modules/summary');
@@ -65,7 +83,7 @@ export async function createModule(payload: {
 
 export async function fetchModuleById(moduleId: ModuleId) {
   const { data } = await apiClient.get<ModuleDetail>(`/modules/${moduleId}`);
-  return data;
+  return normalizeModuleDetail(data);
 }
 
 export async function updateModule(
@@ -134,7 +152,12 @@ export async function fetchQuizQuestionsPage(
     `/modules/${moduleId}/quiz-questions`,
     { params },
   );
-  return data;
+  return {
+    ...data,
+    items: Array.isArray(data.items)
+      ? data.items.map(normalizeModuleQuestion)
+      : [],
+  };
 }
 
 export async function createQuizSession(
@@ -146,6 +169,7 @@ export async function createQuizSession(
       choiceOptionIds?: string[] | null;
       textAnswer?: string | null;
       matchingAnswer?: Record<string, string> | null;
+      orderingAnswer?: string[] | null;
     }>;
   },
 ) {
@@ -172,6 +196,7 @@ export async function createQuestion(
     orderIndex?: number;
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+    orderingItems?: Array<{ text: string; correctOrder: number }>;
     acceptedVariants?: string[];
   },
 ) {
@@ -179,7 +204,7 @@ export async function createQuestion(
     `/modules/${moduleId}/questions`,
     body,
   );
-  return data;
+  return normalizeModuleQuestion(data);
 }
 
 export async function updateQuestion(
@@ -192,6 +217,7 @@ export async function updateQuestion(
     orderIndex?: number;
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+    orderingItems?: Array<{ text: string; correctOrder: number }>;
     acceptedVariants?: string[];
   },
 ) {
@@ -199,7 +225,7 @@ export async function updateQuestion(
     `/modules/${moduleId}/questions/${questionId}`,
     body,
   );
-  return data;
+  return normalizeModuleQuestion(data);
 }
 
 export async function deleteQuestion(moduleId: ModuleId, questionId: string) {
@@ -256,7 +282,7 @@ export async function uploadQuestionImage(
       timeout: 60_000,
     },
   );
-  return data;
+  return normalizeModuleQuestion(data);
 }
 
 export async function deleteQuestionImage(

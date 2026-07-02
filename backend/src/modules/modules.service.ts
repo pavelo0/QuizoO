@@ -10,16 +10,17 @@ import { ModuleType, Prisma, QuestionType } from '@prisma/client';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateModuleDto } from './dto/create-module.dto';
+import { UpdateModuleDto } from './dto/update-module.dto';
 import {
   QUESTION_IMAGE_ALLOWED_MIMES,
   QUESTION_IMAGE_MAX_BYTES,
 } from './question-image.constants';
-import { CreateModuleDto } from './dto/create-module.dto';
-import { UpdateModuleDto } from './dto/update-module.dto';
 import {
   gradeTextAnswer,
   sanitizeAcceptedVariants,
 } from './quiz/answer-normalizer';
+import { gradeOrderingAnswer } from './quiz/ordering-grader';
 
 function isModuleType(v: unknown): v is ModuleType {
   return v === ModuleType.FLASHCARD || v === ModuleType.QUIZ;
@@ -29,8 +30,30 @@ function isQuestionType(v: unknown): v is QuestionType {
   return (
     v === QuestionType.CHOICE ||
     v === QuestionType.TEXT ||
-    v === QuestionType.MATCHING
+    v === QuestionType.MATCHING ||
+    v === QuestionType.ORDERING
   );
+}
+
+type QuestionWithRelations = Prisma.QuestionGetPayload<{
+  include: {
+    questionOptions: true;
+    matchingPairs: true;
+    orderingItems: true;
+  };
+}>;
+
+function sanitizeQuestionForStudy(question: QuestionWithRelations) {
+  if (question.type !== QuestionType.ORDERING) {
+    return question;
+  }
+  return {
+    ...question,
+    orderingItems: question.orderingItems.map(({ id, text }) => ({
+      id,
+      text,
+    })),
+  };
 }
 
 type ActivityKind = 'FLASHCARD_SESSION' | 'QUIZ_SESSION';
@@ -424,7 +447,11 @@ export class ModulesService implements OnModuleInit {
         cards: { orderBy: { orderIndex: 'asc' } },
         questions: {
           orderBy: { orderIndex: 'asc' },
-          include: { questionOptions: true, matchingPairs: true },
+          include: {
+            questionOptions: true,
+            matchingPairs: true,
+            orderingItems: true,
+          },
         },
         _count: { select: { cards: true, questions: true } },
       },
@@ -462,14 +489,18 @@ export class ModulesService implements OnModuleInit {
             skip: 1,
           }
         : {}),
-      include: { questionOptions: true, matchingPairs: true },
+      include: {
+        questionOptions: true,
+        matchingPairs: true,
+        orderingItems: true,
+      },
     });
 
     return {
       moduleId: module.id,
       moduleTitle: module.title,
       total,
-      items,
+      items: items.map(sanitizeQuestionForStudy),
       nextCursor:
         items.length === take && items[items.length - 1]
           ? items[items.length - 1].id
@@ -697,6 +728,7 @@ export class ModulesService implements OnModuleInit {
         choiceOptionIds?: string[] | null;
         textAnswer?: string | null;
         matchingAnswer?: Record<string, string> | null;
+        orderingAnswer?: string[] | null;
       }>;
     },
   ) {
@@ -723,7 +755,11 @@ export class ModulesService implements OnModuleInit {
 
     const questions = await this.prisma.question.findMany({
       where: { moduleId, id: { in: questionIds } },
-      include: { questionOptions: true, matchingPairs: true },
+      include: {
+        questionOptions: true,
+        matchingPairs: true,
+        orderingItems: true,
+      },
     });
     if (questions.length !== questionIds.length) {
       throw new BadRequestException(
@@ -815,6 +851,46 @@ export class ModulesService implements OnModuleInit {
             matchingAnswer: Object.fromEntries(entries),
           });
         }
+      } else if (q.type === QuestionType.ORDERING) {
+        const userOrderIds = a.orderingAnswer ?? [];
+
+        if (!Array.isArray(userOrderIds) || userOrderIds.length === 0) {
+          isCorrect = false;
+          userAnswer = null;
+        } else {
+          // Получить правильный порядок из orderingItems
+          const items = [...q.orderingItems].sort(
+            (a, b) => a.correctOrder - b.correctOrder,
+          );
+          const correctOrderIds = items.map((item) => item.id);
+
+          // Валидация: все ID должны существовать
+          const itemsById = new Map(
+            q.orderingItems.map((item) => [item.id, item]),
+          );
+          if (userOrderIds.some((id) => !itemsById.has(id))) {
+            throw new BadRequestException(
+              'orderingAnswer contains invalid item IDs',
+            );
+          }
+
+          // Проверка: все элементы должны быть использованы ровно один раз
+          if (
+            userOrderIds.length !== correctOrderIds.length ||
+            new Set(userOrderIds).size !== userOrderIds.length
+          ) {
+            throw new BadRequestException(
+              'orderingAnswer must contain each item exactly once',
+            );
+          }
+
+          // Grading
+          const grade = gradeOrderingAnswer(userOrderIds, correctOrderIds);
+          isCorrect = grade.isCorrect;
+          userAnswer = JSON.stringify({
+            orderingAnswer: grade.userOrder,
+          });
+        }
       } else {
         throw new BadRequestException('Unsupported question type');
       }
@@ -864,7 +940,11 @@ export class ModulesService implements OnModuleInit {
         answers: {
           include: {
             question: {
-              include: { questionOptions: true, matchingPairs: true },
+              include: {
+                questionOptions: true,
+                matchingPairs: true,
+                orderingItems: true,
+              },
             },
           },
           orderBy: { questionId: 'asc' },
@@ -905,6 +985,7 @@ export class ModulesService implements OnModuleInit {
       orderIndex?: number;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
+      orderingItems?: Array<{ text?: string; correctOrder?: number }>;
       acceptedVariants?: string[];
     },
   ) {
@@ -914,7 +995,9 @@ export class ModulesService implements OnModuleInit {
       throw new BadRequestException('questionText is required');
     }
     if (!isQuestionType(body.type)) {
-      throw new BadRequestException('type must be CHOICE, TEXT, or MATCHING');
+      throw new BadRequestException(
+        'type must be CHOICE, TEXT, MATCHING, or ORDERING',
+      );
     }
 
     const orderIndex = body.orderIndex ?? 0;
@@ -938,7 +1021,11 @@ export class ModulesService implements OnModuleInit {
             })),
           },
         },
-        include: { questionOptions: true, matchingPairs: true },
+        include: {
+          questionOptions: true,
+          matchingPairs: true,
+          orderingItems: true,
+        },
       });
     }
 
@@ -970,7 +1057,11 @@ export class ModulesService implements OnModuleInit {
             })),
           },
         },
-        include: { questionOptions: true, matchingPairs: true },
+        include: {
+          questionOptions: true,
+          matchingPairs: true,
+          orderingItems: true,
+        },
       });
     }
 
@@ -1019,7 +1110,69 @@ export class ModulesService implements OnModuleInit {
             ],
           },
         },
-        include: { questionOptions: true, matchingPairs: true },
+        include: {
+          questionOptions: true,
+          matchingPairs: true,
+          orderingItems: true,
+        },
+      });
+    }
+
+    if (body.type === QuestionType.ORDERING) {
+      const items = body.orderingItems ?? [];
+      if (items.length < 2) {
+        throw new BadRequestException(
+          'ORDERING questions require at least two items',
+        );
+      }
+
+      // Валидация: каждый элемент должен иметь text и correctOrder
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (!item.text?.trim()) {
+          throw new BadRequestException(
+            `Item ${i + 1} must have non-empty text`,
+          );
+        }
+        if (
+          typeof item.correctOrder !== 'number' ||
+          item.correctOrder < 0 ||
+          item.correctOrder >= items.length
+        ) {
+          throw new BadRequestException(
+            `Item ${i + 1} must have valid correctOrder (0 to ${items.length - 1})`,
+          );
+        }
+      }
+
+      // Проверка уникальности correctOrder
+      const orders = items.map((item) => item.correctOrder);
+      const uniqueOrders = new Set(orders);
+      if (uniqueOrders.size !== orders.length) {
+        throw new BadRequestException(
+          'Each item must have unique correctOrder value',
+        );
+      }
+
+      return this.prisma.question.create({
+        data: {
+          moduleId,
+          questionText,
+          type: QuestionType.ORDERING,
+          allowMultipleAnswers: false,
+          orderIndex,
+          orderingItems: {
+            create: items.map((item) => ({
+              text: item.text!.trim(),
+              correctOrder: item.correctOrder!,
+            })),
+          },
+        },
+        include: {
+          questionOptions: true,
+          matchingPairs: true,
+          orderingItems: true,
+        },
       });
     }
 
@@ -1031,7 +1184,11 @@ export class ModulesService implements OnModuleInit {
         allowMultipleAnswers: false,
         orderIndex,
       },
-      include: { questionOptions: true, matchingPairs: true },
+      include: {
+        questionOptions: true,
+        matchingPairs: true,
+        orderingItems: true,
+      },
     });
   }
 
@@ -1046,6 +1203,7 @@ export class ModulesService implements OnModuleInit {
       allowMultipleAnswers?: boolean;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
+      orderingItems?: Array<{ text?: string; correctOrder?: number }>;
       acceptedVariants?: string[];
     },
   ) {
@@ -1065,7 +1223,9 @@ export class ModulesService implements OnModuleInit {
         ? (body.allowMultipleAnswers ?? q.allowMultipleAnswers)
         : false;
     if (body.type !== undefined && !isQuestionType(body.type)) {
-      throw new BadRequestException('type must be CHOICE, TEXT, or MATCHING');
+      throw new BadRequestException(
+        'type must be CHOICE, TEXT, MATCHING, or ORDERING',
+      );
     }
 
     if (body.type !== undefined && body.type !== q.type) {
@@ -1087,8 +1247,17 @@ export class ModulesService implements OnModuleInit {
           'When changing type to TEXT, one correct answer option is required',
         );
       }
+      if (
+        body.type === QuestionType.ORDERING &&
+        body.orderingItems === undefined
+      ) {
+        throw new BadRequestException(
+          'When changing type to ORDERING, orderingItems are required',
+        );
+      }
       await this.prisma.questionOption.deleteMany({ where: { questionId } });
       await this.prisma.matchingPair.deleteMany({ where: { questionId } });
+      await this.prisma.orderingItem.deleteMany({ where: { questionId } });
       if (body.type !== QuestionType.TEXT) {
         await this.prisma.question.update({
           where: { id: questionId },
@@ -1234,9 +1403,64 @@ export class ModulesService implements OnModuleInit {
       }
     }
 
+    if (
+      nextType === QuestionType.ORDERING &&
+      body.orderingItems !== undefined
+    ) {
+      const items = body.orderingItems;
+      if (items.length < 2) {
+        throw new BadRequestException(
+          'ORDERING questions require at least two items',
+        );
+      }
+
+      // Валидация: каждый элемент должен иметь text и correctOrder
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (!item.text?.trim()) {
+          throw new BadRequestException(
+            `Item ${i + 1} must have non-empty text`,
+          );
+        }
+        if (
+          typeof item.correctOrder !== 'number' ||
+          item.correctOrder < 0 ||
+          item.correctOrder >= items.length
+        ) {
+          throw new BadRequestException(
+            `Item ${i + 1} must have valid correctOrder (0 to ${items.length - 1})`,
+          );
+        }
+      }
+
+      // Проверка уникальности correctOrder
+      const orders = items.map((item) => item.correctOrder);
+      const uniqueOrders = new Set(orders);
+      if (uniqueOrders.size !== orders.length) {
+        throw new BadRequestException(
+          'Each item must have unique correctOrder value',
+        );
+      }
+
+      await this.prisma.questionOption.deleteMany({ where: { questionId } });
+      await this.prisma.matchingPair.deleteMany({ where: { questionId } });
+      await this.prisma.orderingItem.deleteMany({ where: { questionId } });
+      await this.prisma.orderingItem.createMany({
+        data: items.map((item) => ({
+          questionId,
+          text: item.text!.trim(),
+          correctOrder: item.correctOrder!,
+        })),
+      });
+    }
+
     return this.prisma.question.findFirst({
       where: { id: questionId },
-      include: { questionOptions: true, matchingPairs: true },
+      include: {
+        questionOptions: true,
+        matchingPairs: true,
+        orderingItems: true,
+      },
     });
   }
 
@@ -1291,7 +1515,11 @@ export class ModulesService implements OnModuleInit {
     });
     return this.prisma.question.findFirst({
       where: { id: questionId },
-      include: { questionOptions: true, matchingPairs: true },
+      include: {
+        questionOptions: true,
+        matchingPairs: true,
+        orderingItems: true,
+      },
     });
   }
 
