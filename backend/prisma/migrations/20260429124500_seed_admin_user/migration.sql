@@ -1,11 +1,12 @@
--- Seed/ensure local admin account for admin panel access.
+-- Создание/проверка локальной учетной записи администратора для доступа к админ-панели.
 -- Email:    admin@quizo.local
--- Password: Admin12345!
+-- Пароль:   Admin12345!
 --
--- Safe behavior:
--- - inserts admin if missing
--- - if user already exists with this email, only elevates role and unblocks account
---   (does not overwrite passwordHash on existing rows)
+-- Безопасное поведение:
+-- - добавляет администратора, если его еще нет;
+-- - если пользователь с таким email уже существует, повышает роль до ADMIN,
+--   снимает блокировку и подтверждает email;
+-- - не перезаписывает passwordHash у существующей записи.
 
 INSERT INTO "users" (
   "id",
@@ -22,7 +23,7 @@ VALUES (
   'seed_admin_user',
   'admin@quizo.local',
   '$2b$10$u1JSZ71R.cvOzV0KnZcoDOPKdHBwIyz4Z.U/45Z2fAR24Ot68I9xq',
-  'QuizoO Admin',
+  'Администратор QuizoO',
   'ADMIN',
   false,
   true,

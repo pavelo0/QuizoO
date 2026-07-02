@@ -3,6 +3,7 @@ import { GuestOnlyOutlet } from '@/components/auth/GuestOnlyOutlet';
 import { RequireAdmin } from '@/components/auth/RequireAdmin';
 import { RedirectIfSignedIn } from '@/components/auth/RedirectIfSignedIn';
 import { RequireAuth } from '@/components/auth/RequireAuth';
+import type { ReactElement } from 'react';
 import type { DataRouter } from 'react-router-dom';
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 import AuthLayout from './layouts/AuthLayout';
@@ -25,7 +26,24 @@ import NotFoundPage from './pages/NotFoundPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
+import RouteErrorPage from './pages/RouteErrorPage';
 import StatisticsPage from './pages/statistics';
+
+function UserHomeRoute() {
+  const { user } = useAuthContext();
+  if (user?.role === 'ADMIN') {
+    return <Navigate to="/app/admin" replace />;
+  }
+  return <DashboardPage />;
+}
+
+function LearnerOnlyRoute({ children }: { children: ReactElement }) {
+  const { user } = useAuthContext();
+  if (user?.role === 'ADMIN') {
+    return <Navigate to="/app/admin" replace />;
+  }
+  return children;
+}
 
 function StatisticsRoute() {
   const { user } = useAuthContext();
@@ -38,6 +56,7 @@ function StatisticsRoute() {
 export const router: DataRouter = createBrowserRouter([
   {
     path: '/',
+    errorElement: <RouteErrorPage />,
     element: (
       <RedirectIfSignedIn>
         <LandingLayout />
@@ -47,6 +66,7 @@ export const router: DataRouter = createBrowserRouter([
   },
   {
     path: '/auth',
+    errorElement: <RouteErrorPage />,
     element: <AuthLayout />,
     children: [
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
@@ -62,21 +82,54 @@ export const router: DataRouter = createBrowserRouter([
   },
   {
     path: '/app',
+    errorElement: <RouteErrorPage />,
     element: (
       <RequireAuth>
         <ServiceLayout />
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'modules/create', element: <CreateModulePage /> },
-      { path: 'modules/:moduleId/edit', element: <EditFlashcardModulePage /> },
+      { index: true, element: <UserHomeRoute /> },
+      {
+        path: 'modules/create',
+        element: (
+          <LearnerOnlyRoute>
+            <CreateModulePage />
+          </LearnerOnlyRoute>
+        ),
+      },
+      {
+        path: 'modules/:moduleId/edit',
+        element: (
+          <LearnerOnlyRoute>
+            <EditFlashcardModulePage />
+          </LearnerOnlyRoute>
+        ),
+      },
       {
         path: 'modules/:moduleId/flash-study',
-        element: <FlashcardStudyPage />,
+        element: (
+          <LearnerOnlyRoute>
+            <FlashcardStudyPage />
+          </LearnerOnlyRoute>
+        ),
       },
-      { path: 'modules/:moduleId/quiz-study', element: <QuizStudyPage /> },
-      { path: 'modules/:moduleId/quiz-edit', element: <EditQuizModulePage /> },
+      {
+        path: 'modules/:moduleId/quiz-study',
+        element: (
+          <LearnerOnlyRoute>
+            <QuizStudyPage />
+          </LearnerOnlyRoute>
+        ),
+      },
+      {
+        path: 'modules/:moduleId/quiz-edit',
+        element: (
+          <LearnerOnlyRoute>
+            <EditQuizModulePage />
+          </LearnerOnlyRoute>
+        ),
+      },
       { path: 'statistics', element: <StatisticsRoute /> },
       {
         path: 'settings',

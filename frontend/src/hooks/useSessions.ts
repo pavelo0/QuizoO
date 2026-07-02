@@ -11,7 +11,7 @@ import type {
 } from '@/types/module';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-const MAX_ACTIVITY_ITEMS = 120;
+const ACTIVITY_PAGE_SIZE = 40;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type SessionsRange = '7d' | '30d' | 'all';
@@ -28,7 +28,7 @@ function rangeCutoff(range: SessionsRange) {
 }
 
 function toQuizSessions(items: ModuleSessionActivity[]): QuizSessionActivity[] {
-  return items.filter((row): row is QuizSessionActivity => {
+  return (items ?? []).filter((row): row is QuizSessionActivity => {
     return row.kind === 'QUIZ_SESSION';
   });
 }
@@ -61,6 +61,9 @@ export function useSessions() {
   const [selectedModuleId, setSelectedModuleId] = useState<string>('all');
   const [selectedRange, setSelectedRange] = useState<SessionsRange>('30d');
   const [sessions, setSessions] = useState<ModuleSessionActivity[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [modules, setModules] = useState<ModuleListItem[]>([]);
   const [summary, setSummary] = useState<Awaited<
     ReturnType<typeof fetchModulesDashboardSummary>
@@ -71,15 +74,25 @@ export function useSessions() {
     setError(null);
     try {
       const [activity, stats, moduleList] = await Promise.all([
-        fetchRecentModuleActivity(MAX_ACTIVITY_ITEMS),
+        fetchRecentModuleActivity({ take: ACTIVITY_PAGE_SIZE }),
         fetchModulesDashboardSummary(),
         fetchModuleList(),
       ]);
-      setSessions(activity);
+      const activityItems = Array.isArray(activity?.items)
+        ? activity.items
+        : [];
+      const activityNextCursor =
+        typeof activity?.nextCursor === 'string' ? activity.nextCursor : null;
+      setSessions(activityItems);
+      setNextCursor(activityNextCursor);
+      setHasMore(Boolean(activityNextCursor));
       setSummary(stats);
-      setModules(moduleList);
+      setModules(Array.isArray(moduleList) ? moduleList : []);
+      setLoadingMore(false);
     } catch (e) {
       setError(apiErrorMessage(e));
+      setHasMore(false);
+      setNextCursor(null);
     } finally {
       setLoading(false);
     }
@@ -89,9 +102,37 @@ export function useSessions() {
     void reload();
   }, [reload]);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const page = await fetchRecentModuleActivity({
+        take: ACTIVITY_PAGE_SIZE,
+        cursor: nextCursor,
+      });
+      const pageItems = Array.isArray(page?.items) ? page.items : [];
+      const pageNextCursor =
+        typeof page?.nextCursor === 'string' ? page.nextCursor : null;
+      setSessions((prev) => {
+        const map = new Map(prev.map((session) => [session.id, session]));
+        for (const row of pageItems) {
+          map.set(row.id, row);
+        }
+        return Array.from(map.values());
+      });
+      setNextCursor(pageNextCursor);
+      setHasMore(Boolean(pageNextCursor));
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, loadingMore, nextCursor]);
+
   const filteredSessions = useMemo(() => {
     const cutoff = rangeCutoff(selectedRange);
-    return sessions.filter((session) => {
+    const source = sessions ?? [];
+    return source.filter((session) => {
       if (selectedModuleId !== 'all' && session.moduleId !== selectedModuleId) {
         return false;
       }
@@ -252,6 +293,9 @@ export function useSessions() {
     selectedRange,
     setSelectedRange,
     filteredSessions,
+    hasMore,
+    loadingMore,
+    loadMore,
     stats: {
       totalSessions: filteredSessions.length,
       cardsStudied,

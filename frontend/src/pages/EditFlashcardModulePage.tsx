@@ -103,15 +103,16 @@ const flashcardJsonExample = JSON.stringify(
   {
     formatVersion: FLASHCARD_IMPORT_FORMAT_VERSION,
     moduleType: 'FLASHCARD',
-    title: 'Sample flashcard module',
+    title: 'Контрольный набор: флешкарточки',
     cards: [
       {
-        question: 'Capital of Japan',
-        answer: 'Tokyo',
+        question: 'Что такое алгоритм?',
+        answer:
+          'Последовательность точных шагов для решения задачи за конечное время',
       },
       {
-        question: 'HTTP stands for',
-        answer: 'HyperText Transfer Protocol',
+        question: 'Как называется протокол для безопасного веб-трафика?',
+        answer: 'HTTPS',
       },
     ],
   },

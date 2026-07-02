@@ -159,6 +159,11 @@ export class UsersService implements OnModuleInit {
   async listModulesForAdmin(adminUserId: string) {
     await this.assertAdmin(adminUserId);
     const modules = await this.prisma.module.findMany({
+      where: {
+        user: {
+          role: { not: 'ADMIN' },
+        },
+      },
       include: {
         user: {
           select: { id: true, email: true, username: true, isBlocked: true },
@@ -212,6 +217,19 @@ export class UsersService implements OnModuleInit {
         isBlocked: m.user.isBlocked,
       },
     }));
+  }
+
+  async deleteModuleForAdmin(adminUserId: string, moduleId: string) {
+    await this.assertAdmin(adminUserId);
+    const existing = await this.prisma.module.findUnique({
+      where: { id: moduleId },
+      select: { id: true },
+    });
+    if (!existing) {
+      throw new NotFoundException('Module not found');
+    }
+    await this.prisma.module.delete({ where: { id: moduleId } });
+    return { ok: true as const };
   }
 
   async setUserBlockedForAdmin(
