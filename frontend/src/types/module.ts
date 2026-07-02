@@ -5,7 +5,7 @@
 export type ModuleId = string;
 
 export type ModuleType = 'FLASHCARD' | 'QUIZ';
-export type QuestionType = 'CHOICE' | 'TEXT' | 'MATCHING';
+export type QuestionType = 'CHOICE' | 'TEXT' | 'MATCHING' | 'ORDERING';
 
 /** Карточка модуля (флешкарточки) */
 export interface ModuleCard {
@@ -31,6 +31,13 @@ export interface ModuleMatchingPair {
   rightItem: string;
 }
 
+export interface ModuleOrderingItem {
+  id: string;
+  questionId?: string;
+  text: string;
+  correctOrder?: number;
+}
+
 export interface ModuleQuestion {
   id: string;
   moduleId: string;
@@ -42,6 +49,7 @@ export interface ModuleQuestion {
   createdAt: string;
   questionOptions: ModuleQuestionOption[];
   matchingPairs: ModuleMatchingPair[];
+  orderingItems: ModuleOrderingItem[];
   acceptedVariants?: string[];
 }
 
@@ -128,11 +136,13 @@ export type QuizChoiceUserAnswer = {
 };
 export type QuizTextUserAnswer = { textAnswer: string };
 export type QuizMatchingUserAnswer = { matchingAnswer: Record<string, string> };
+export type QuizOrderingUserAnswer = { orderingAnswer: string[] };
 
 export type QuizUserAnswer =
   | QuizChoiceUserAnswer
   | QuizTextUserAnswer
-  | QuizMatchingUserAnswer;
+  | QuizMatchingUserAnswer
+  | QuizOrderingUserAnswer;
 
 export interface QuizSessionAnswerDetail {
   id: string;

@@ -14,10 +14,10 @@
 
 Два типа модулей:
 
-| Тип         | Режим обучения                                 | Контент                              |
-| ----------- | ---------------------------------------------- | ------------------------------------ |
-| `FLASHCARD` | Листание карточек, самооценка «знал / не знал» | Пары question → answer               |
-| `QUIZ`      | Тест с автоматической проверкой                | Вопросы типов CHOICE, TEXT, MATCHING |
+| Тип         | Режим обучения                                 | Контент                                        |
+| ----------- | ---------------------------------------------- | ---------------------------------------------- |
+| `FLASHCARD` | Листание карточек, самооценка «знал / не знал» | Пары question → answer                         |
+| `QUIZ`      | Тест с автоматической проверкой                | Вопросы типов CHOICE, TEXT, MATCHING, ORDERING |
 
 **Роли:**
 
@@ -164,7 +164,7 @@ frontend/src/
 ```
 UserRole:       USER | ADMIN
 ModuleType:     FLASHCARD | QUIZ
-QuestionType:   CHOICE | TEXT | MATCHING
+QuestionType:   CHOICE | TEXT | MATCHING | ORDERING
 ```
 
 ### Основные сущности
@@ -179,11 +179,12 @@ User 1──M Module 1──M Card          (FLASHCARD)
 
 ### Хранение ответов quiz
 
-| Тип      | Correct answer                                    | User answer (JSON в QuizAnswer)                    |
-| -------- | ------------------------------------------------- | -------------------------------------------------- |
-| CHOICE   | `QuestionOption.isCorrect`                        | `{ choiceOptionId }` или `{ choiceOptionIds: [] }` |
-| TEXT     | единственный `QuestionOption` с `isCorrect: true` | `{ textAnswer: string }`                           |
-| MATCHING | `MatchingPair` (id → id)                          | `{ matchingAnswer: Record<pairId, pairId> }`       |
+| Тип      | Correct answer                                    | User answer (JSON в QuizAnswer)                       |
+| -------- | ------------------------------------------------- | ----------------------------------------------------- |
+| CHOICE   | `QuestionOption.isCorrect`                        | `{ choiceOptionId }` или `{ choiceOptionIds: [] }`    |
+| TEXT     | единственный `QuestionOption` с `isCorrect: true` | `{ textAnswer: string }`                              |
+| MATCHING | `MatchingPair` (id → id)                          | `{ matchingAnswer: Record<pairId, pairId> }`          |
+| ORDERING | `OrderingItem.correctOrder`                       | `{ orderingAnswer: string[] }` (массив ID по порядку) |
 
 ---
 
@@ -245,10 +246,11 @@ User 1──M Module 1──M Card          (FLASHCARD)
 | `CHOICE`   | Radio/checkbox     | Сравнение option id(s); multi via `allowMultipleAnswers` |
 | `TEXT`     | Text input         | `trim().toLowerCase()` vs correct option text            |
 | `MATCHING` | Drag/connect pairs | `rightId === leftId` для каждой пары                     |
+| `ORDERING` | Drag-and-drop list | Strict match: порядок ID совпадает с `correctOrder`      |
 
 ### Планируемые
 
-См. [`TODO.md`](./TODO.md) фаза C: `TRUE_FALSE`, `ORDERING`, `FILL_BLANK`, `MULTI_TEXT`, `NUMERIC`.
+См. [`TODO.md`](./TODO.md) фаза C: `TRUE_FALSE`, `FILL_BLANK`, `MULTI_TEXT`, `NUMERIC`.
 
 ### Нормализация TEXT (план)
 

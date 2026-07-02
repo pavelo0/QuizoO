@@ -1,3 +1,4 @@
+import { SortableOrderingList } from '@/components/modules/SortableOrderingList';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -51,6 +52,7 @@ type DraftAnswer = {
   choiceOptionIds?: string[];
   textAnswer?: string;
   matchingAnswer?: Record<string, string>;
+  orderingAnswer?: string[];
 };
 
 function readShuffle(id: string) {
@@ -93,7 +95,16 @@ function isQuestionAnswered(
   }
   if (question.type === 'MATCHING') {
     const map = draft.matchingAnswer ?? {};
-    return question.matchingPairs.every((pair) => Boolean(map[pair.id]));
+    const pairs = Array.isArray(question.matchingPairs)
+      ? question.matchingPairs
+      : [];
+    return pairs.every((pair) => Boolean(map[pair.id]));
+  }
+  if (question.type === 'ORDERING') {
+    const items = Array.isArray(question.orderingItems)
+      ? question.orderingItems
+      : [];
+    return (draft.orderingAnswer?.length ?? 0) === items.length;
   }
   return false;
 }
@@ -118,6 +129,12 @@ function toSessionAnswerPayload(
       textAnswer: draft?.textAnswer?.trim() || null,
     };
   }
+  if (question.type === 'ORDERING') {
+    return {
+      questionId: question.id,
+      orderingAnswer: draft?.orderingAnswer ?? null,
+    };
+  }
   return {
     questionId: question.id,
     matchingAnswer: draft?.matchingAnswer ?? null,
@@ -127,16 +144,23 @@ function toSessionAnswerPayload(
 function renderCorrectAnswer(answer: QuizSessionAnswerDetail) {
   const q = answer.question;
   if (q.type === 'CHOICE') {
-    const correct = q.questionOptions
-      .filter((o) => o.isCorrect)
-      .map((o) => o.text);
+    const options = Array.isArray(q.questionOptions) ? q.questionOptions : [];
+    const correct = options.filter((o) => o.isCorrect).map((o) => o.text);
     return correct.length > 0 ? correct.join(' · ') : '—';
   }
   if (q.type === 'TEXT') {
-    const correct = q.questionOptions.find((o) => o.isCorrect)?.text ?? '—';
+    const options = Array.isArray(q.questionOptions) ? q.questionOptions : [];
+    const correct = options.find((o) => o.isCorrect)?.text ?? '—';
     return correct;
   }
-  return q.matchingPairs
+  if (q.type === 'ORDERING') {
+    const items = [...(Array.isArray(q.orderingItems) ? q.orderingItems : [])]
+      .sort((a, b) => (a.correctOrder ?? 0) - (b.correctOrder ?? 0))
+      .map((item) => item.text);
+    return items.length > 0 ? items.join(' → ') : '—';
+  }
+  const pairs = Array.isArray(q.matchingPairs) ? q.matchingPairs : [];
+  return pairs
     .map((pair) => `${pair.leftItem} -> ${pair.rightItem}`)
     .join(' · ');
 }
@@ -148,6 +172,7 @@ function renderUserAnswer(
   const q = answer.question;
   if (!answer.userAnswer) return t('quizStudy.noAnswer');
   if (q.type === 'CHOICE') {
+    const options = Array.isArray(q.questionOptions) ? q.questionOptions : [];
     const selectedIds =
       'choiceOptionIds' in answer.userAnswer
         ? (answer.userAnswer.choiceOptionIds ?? [])
@@ -158,8 +183,7 @@ function renderUserAnswer(
     if (selectedIds.length < 1) return t('quizStudy.noAnswer');
     const selected = selectedIds.map((id) => {
       return (
-        q.questionOptions.find((o) => o.id === id)?.text ??
-        t('quizStudy.unknownOption')
+        options.find((o) => o.id === id)?.text ?? t('quizStudy.unknownOption')
       );
     });
     return selected.join(' · ');
@@ -168,6 +192,28 @@ function renderUserAnswer(
     if (!('textAnswer' in answer.userAnswer)) return t('quizStudy.noAnswer');
     return answer.userAnswer.textAnswer?.trim() || t('quizStudy.noAnswer');
   }
+  if (q.type === 'ORDERING') {
+    if (!('orderingAnswer' in answer.userAnswer)) {
+      return t('quizStudy.noAnswer');
+    }
+    const userOrderIds = answer.userAnswer.orderingAnswer;
+    if (!Array.isArray(userOrderIds) || userOrderIds.length < 1) {
+      return t('quizStudy.noAnswer');
+    }
+    const items = Array.isArray(q.orderingItems) ? q.orderingItems : [];
+    const itemsById = new Map(items.map((item) => [item.id, item]));
+    const correctOrder = [...items]
+      .sort((a, b) => (a.correctOrder ?? 0) - (b.correctOrder ?? 0))
+      .map((item) => item.id);
+    return userOrderIds
+      .map((id, index) => {
+        const item = itemsById.get(id);
+        const isCorrect = correctOrder[index] === id;
+        return `${index + 1}. ${item?.text ?? t('quizStudy.unknownOption')} ${isCorrect ? '✓' : '✗'}`;
+      })
+      .join(' · ');
+  }
+  const pairs = Array.isArray(q.matchingPairs) ? q.matchingPairs : [];
   const matchingAnswer =
     'matchingAnswer' in answer.userAnswer
       ? answer.userAnswer.matchingAnswer
@@ -177,10 +223,10 @@ function renderUserAnswer(
   }
 
   const rightById = new Map(
-    q.matchingPairs.map((pair) => [pair.id, pair.rightItem] as const),
+    pairs.map((pair) => [pair.id, pair.rightItem] as const),
   );
 
-  return q.matchingPairs
+  return pairs
     .map((pair) => {
       const selectedId = matchingAnswer[pair.id];
       const selectedRight = selectedId
@@ -204,6 +250,7 @@ export default function QuizStudyPage() {
   const { t } = useI18n();
   const { moduleId: rawId } = useParams();
   const moduleId = (rawId ?? '') as ModuleId;
+  const tRef = useRef(t);
 
   const [loadState, setLoadState] = useState<
     'loading' | 'ok' | 'notfound' | 'wrongType'
@@ -215,6 +262,9 @@ export default function QuizStudyPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, DraftAnswer>>({});
+  const [studyOrderingItems, setStudyOrderingItems] = useState<
+    Array<{ id: string; text: string }>
+  >([]);
   const [submitState, setSubmitState] = useState<'idle' | 'saving' | 'error'>(
     'idle',
   );
@@ -226,6 +276,7 @@ export default function QuizStudyPage() {
   const [animatedPercent, setAnimatedPercent] = useState(0);
   const [quizElapsedMs, setQuizElapsedMs] = useState<number | null>(null);
   const nextCursorRef = useRef<string | null>(null);
+  const answersRef = useRef(answers);
   const countdownResetRef = useRef<() => void>(() => {});
   const studyStartedAtRef = useRef<number | null>(null);
 
@@ -249,6 +300,14 @@ export default function QuizStudyPage() {
     });
   }, []);
 
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
   const loadInitial = useCallback(async () => {
     if (!moduleId) {
       setLoadState('notfound');
@@ -258,7 +317,9 @@ export default function QuizStudyPage() {
     countdownResetRef.current();
     try {
       const page = await fetchQuizQuestionsPage(moduleId, { take: PAGE_SIZE });
-      setModuleTitle(page.moduleTitle?.trim() || t('quizStudy.quizModule'));
+      setModuleTitle(
+        page.moduleTitle?.trim() || tRef.current('quizStudy.quizModule'),
+      );
       setTotalQuestions(page.total);
       setQuestions(maybeShuffleQuestions(page.items, shuffleEnabled));
       setNextCursor(page.nextCursor);
@@ -281,7 +342,7 @@ export default function QuizStudyPage() {
       }
       setLoadState('notfound');
     }
-  }, [moduleId, shuffleEnabled, t]);
+  }, [moduleId, shuffleEnabled]);
 
   const loadMore = useCallback(async () => {
     const cursor = nextCursorRef.current;
@@ -298,12 +359,12 @@ export default function QuizStudyPage() {
       nextCursorRef.current = page.nextCursor;
       return prepared.length;
     } catch (e) {
-      toast.error(apiErrorText(e, t));
+      toast.error(apiErrorText(e, tRef.current));
       return 0;
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, mergeQuestions, moduleId, shuffleEnabled, t]);
+  }, [isLoadingMore, mergeQuestions, moduleId, shuffleEnabled]);
 
   useEffect(() => {
     if (!timerEnabled || loadState !== 'ok' || session || totalQuestions < 1) {
@@ -389,6 +450,39 @@ export default function QuizStudyPage() {
   const currentDraft = currentQuestion
     ? answers[currentQuestion.id]
     : undefined;
+
+  useEffect(() => {
+    if (!currentQuestion || currentQuestion.type !== 'ORDERING') {
+      setStudyOrderingItems([]);
+      return;
+    }
+    const items = Array.isArray(currentQuestion.orderingItems)
+      ? currentQuestion.orderingItems
+      : [];
+    const existingOrder =
+      answersRef.current[currentQuestion.id]?.orderingAnswer;
+    if (existingOrder && existingOrder.length === items.length) {
+      const textById = new Map(items.map((item) => [item.id, item.text]));
+      setStudyOrderingItems(
+        existingOrder.map((id) => ({
+          id,
+          text: textById.get(id) ?? tRef.current('quizStudy.unknownOption'),
+        })),
+      );
+      return;
+    }
+    const shuffled = shuffle(
+      items.map((item) => ({ id: item.id, text: item.text })),
+    );
+    setStudyOrderingItems(shuffled);
+    setAnswers((prev) => ({
+      ...prev,
+      [currentQuestion.id]: {
+        orderingAnswer: shuffled.map((item) => item.id),
+      },
+    }));
+  }, [currentQuestion?.id, currentQuestion?.type]);
+
   const answeredCount = useMemo(
     () => questions.filter((q) => isQuestionAnswered(q, answers[q.id])).length,
     [answers, questions],
@@ -549,6 +643,19 @@ export default function QuizStudyPage() {
             ...(prev[questionId]?.matchingAnswer ?? {}),
             [leftPairId]: rightPairId,
           },
+        },
+      }));
+    },
+    [],
+  );
+
+  const setStudyOrderingOrder = useCallback(
+    (questionId: string, items: Array<{ id: string; text: string }>) => {
+      setStudyOrderingItems(items);
+      setAnswers((prev) => ({
+        ...prev,
+        [questionId]: {
+          orderingAnswer: items.map((item) => item.id),
         },
       }));
     },
@@ -903,7 +1010,10 @@ export default function QuizStudyPage() {
   const currentAnswered = isQuestionAnswered(currentQuestion, currentDraft);
   const matchingOptions =
     currentQuestion.type === 'MATCHING'
-      ? currentQuestion.matchingPairs.map((pair) => ({
+      ? (Array.isArray(currentQuestion.matchingPairs)
+          ? currentQuestion.matchingPairs
+          : []
+        ).map((pair) => ({
           id: pair.id,
           label: pair.rightItem,
         }))
@@ -1051,7 +1161,10 @@ export default function QuizStudyPage() {
                 ? t('quizStudy.selectOneOrMore')
                 : t('quizStudy.selectOne')}
             </p>
-            {currentQuestion.questionOptions.map((opt) => {
+            {(Array.isArray(currentQuestion.questionOptions)
+              ? currentQuestion.questionOptions
+              : []
+            ).map((opt) => {
               const selected = (currentDraft?.choiceOptionIds ?? []).includes(
                 opt.id,
               );
@@ -1109,7 +1222,10 @@ export default function QuizStudyPage() {
 
         {currentQuestion.type === 'MATCHING' ? (
           <div className="mt-6 space-y-3">
-            {currentQuestion.matchingPairs.map((pair) => (
+            {(Array.isArray(currentQuestion.matchingPairs)
+              ? currentQuestion.matchingPairs
+              : []
+            ).map((pair) => (
               <div
                 key={pair.id}
                 className="grid gap-2 rounded-2xl border border-(--border-default) bg-(--input-bg)/30 p-3 sm:grid-cols-[1fr_1fr]"
@@ -1141,6 +1257,21 @@ export default function QuizStudyPage() {
                 </select>
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {currentQuestion.type === 'ORDERING' ? (
+          <div className="mt-6 space-y-3">
+            <p className="text-xs text-(--text-secondary)">
+              {t('quizStudy.orderingInstruction')}
+            </p>
+            <SortableOrderingList
+              items={studyOrderingItems}
+              mode="study"
+              onReorder={(items) =>
+                setStudyOrderingOrder(currentQuestion.id, items)
+              }
+            />
           </div>
         ) : null}
 

@@ -1,28 +1,4 @@
-import {
-  createQuestion,
-  deleteQuestionImage,
-  deleteModule,
-  deleteQuestion,
-  fetchModuleById,
-  questionImageUrl,
-  uploadQuestionImage,
-  updateModule,
-  updateQuestion,
-} from '@/lib/api/modules';
-import { apiErrorText } from '@/lib/apiErrorMessage';
-import { useI18n } from '@/i18n/useI18n';
-import { MAX_MODULE_TITLE_LENGTH } from '@/lib/moduleConstants';
-import { clearQuizDraftInflight } from '@/lib/quizModuleDraft';
-import {
-  readQuizTimerDurationSec,
-  readQuizTimerEnabled,
-  SESSION_TIMER_DURATION_OPTIONS_SEC,
-  writeQuizTimerDurationSec,
-  writeQuizTimerEnabled,
-  type SessionTimerDurationSec,
-} from '@/lib/sessionTimerPrefs';
-import { cn } from '@/lib/utils';
-import type { ModuleId, ModuleQuestion, QuestionType } from '@/types/module';
+import { SortableOrderingList } from '@/components/modules/SortableOrderingList';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -51,6 +27,31 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useI18n } from '@/i18n/useI18n';
+import {
+  createQuestion,
+  deleteModule,
+  deleteQuestion,
+  deleteQuestionImage,
+  fetchModuleById,
+  questionImageUrl,
+  updateModule,
+  updateQuestion,
+  uploadQuestionImage,
+} from '@/lib/api/modules';
+import { apiErrorText } from '@/lib/apiErrorMessage';
+import { MAX_MODULE_TITLE_LENGTH } from '@/lib/moduleConstants';
+import { clearQuizDraftInflight } from '@/lib/quizModuleDraft';
+import {
+  SESSION_TIMER_DURATION_OPTIONS_SEC,
+  readQuizTimerDurationSec,
+  readQuizTimerEnabled,
+  writeQuizTimerDurationSec,
+  writeQuizTimerEnabled,
+  type SessionTimerDurationSec,
+} from '@/lib/sessionTimerPrefs';
+import { cn } from '@/lib/utils';
+import type { ModuleId, ModuleQuestion, QuestionType } from '@/types/module';
 import {
   DndContext,
   KeyboardSensor,
@@ -68,23 +69,24 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import axios from 'axios';
 import {
   BookOpen,
   CircleHelp,
   Clock,
   Download,
-  Image as ImageIcon,
   GripVertical,
   IdCard,
+  Image as ImageIcon,
   ListChecks,
   MoveDown,
   MoveUp,
   Pencil,
   Plus,
-  X,
   Search,
   Trash2,
   Upload,
+  X,
 } from 'lucide-react';
 import {
   memo,
@@ -96,6 +98,7 @@ import {
   type ChangeEvent,
   type ComponentProps,
 } from 'react';
+import { toast } from 'react-hot-toast';
 import {
   Link,
   useBlocker,
@@ -103,8 +106,6 @@ import {
   useParams,
   type Location,
 } from 'react-router-dom';
-import axios from 'axios';
-import { toast } from 'react-hot-toast';
 
 const MAX_QUESTIONS_PER_MODULE = 30;
 const QUIZ_IMPORT_FORMAT_VERSION = 1;
@@ -117,8 +118,16 @@ type QuestionPayload = {
   allowMultipleAnswers?: boolean;
   options?: Array<{ text: string; isCorrect: boolean }>;
   matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+  orderingItems?: Array<{ text: string; correctOrder: number }>;
   acceptedVariants?: string[];
 };
+
+function createDefaultOrderingItems() {
+  return [
+    { id: crypto.randomUUID(), text: '' },
+    { id: crypto.randomUUID(), text: '' },
+  ];
+}
 
 function parseAcceptedVariantsText(raw: string): string[] {
   return Array.from(
@@ -169,6 +178,11 @@ const quizJsonExample = JSON.stringify(
           },
         ],
       },
+      {
+        type: 'ORDERING',
+        questionText: 'Расположите исторические даты в хронологическом порядке',
+        items: ['1914', '1789', '1945', '1969'],
+      },
     ],
   },
   null,
@@ -213,13 +227,22 @@ function toExportQuestion(q: ModuleQuestion) {
     }
     return exported;
   }
+  if (q.type === 'MATCHING') {
+    return {
+      type: 'MATCHING',
+      questionText: q.questionText,
+      pairs: q.matchingPairs.map((p) => ({
+        left: p.leftItem,
+        right: p.rightItem,
+      })),
+    };
+  }
   return {
-    type: 'MATCHING',
+    type: 'ORDERING',
     questionText: q.questionText,
-    pairs: q.matchingPairs.map((p) => ({
-      left: p.leftItem,
-      right: p.rightItem,
-    })),
+    items: [...(Array.isArray(q.orderingItems) ? q.orderingItems : [])]
+      .sort((a, b) => (a.correctOrder ?? 0) - (b.correctOrder ?? 0))
+      .map((item) => item.text),
   };
 }
 
@@ -270,6 +293,7 @@ function parseQuizImportJson(
       answer?: string;
       acceptedVariants?: unknown;
       pairs?: unknown;
+      items?: unknown;
     };
     const questionText = q.questionText?.trim() ?? '';
     if (!questionText) {
@@ -374,6 +398,30 @@ function parseQuizImportJson(
       };
     }
 
+    if (q.type === 'ORDERING') {
+      if (!Array.isArray(q.items) || q.items.length < 2) {
+        throw new Error(
+          t('editQuiz.importOrderingItemsMin', { index: idx + 1 }),
+        );
+      }
+      const orderingItems = q.items.map((item, itemIndex) => {
+        if (typeof item !== 'string' || !item.trim()) {
+          throw new Error(
+            t('editQuiz.importOrderingItemTextRequired', { index: idx + 1 }),
+          );
+        }
+        return {
+          text: item.trim(),
+          correctOrder: itemIndex,
+        };
+      });
+      return {
+        questionText,
+        type: 'ORDERING' as const,
+        orderingItems,
+      };
+    }
+
     throw new Error(t('editQuiz.importUnknownType', { index: idx + 1 }));
   });
 }
@@ -445,6 +493,11 @@ function getQuestionTypes(t: (key: string) => string): QuestionTypeUi[] {
       title: t('questionType.matching'),
       badge: t('questionType.badgeMatching'),
     },
+    {
+      value: 'ORDERING',
+      title: t('questionType.ordering'),
+      badge: t('questionType.badgeOrdering'),
+    },
   ];
 }
 
@@ -485,6 +538,16 @@ function summarizeQuestion(
         .map((p) => `${p.leftItem} -> ${p.rightItem}`)
         .join(' · ') || t('editQuiz.summaryNoPairs')
     );
+  }
+  if (q.type === 'ORDERING') {
+    const items = [...(Array.isArray(q.orderingItems) ? q.orderingItems : [])]
+      .sort((a, b) => (a.correctOrder ?? 0) - (b.correctOrder ?? 0))
+      .map((item) => item.text)
+      .filter(Boolean);
+    const preview = items.slice(0, 3).join(' → ');
+    return items.length > 3
+      ? `${preview}…`
+      : preview || t('editQuiz.summaryNoOrderingItems');
   }
   return t('questionType.text');
 }
@@ -688,6 +751,9 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     { text: '', isCorrect: false },
   ]);
   const [pairs, setPairs] = useState(DEFAULT_MATCHING_PAIRS);
+  const [orderingItems, setOrderingItems] = useState<
+    Array<{ id: string; text: string }>
+  >(createDefaultOrderingItems);
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -697,6 +763,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     textAnswer?: string;
     options?: string;
     matching?: string;
+    orderingItems?: string;
     image?: string;
     form?: string;
   }>({});
@@ -738,6 +805,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
         { text: '', isCorrect: false },
       ]);
       setPairs(DEFAULT_MATCHING_PAIRS);
+      setOrderingItems(createDefaultOrderingItems());
       return;
     }
     setType(editingQuestion.type);
@@ -772,6 +840,20 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
           }))
         : DEFAULT_MATCHING_PAIRS,
     );
+    if (editingQuestion.type === 'ORDERING') {
+      const loaded = [
+        ...(Array.isArray(editingQuestion.orderingItems)
+          ? editingQuestion.orderingItems
+          : []),
+      ]
+        .sort((a, b) => (a.correctOrder ?? 0) - (b.correctOrder ?? 0))
+        .map((item) => ({ id: item.id, text: item.text }));
+      setOrderingItems(
+        loaded.length >= 2 ? loaded : createDefaultOrderingItems(),
+      );
+    } else {
+      setOrderingItems(createDefaultOrderingItems());
+    }
   }, [open, editingQuestion]);
 
   const addChoiceOption = useCallback(() => {
@@ -780,6 +862,23 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
 
   const addMatchingPair = useCallback(() => {
     setPairs((prev) => [...prev, { leftItem: '', rightItem: '' }]);
+  }, []);
+
+  const addOrderingItem = useCallback(() => {
+    setOrderingItems((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text: '' },
+    ]);
+  }, []);
+
+  const updateOrderingItemText = useCallback((id: string, text: string) => {
+    setOrderingItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, text } : item)),
+    );
+  }, []);
+
+  const removeOrderingItem = useCallback((id: string) => {
+    setOrderingItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
   const onImageChange = useCallback(
@@ -841,6 +940,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       textAnswer?: string;
       options?: string;
       matching?: string;
+      orderingItems?: string;
       image?: string;
       form?: string;
     } = {};
@@ -895,6 +995,16 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       nextErrors.textAnswer = t('editQuiz.validationTextAnswer');
     }
 
+    const cleanOrderingItems = orderingItems
+      .map((item) => ({ id: item.id, text: item.text.trim() }))
+      .filter((item) => item.text.length > 0);
+
+    if (type === 'ORDERING') {
+      if (cleanOrderingItems.length < 2) {
+        nextErrors.orderingItems = t('editQuiz.validationOrderingMinItems');
+      }
+    }
+
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -906,6 +1016,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
       allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+      orderingItems?: Array<{ text: string; correctOrder: number }>;
       acceptedVariants?: string[];
     } = { questionText: question, type };
 
@@ -920,6 +1031,12 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     }
     if (type === 'MATCHING') {
       payload.matchingPairs = cleanPairs;
+    }
+    if (type === 'ORDERING') {
+      payload.orderingItems = cleanOrderingItems.map((item, index) => ({
+        text: item.text,
+        correctOrder: index,
+      }));
     }
 
     setSaving(true);
@@ -950,6 +1067,7 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
     onUpdateQuestion,
     options,
     pairs,
+    orderingItems,
     questionText,
     textAnswer,
     acceptedVariantsText,
@@ -1322,6 +1440,50 @@ const QuizQuestionDialog = memo(function QuizQuestionDialog({
                 ) : null}
               </div>
             ) : null}
+
+            {type === 'ORDERING' ? (
+              <div>
+                <p className={labelClass}>
+                  {t('editQuiz.dialogOrderingItems')}
+                </p>
+                <SortableOrderingList
+                  items={orderingItems}
+                  mode="edit"
+                  onReorder={setOrderingItems}
+                  onItemTextChange={(id, text) => {
+                    updateOrderingItemText(id, text);
+                    setErrors((prev) => ({
+                      ...prev,
+                      orderingItems: undefined,
+                      form: undefined,
+                    }));
+                  }}
+                  onRemoveItem={removeOrderingItem}
+                  textPlaceholder={t('editQuiz.orderingItemPlaceholder')}
+                />
+                <div className="mt-3 flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 rounded-xl"
+                    onClick={addOrderingItem}
+                  >
+                    {t('editQuiz.dialogAddOrderingItem')}
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-(--text-secondary)">
+                  {t('editQuiz.orderingHint')}
+                </p>
+                {errors.orderingItems ? (
+                  <p
+                    className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                    role="alert"
+                  >
+                    {errors.orderingItems}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -1608,6 +1770,7 @@ export default function EditQuizModulePage() {
         allowMultipleAnswers?: boolean;
         options?: Array<{ text: string; isCorrect: boolean }>;
         matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+        orderingItems?: Array<{ text: string; correctOrder: number }>;
         acceptedVariants?: string[];
       },
       imageFile: File | null,
@@ -1636,6 +1799,7 @@ export default function EditQuizModulePage() {
         allowMultipleAnswers?: boolean;
         options?: Array<{ text: string; isCorrect: boolean }>;
         matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+        orderingItems?: Array<{ text: string; correctOrder: number }>;
         acceptedVariants?: string[];
       },
       imageUpdate: {
