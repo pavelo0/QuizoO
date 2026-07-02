@@ -74,14 +74,17 @@ function scoreColor(score: number | null) {
 
 function ActivityMetric({ session }: { session: ModuleSessionActivity }) {
   if (session.kind === 'QUIZ_SESSION') {
+    const safeScore = Number.isFinite(session.scorePercent)
+      ? session.scorePercent
+      : null;
     return (
       <span
         className={cn(
           'inline-flex rounded-full px-2 py-1 text-[11px] font-semibold',
-          scoreColor(session.scorePercent),
+          scoreColor(safeScore),
         )}
       >
-        {Math.round(session.scorePercent)}%
+        {safeScore == null ? '—' : `${Math.round(safeScore)}%`}
       </span>
     );
   }
@@ -257,6 +260,9 @@ export default function StatisticsPage() {
     selectedRange,
     setSelectedRange,
     filteredSessions,
+    hasMore,
+    loadingMore,
+    loadMore,
     stats,
     quizSeries,
     modulePerformance,
@@ -392,7 +398,7 @@ export default function StatisticsPage() {
                     Module
                   </TableHead>
                   <TableHead className="h-10 text-(--text-secondary)">
-                    Sessions
+                    {t('statistics.sessions')}
                   </TableHead>
                   <TableHead className="h-10 text-(--text-secondary)">
                     Best score
@@ -512,7 +518,7 @@ export default function StatisticsPage() {
               className="h-10 rounded-xl border border-(--border-default) bg-(--bg-color) px-3 text-sm text-(--text-primary) outline-none"
             >
               <option value="all">{t('common.allModules')}</option>
-              {modules.map((module) => (
+              {(Array.isArray(modules) ? modules : []).map((module) => (
                 <option key={module.id} value={module.id}>
                   {module.title}
                 </option>
@@ -526,59 +532,79 @@ export default function StatisticsPage() {
             {error}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-(--border-default)">
-                <TableHead>{t('statistics.type')}</TableHead>
-                <TableHead>{t('statistics.module')}</TableHead>
-                <TableHead>{t('statistics.result')}</TableHead>
-                <TableHead>{t('statistics.date')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow className="border-(--border-default)">
-                  <TableCell
-                    colSpan={4}
-                    className="h-16 text-center text-(--text-secondary)"
-                  >
-                    {t('statistics.loadingSessions')}
-                  </TableCell>
-                </TableRow>
-              ) : filteredSessions.length < 1 ? (
-                <TableRow className="border-(--border-default)">
-                  <TableCell
-                    colSpan={4}
-                    className="h-16 text-center text-(--text-secondary)"
-                  >
-                    {t('statistics.noSessionsForFilter')}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredSessions.map((session) => (
-                  <TableRow
-                    key={`${session.moduleId}-${session.at}-${session.kind}`}
-                    className="border-(--border-default)"
-                  >
-                    <TableCell className="font-medium text-(--text-primary)">
-                      {session.kind === 'QUIZ_SESSION'
-                        ? t('statistics.quiz')
-                        : t('statistics.flashcards')}
-                    </TableCell>
-                    <TableCell className="text-(--text-primary)">
-                      {session.moduleTitle}
-                    </TableCell>
-                    <TableCell>
-                      <ActivityMetric session={session} />
-                    </TableCell>
-                    <TableCell className="text-(--text-secondary)">
-                      {formatDate(session.at, locale)}
-                    </TableCell>
+          <>
+            <div className="max-h-112 overflow-auto rounded-2xl border border-(--border-default)">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-(--border-default)">
+                    <TableHead>{t('statistics.type')}</TableHead>
+                    <TableHead>{t('statistics.module')}</TableHead>
+                    <TableHead>{t('statistics.result')}</TableHead>
+                    <TableHead>{t('statistics.date')}</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow className="border-(--border-default)">
+                      <TableCell
+                        colSpan={4}
+                        className="h-16 text-center text-(--text-secondary)"
+                      >
+                        {t('statistics.loadingSessions')}
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredSessions.length < 1 ? (
+                    <TableRow className="border-(--border-default)">
+                      <TableCell
+                        colSpan={4}
+                        className="h-16 text-center text-(--text-secondary)"
+                      >
+                        {t('statistics.noSessionsForFilter')}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredSessions.map((session) => (
+                      <TableRow
+                        key={session.id}
+                        className="border-(--border-default)"
+                      >
+                        <TableCell className="font-medium text-(--text-primary)">
+                          {session.kind === 'QUIZ_SESSION'
+                            ? t('statistics.quiz')
+                            : t('statistics.flashcards')}
+                        </TableCell>
+                        <TableCell className="text-(--text-primary)">
+                          {session.moduleTitle}
+                        </TableCell>
+                        <TableCell>
+                          <ActivityMetric session={session} />
+                        </TableCell>
+                        <TableCell className="text-(--text-secondary)">
+                          {formatDate(session.at, locale)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {hasMore ? (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  type="button"
+                  variant="outlineSoft"
+                  size="outlineCompact"
+                  disabled={loadingMore}
+                  onClick={() => void loadMore()}
+                >
+                  {loadingMore
+                    ? t('statistics.loadingMore')
+                    : t('statistics.loadMore')}
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
     </div>

@@ -1,41 +1,76 @@
 {
   "formatVersion": 1,
   "moduleType": "QUIZ",
-  "title": "Тестовый модуль для импорта",
+  "title": "Контрольный квиз: логика, ИТ и общие знания",
   "questions": [
     {
       "type": "CHOICE",
-      "questionText": "Сколько будет 2 + 2?",
+      "questionText": "Какой из перечисленных алгоритмов относится к сортировкам сравнения?",
       "allowMultipleAnswers": false,
       "options": [
-        { "text": "3", "isCorrect": false },
-        { "text": "4", "isCorrect": true },
-        { "text": "5", "isCorrect": false }
+        { "text": "Пузырьковая сортировка", "isCorrect": true },
+        { "text": "Подсчетом (counting sort)", "isCorrect": false },
+        { "text": "Поразрядная (radix sort)", "isCorrect": false },
+        { "text": "Блум-фильтр", "isCorrect": false }
       ]
     },
     {
       "type": "CHOICE",
-      "questionText": "Какие из этих языков являются языками программирования?",
+      "questionText": "Выберите валидные HTTP-методы для REST API",
       "allowMultipleAnswers": true,
       "options": [
-        { "text": "TypeScript", "isCorrect": true },
-        { "text": "Python", "isCorrect": true },
-        { "text": "Photoshop", "isCorrect": false },
-        { "text": "HTML", "isCorrect": false }
+        { "text": "GET", "isCorrect": true },
+        { "text": "POST", "isCorrect": true },
+        { "text": "PATCH", "isCorrect": true },
+        { "text": "COMPILE", "isCorrect": false }
       ]
     },
     {
       "type": "TEXT",
-      "questionText": "Столица Франции",
+      "questionText": "Назовите столицу Франции",
       "answer": "Париж"
     },
     {
       "type": "MATCHING",
-      "questionText": "Сопоставь страны и столицы",
+      "questionText": "Сопоставьте термин и определение",
       "pairs": [
-        { "left": "Франция", "right": "Париж" },
-        { "left": "Испания", "right": "Мадрид" },
-        { "left": "Италия", "right": "Рим" }
+        {
+          "left": "Инкапсуляция",
+          "right": "Сокрытие внутренней реализации объекта"
+        },
+        {
+          "left": "Полиморфизм",
+          "right": "Единый интерфейс при разных реализациях"
+        },
+        {
+          "left": "Наследование",
+          "right": "Получение свойств и методов базового класса"
+        }
+      ]
+    },
+    {
+      "type": "CHOICE",
+      "questionText": "Какой SQL-оператор используется для выборки данных?",
+      "allowMultipleAnswers": false,
+      "options": [
+        { "text": "SELECT", "isCorrect": true },
+        { "text": "INSERT", "isCorrect": false },
+        { "text": "DELETE", "isCorrect": false },
+        { "text": "ALTER", "isCorrect": false }
+      ]
+    },
+    {
+      "type": "TEXT",
+      "questionText": "Как называется процесс поиска и исправления ошибок в программе?",
+      "answer": "Отладка"
+    },
+    {
+      "type": "MATCHING",
+      "questionText": "Сопоставьте язык и его типичную область применения",
+      "pairs": [
+        { "left": "SQL", "right": "Запросы к базам данных" },
+        { "left": "JavaScript", "right": "Клиентская логика веб-приложений" },
+        { "left": "Bash", "right": "Автоматизация задач в терминале" }
       ]
     }
   ]

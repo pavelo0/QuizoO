@@ -30,8 +30,17 @@ const OAuthCallbackPage = () => {
     }
 
     void (async () => {
-      await refresh();
-      navigate('/app', { replace: true });
+      const refreshedUser = await refresh();
+      if (refreshedUser) {
+        navigate(getHomeRouteByRole(refreshedUser.role), { replace: true });
+        return;
+      }
+      toast.error(
+        locale === 'ru'
+          ? 'Сессию после OAuth восстановить не удалось. Войдите снова.'
+          : 'Could not restore session after OAuth. Please sign in again.',
+      );
+      navigate('/auth/login', { replace: true });
     })();
   }, [locale, navigate, refresh, searchParams, user]);
 

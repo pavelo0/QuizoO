@@ -1,5 +1,14 @@
 import { Button } from '@/components/ui';
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -8,11 +17,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useI18n } from '@/i18n/useI18n';
-import { fetchAdminModules } from '@/lib/api/admin';
+import { deleteAdminModule, fetchAdminModules } from '@/lib/api/admin';
 import { apiErrorMessage } from '@/lib/apiErrorMessage';
 import type { AdminModuleListItem } from '@/types/admin';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 function formatDate(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
@@ -27,6 +37,9 @@ export default function AdminModulesPage() {
   const [modules, setModules] = useState<AdminModuleListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] =
+    useState<AdminModuleListItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,6 +64,23 @@ export default function AdminModulesPage() {
     const sessions = modules.reduce((acc, m) => acc + m.sessionCount, 0);
     return { all: modules.length, flashcards, quizzes, sessions };
   }, [modules]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!confirmTarget) return;
+    setPendingDeleteId(confirmTarget.id);
+    try {
+      await deleteAdminModule(confirmTarget.id);
+      setModules((prev) =>
+        prev.filter((module) => module.id !== confirmTarget.id),
+      );
+      setConfirmTarget(null);
+      toast.success(t('admin.moduleDeleted'));
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
+    } finally {
+      setPendingDeleteId(null);
+    }
+  }, [confirmTarget, t]);
 
   return (
     <div className="font-(family-name:--font-dm-sans)">
@@ -125,13 +155,14 @@ export default function AdminModulesPage() {
               <TableHead>{t('admin.cardsQuestions')}</TableHead>
               <TableHead>{t('admin.totalSessions')}</TableHead>
               <TableHead>{t('admin.updated')}</TableHead>
+              <TableHead className="text-right">{t('admin.actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow className="border-(--border-default)">
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-16 text-center text-(--text-secondary)"
                 >
                   {t('admin.loadingModules')}
@@ -140,7 +171,7 @@ export default function AdminModulesPage() {
             ) : modules.length < 1 ? (
               <TableRow className="border-(--border-default)">
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-16 text-center text-(--text-secondary)"
                 >
                   {t('admin.noModules')}
@@ -177,12 +208,63 @@ export default function AdminModulesPage() {
                   </TableCell>
                   <TableCell>{module.sessionCount}</TableCell>
                   <TableCell>{formatDate(module.updatedAt, locale)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="destructive"
+                      className="size-8 rounded-lg"
+                      aria-label={t('admin.deleteModule')}
+                      title={t('admin.deleteModule')}
+                      disabled={pendingDeleteId === module.id}
+                      onClick={() => setConfirmTarget(module)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </section>
+
+      <AlertDialog
+        open={Boolean(confirmTarget)}
+        onOpenChange={(nextOpen) => !nextOpen && setConfirmTarget(null)}
+      >
+        <AlertDialogContent className="max-w-sm border-(--border-default) bg-(--bg-color) text-(--text-primary)">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
+              {t('admin.deleteModuleQuestion')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
+              {t('admin.deleteModuleDescription', {
+                title: confirmTarget?.title ?? '',
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:flex-col sm:gap-2">
+            <AlertDialogCancel
+              className="w-full border-(--border-default) sm:w-full"
+              disabled={pendingDeleteId !== null}
+            >
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              className="w-full sm:w-full"
+              variant="destructive"
+              disabled={pendingDeleteId !== null}
+              onClick={() => void handleConfirmDelete()}
+            >
+              {pendingDeleteId !== null
+                ? t('common.deleting')
+                : t('common.delete')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

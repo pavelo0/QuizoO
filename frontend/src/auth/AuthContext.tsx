@@ -20,7 +20,7 @@ import toast from 'react-hot-toast';
 type AuthContextValue = {
   user: ApiPublicUser | null;
   loading: boolean;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<ApiPublicUser | null>;
   signOutLocal: () => void;
 };
 
@@ -37,8 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await apiClient.get<ApiPublicUser>('/users/me');
       setUser(data);
       resetSessionExpiredNotification();
+      return data;
     } catch {
       setUser(null);
+      return null;
     }
   }, []);
 

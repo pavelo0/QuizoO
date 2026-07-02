@@ -149,4 +149,12 @@ export class UsersController {
   listModulesForAdmin(@CurrentUserId() userId: string) {
     return this.usersService.listModulesForAdmin(userId);
   }
+
+  @Delete('admin/modules/:moduleId')
+  removeModuleForAdmin(
+    @CurrentUserId() userId: string,
+    @Param('moduleId') moduleId: string,
+  ) {
+    return this.usersService.deleteModuleForAdmin(userId, moduleId);
+  }
 }

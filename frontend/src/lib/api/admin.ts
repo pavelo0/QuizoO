@@ -34,3 +34,9 @@ export async function fetchAdminModules() {
   );
   return data;
 }
+
+export async function deleteAdminModule(moduleId: string) {
+  await apiClient.delete(
+    `/users/admin/modules/${encodeURIComponent(moduleId)}`,
+  );
+}
