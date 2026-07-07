@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui';
+import { Button } from '@/shared/ui';
 import {
   Table,
   TableBody,
@@ -6,19 +6,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@/shared/ui/table';
 import {
   fetchAdminModules,
   fetchAdminOverview,
   fetchAdminUsers,
-} from '@/lib/api/admin';
-import { apiErrorMessage } from '@/lib/apiErrorMessage';
-import { useI18n } from '@/i18n/useI18n';
+} from '@/entities/admin';
+import { apiErrorMessage } from '@/shared/lib/apiErrorMessage';
+import { useI18n } from '@/shared/i18n/useI18n';
 import type {
   AdminModuleListItem,
   AdminOverview,
   AdminUserListItem,
-} from '@/types/admin';
+} from '@/entities/admin';
 import { Ban, BookCopy, RefreshCcw, Users } from 'lucide-react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';

@@ -5,15 +5,15 @@ import {
   fetchModuleById,
   updateCard,
   updateModule,
-} from '@/lib/api/modules';
+} from '@/entities/module';
 import { clearFlashcardDraftInflight } from '@/lib/flashcardModuleDraft';
-import { apiErrorText } from '@/lib/apiErrorMessage';
-import { useI18n } from '@/i18n/useI18n';
+import { apiErrorText } from '@/shared/lib/apiErrorMessage';
+import { useI18n } from '@/shared/i18n/useI18n';
 import {
   MAX_FLASHCARDS_PER_MODULE,
   MAX_MODULE_TITLE_LENGTH,
-} from '@/lib/moduleConstants';
-import { cn } from '@/lib/utils';
+} from '@/shared/config/module';
+import { cn } from '@/shared/lib/utils';
 import {
   readFlashTimerDurationSec,
   readFlashTimerEnabled,
@@ -22,7 +22,7 @@ import {
   writeFlashTimerEnabled,
   type SessionTimerDurationSec,
 } from '@/lib/sessionTimerPrefs';
-import type { ModuleCard, ModuleId } from '@/types/module';
+import type { ModuleCard, ModuleId } from '@/entities/module';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -31,8 +31,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+} from '@/shared/ui/alert-dialog';
+import { Button } from '@/shared/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -40,17 +40,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+} from '@/shared/ui/dialog';
+import { Input } from '@/shared/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/shared/ui/select';
+import { Switch } from '@/shared/ui/switch';
+import { Textarea } from '@/shared/ui/textarea';
 import {
   BookOpen,
   CircleHelp,
@@ -580,7 +580,7 @@ export default function EditFlashcardModulePage() {
     }
     setEditingCard(null);
     setCardDialogOpen(true);
-  }, [cards.length]);
+  }, [cards.length, t]);
 
   const openEditCard = useCallback((c: ModuleCard) => {
     setEditingCard(c);
@@ -599,7 +599,7 @@ export default function EditFlashcardModulePage() {
       );
       toast.success(t('editFlash.cardAdded'));
     },
-    [cards.length, moduleId],
+    [cards.length, moduleId, t],
   );
 
   const onUpdateCard = useCallback(
@@ -611,7 +611,7 @@ export default function EditFlashcardModulePage() {
       setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       toast.success(t('editFlash.cardUpdated'));
     },
-    [moduleId],
+    [moduleId, t],
   );
 
   const onDeleteCard = useCallback(
@@ -624,7 +624,7 @@ export default function EditFlashcardModulePage() {
         toast.error(t('editFlash.cardDeleteFailed'));
       }
     },
-    [moduleId],
+    [moduleId, t],
   );
 
   const onShuffle = useCallback(
@@ -663,7 +663,7 @@ export default function EditFlashcardModulePage() {
     } finally {
       setDeleteModulePending(false);
     }
-  }, [moduleId, navigate]);
+  }, [moduleId, navigate, t]);
 
   const openStudy = useCallback(() => {
     void navigate(`/app/modules/${encodeURIComponent(moduleId)}/flash-study`);

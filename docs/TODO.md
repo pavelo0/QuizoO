@@ -184,23 +184,75 @@ frontend/src/
 
 ### D.2 Pilot-миграция
 
-- [ ] Создать `entities/module/` — перенести из [`types/module.ts`](../frontend/src/types/module.ts) + [`lib/api/modules.ts`](../frontend/src/lib/api/modules.ts)
-- [ ] Создать `shared/ui/` — re-export из `components/ui/`
-- [ ] Создать `shared/lib/` — re-export из `lib/`
-- [ ] Обновить imports в 1–2 pages (pilot), не ломая остальное
+- [x] Создать `entities/module/` — перенести из [`types/module.ts`](../frontend/src/types/module.ts) + [`lib/api/modules.ts`](../frontend/src/lib/api/modules.ts)
+- [x] Создать `shared/ui/` — re-export из `components/ui/`
+- [x] Создать `shared/lib/` — re-export из `lib/`
+- [x] Обновить imports в 1–2 pages (pilot), не ломая остальное
 
 ### D.3 Правила импортов
 
-- [ ] `pages` → `widgets`, `features`, `entities`, `shared`
-- [ ] `features` → `entities`, `shared`
-- [ ] `entities` → `shared` only
-- [ ] Запрет обратных импортов (eslint-plugin-boundaries или ручной review)
-- [ ] Постепенно переносить остальные domains: `entities/user`, `entities/question`
+- [x] `pages` → `widgets`, `features`, `entities`, `shared`
+- [x] `features` → `entities`, `shared`
+- [x] `entities` → `shared` only
+- [x] Запрет обратных импортов (eslint-plugin-boundaries или ручной review)
+- [x] Постепенно переносить остальные domains: `entities/user`, `entities/question`
 
 ### D.4 app layer
 
-- [ ] Вынести providers из [`main.tsx`](../frontend/src/main.tsx) в `app/providers.tsx`
-- [ ] Вынести router в `app/router.tsx`
+- [x] Вынести providers из [`main.tsx`](../frontend/src/main.tsx) в `app/providers.tsx`
+- [x] Вынести router в `app/router.tsx`
+
+---
+
+## Фаза D.5 — Cleanup & decomposition (backlog)
+
+**Текущее состояние:** FSD-скелет создан (Phase D). Legacy proxy-папки (`lib/`, `types/`, `i18n/`, `theme/`, `hooks/`, `layouts/`, `components/`) ещё содержат re-export; новый код — только FSD-пути.
+
+### D.5.1 Legacy imports + lint (PR-A) — done
+
+- [x] Мигрировать `@/components/ui` → `@/shared/ui` в pages/layouts
+- [x] Удалить proxy-папку `components/ui/`
+- [x] Исправить lint warnings, вернуть `--max-warnings 0`
+
+### D.5.2 AuthContext → FSD (PR-B)
+
+- [ ] Создать `features/auth-session/` — `AuthProvider`, `useAuthContext`
+- [ ] `refresh()` через `fetchCurrentUser()` из [`entities/user/api/user.ts`](../frontend/src/entities/user/api/user.ts)
+- [ ] Обновить [`app/providers/AppProviders.tsx`](../frontend/src/app/providers/AppProviders.tsx)
+- [ ] Proxy: `auth/AuthContext.tsx` → re-export
+
+### D.5.3 QuizEditor decomposition (PR-C)
+
+- [ ] Вынести `QuizQuestionDialog` (~784 строк) из [`widgets/quiz-editor/ui/QuizEditor.tsx`](../frontend/src/widgets/quiz-editor/ui/QuizEditor.tsx)
+- [ ] `features/edit-question-choice/ui/ChoiceQuestionFields`
+- [ ] `features/edit-question-text/ui/TextQuestionFields`
+- [ ] `features/edit-question-matching/ui/MatchingQuestionFields`
+- [ ] `features/edit-question-ordering/ui/OrderingQuestionFields` (использует [`SortableOrderingList`](../frontend/src/features/edit-question-ordering/ui/SortableOrderingList.tsx))
+- [ ] `features/edit-question-shared/ui/` — type selector, image upload
+
+### D.5.4 Legacy proxy cleanup (PR-D)
+
+Удалять proxy только когда grep по старому пути = 0:
+
+- [x] `components/ui/` — удалено (PR-A)
+- [ ] `types/` → после миграции `@/types/*`
+- [ ] `lib/api/`, `lib/utils*` → после миграции `@/lib/*`
+- [ ] `i18n/`, `theme/`, `hooks/` → после миграции потребителей
+- [ ] `layouts/` → после полного перехода на `@/app/layouts`
+- [ ] `components/` (Header, auth proxies) → после service-shell / auth-guard
+- [ ] `auth/` → после PR-B
+
+### D.5.5 Оставшиеся god-pages (PR-E)
+
+- [ ] [`EditFlashcardModulePage.tsx`](../frontend/src/pages/EditFlashcardModulePage.tsx) → `widgets/flashcard-editor` + `features/edit-flashcard-module`
+- [ ] [`ProfilePage.tsx`](../frontend/src/pages/ProfilePage.tsx) → `widgets/profile-form` + `features/update-profile`
+- [ ] Admin pages → `features/admin-*`
+
+### D.5.6 Tech debt (PR-F)
+
+- [ ] `entities/session` — убрать re-export из `@/entities/module` (entity→entity violation)
+- [ ] ESLint boundaries: `warn` → `error` после cleanup
+- [ ] Перенести `lib/profileAvatar.ts`, `lib/authRoute.ts`, `lib/googleAuth.ts` в `shared/lib/` или `features/auth-*/lib/`
 
 ---
 

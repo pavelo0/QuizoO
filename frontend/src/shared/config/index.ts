@@ -1,0 +1,1 @@
+export { MAX_FLASHCARDS_PER_MODULE, MAX_MODULE_TITLE_LENGTH } from './module';

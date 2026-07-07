@@ -1,5 +1,5 @@
 import { useAuthContext } from '@/auth/AuthContext';
-import { Button, Input, Label } from '@/components/ui';
+import { Button, Input, Label } from '@/shared/ui';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,8 +9,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from '@/shared/ui/alert-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import {
   Dialog,
   DialogContent,
@@ -18,24 +18,24 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { useI18n } from '@/i18n/useI18n';
-import { apiClient } from '@/lib/api/client';
-import { apiErrorText } from '@/lib/apiErrorMessage';
+} from '@/shared/ui/dialog';
+import { useI18n } from '@/shared/i18n/useI18n';
+import { apiClient } from '@/shared/api/client';
+import { apiErrorText } from '@/shared/lib/apiErrorMessage';
 import {
   PROFILE_AVATAR_ACCEPT,
   PROFILE_AVATAR_MAX_BYTES,
   profileAvatarBackground,
   profileDisplayInitial,
 } from '@/lib/profileAvatar';
-import { cn } from '@/lib/utils';
-import { fieldErrorsFromZod } from '@/lib/zodFieldErrors';
+import { cn } from '@/shared/lib/utils';
+import { fieldErrorsFromZod } from '@/shared/lib/zodFieldErrors';
 import {
   profileChangeEmailSchema,
   profileChangePasswordSchema,
   profileDisplayNameSchema,
 } from '@/schemas/auth';
-import type { ApiPublicUser } from '@/types/api-user';
+import type { ApiPublicUser } from '@/entities/user';
 import {
   Eye,
   EyeOff,
@@ -102,7 +102,7 @@ const ProfilePage = () => {
     if (user) {
       setNickname(user.username ?? '');
     }
-  }, [user?.id, user?.username]);
+  }, [user]);
 
   if (!user) {
     return (

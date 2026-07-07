@@ -1,4 +1,4 @@
-import { Button, Card, Input, Label } from '@/components/ui';
+import { Button, Card, Input, Label } from '@/shared/ui';
 
 /**
  * Временный стенд для проверки UI Kit по docs/techDesign.md.

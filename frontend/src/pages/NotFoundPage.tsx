@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui';
-import { useI18n } from '@/i18n/useI18n';
+import { Button } from '@/shared/ui';
+import { useI18n } from '@/shared/i18n/useI18n';
 import { LayoutDashboard, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
