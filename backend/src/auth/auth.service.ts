@@ -557,8 +557,7 @@ export class AuthService {
     if (explicit) {
       return explicit;
     }
-    const port = this.config.get<string>('PORT') ?? '3001';
-    return `http://localhost:${port}/api/auth/google/callback`;
+    return `${this.getFrontendUrl()}/api/auth/google/callback`;
   }
 
   private getFrontendUrl(): string {
@@ -567,7 +566,15 @@ export class AuthService {
       return explicit.replace(/\/+$/, '');
     }
     const cors = this.config.get<string>('CORS_ORIGIN');
-    const fallback = cors?.split(',')[0]?.trim() || 'http://localhost:3000';
+    const origins =
+      cors
+        ?.split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean) ?? [];
+    const fallback =
+      origins.find((origin) => origin.startsWith('https://')) ??
+      origins[0] ??
+      'https://localhost';
     return fallback.replace(/\/+$/, '');
   }
 

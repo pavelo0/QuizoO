@@ -1,7 +1,9 @@
-export { CreateModuleTypeDialog } from './CreateModuleTypeDialog';
-export { DashboardModuleCard } from './DashboardModuleCard';
-export { DashboardModulesSection } from './DashboardModulesSection';
-export { ModuleBadge } from './ModuleBadge';
+export {
+  CreateModuleTypeDialog,
+  DashboardModuleCard,
+  DashboardModulesSection,
+  ModuleBadge,
+} from '@/widgets/dashboard-module-list';
 export {
   SortableOrderingList,
   type OrderingListItem,

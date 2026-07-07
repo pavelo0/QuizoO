@@ -1,15 +1,15 @@
 import { useAuthContext } from '@/auth/AuthContext';
-import { DashboardModulesSection } from '@/components/modules';
-import { Button } from '@/components/ui/button';
-import { apiErrorMessage } from '@/lib/apiErrorMessage';
-import { useI18n } from '@/i18n/useI18n';
 import {
   fetchModuleList,
   fetchModulesDashboardSummary,
-} from '@/lib/api/modules';
-import { cn } from '@/lib/utils';
-import type { ApiPublicUser } from '@/types/api-user';
-import type { ModuleListItem } from '@/types/module';
+  type ModuleListItem,
+} from '@/entities/module';
+import { Button } from '@/shared/ui/button';
+import { apiErrorMessage } from '@/shared/lib/apiErrorMessage';
+import { useI18n } from '@/shared/i18n/useI18n';
+import { DashboardModulesSection } from '@/widgets/dashboard-module-list';
+import { DashboardStats } from '@/widgets/dashboard-stats';
+import type { ApiPublicUser } from '@/entities/user';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function greetingWord(hour: number, t: (key: string) => string): string {
@@ -26,35 +26,6 @@ function displayFirstName(
   const u = user.username?.trim();
   if (u) return u.split(/\s+/)[0] ?? u;
   return user.email.split('@')[0] ?? fallback;
-}
-
-function StatCard({
-  label,
-  value,
-  valueClassName,
-}: {
-  label: string;
-  value: string;
-  valueClassName: string;
-}) {
-  return (
-    <div
-      className={cn(
-        'rounded-2xl border border-(--border-default) bg-zinc-100/90 p-5 shadow-sm',
-        'dark:border-white/6 dark:bg-[#161b22]',
-      )}
-    >
-      <p className="text-xs font-medium text-(--text-secondary)">{label}</p>
-      <p
-        className={cn(
-          'mt-2 font-(family-name:--font-dm-sans) text-3xl font-bold tracking-tight',
-          valueClassName,
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
 }
 
 const DashboardPage = () => {
@@ -107,11 +78,6 @@ const DashboardPage = () => {
     });
   }, [modules, search]);
 
-  const avgScoreText =
-    summary?.averageQuizScore != null
-      ? `${summary.averageQuizScore % 1 === 0 ? summary.averageQuizScore : summary.averageQuizScore.toFixed(1)}%`
-      : '—';
-
   const activeModules = summary?.activeModules ?? 0;
   const subtitle =
     summary == null && loading
@@ -148,36 +114,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      <section
-        className="mb-10 grid gap-4 sm:grid-cols-3"
-        aria-label={t('aria.statistics')}
-      >
-        {loading && !summary ? (
-          <>
-            <div className="h-24 animate-pulse rounded-2xl bg-(--border-default)/40 dark:bg-white/6" />
-            <div className="h-24 animate-pulse rounded-2xl bg-(--border-default)/40 dark:bg-white/6" />
-            <div className="h-24 animate-pulse rounded-2xl bg-(--border-default)/40 dark:bg-white/6" />
-          </>
-        ) : (
-          <>
-            <StatCard
-              label={t('dashboard.totalModules')}
-              value={String(summary?.totalModules ?? 0)}
-              valueClassName="text-(--primary-accent)"
-            />
-            <StatCard
-              label={t('dashboard.cardsStudied')}
-              value={String(summary?.cardsStudied ?? 0)}
-              valueClassName="text-(--secondary-accent)"
-            />
-            <StatCard
-              label={t('dashboard.avgQuizScore')}
-              value={avgScoreText}
-              valueClassName="text-(--primary-accent)"
-            />
-          </>
-        )}
-      </section>
+      <DashboardStats summary={summary} loading={loading} />
 
       <DashboardModulesSection
         modules={modules}

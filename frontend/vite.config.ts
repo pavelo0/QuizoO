@@ -9,6 +9,20 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+      'react-router-dom',
+      'axios',
+      'react-hot-toast',
+      '@reduxjs/toolkit',
+      'react-redux',
+      'lucide-react',
+    ],
+  },
   server: {
     port: 3000,
     proxy: {

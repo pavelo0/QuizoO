@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui';
+import { Button } from '@/shared/ui';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -7,7 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/shared/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -15,11 +15,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { useI18n } from '@/i18n/useI18n';
-import { deleteAdminModule, fetchAdminModules } from '@/lib/api/admin';
-import { apiErrorMessage } from '@/lib/apiErrorMessage';
-import type { AdminModuleListItem } from '@/types/admin';
+} from '@/shared/ui/table';
+import { useI18n } from '@/shared/i18n/useI18n';
+import { deleteAdminModule, fetchAdminModules } from '@/entities/admin';
+import { apiErrorMessage } from '@/shared/lib/apiErrorMessage';
+import type { AdminModuleListItem } from '@/entities/admin';
 import { RefreshCcw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';

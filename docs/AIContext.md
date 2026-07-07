@@ -100,21 +100,25 @@ QuizoO/
 └── .env.example
 ```
 
-### Целевая структура frontend (FSD minimum)
+### Целевая структура frontend (FSD)
 
-Миграция постепенная, см. [`TODO.md`](./TODO.md) фаза D:
+Миграция постепенная, см. [`TODO.md`](./TODO.md) фазы D и D.5:
 
 ```
 frontend/src/
-  app/          # providers, router
-  pages/        # route screens
-  widgets/      # составные блоки UI
-  features/     # user actions (createModule, submitQuiz)
-  entities/     # module, question, user — types + api
-  shared/       # ui/, lib/, i18n/, hooks/
+  app/          # providers, router, layouts
+  pages/        # route screens (тонкие композиции)
+  widgets/      # dashboard-module-list, quiz-player, quiz-editor, service-shell, …
+  features/     # auth-login, create-module, edit-question-*, auth-guard, …
+  entities/     # module, user, session, question, admin
+  shared/       # ui/, lib/, api/, i18n/, hooks/, config/
 ```
 
-> **Устарело:** [`frontend-setup-from-step4.md`](./frontend-setup-from-step4.md) описывает структуру «без FSD» — для нового кода ориентироваться на FSD minimum из [`TODO.md`](./TODO.md).
+**Legacy proxies** (re-export на старых путях): `lib/`, `types/`, `i18n/`, `theme/`, `hooks/`, `layouts/`, `components/` — удаляются поэтапно (TODO фаза D.5.4). `components/ui/` удалена (D.5.1). **В proxy-папки новый код не класть.**
+
+**Строгий FSD:** импорты только через FSD-пути (`@/shared/*`, `@/entities/*`, `@/widgets/*`, `@/features/*`, `@/app/*`). При правке файла с legacy-импортами — мигрировать в том же PR. Правила для Cursor: [`.cursor/rules/architecture.mdc`](../.cursor/rules/architecture.mdc), [`.cursor/rules/frontend.mdc`](../.cursor/rules/frontend.mdc).
+
+> **Устарело:** [`frontend-setup-from-step4.md`](./frontend-setup-from-step4.md) описывает структуру «без FSD».
 
 ---
 
@@ -281,7 +285,7 @@ User 1──M Module 1──M Card          (FLASHCARD)
 - Functional components, локальный state где возможно
 - FSD import rules: слой импортирует только из нижележащих
 - i18n для всех user-facing строк
-- shadcn/ui в `components/ui/`
+- shadcn/ui в `shared/ui/` (legacy proxy `components/ui/` удалён)
 
 ### Тесты
 
@@ -321,16 +325,16 @@ User 1──M Module 1──M Card          (FLASHCARD)
 
 ## 11. Tech debt и ограничения (кратко)
 
-| Область                          | Статус                                     |
-| -------------------------------- | ------------------------------------------ |
-| `modules.service.ts` god object  | TODO фаза A                                |
-| TEXT answer synonyms             | TODO фаза B                                |
-| Playwright / regression e2e      | TODO фаза E                                |
-| Sentry                           | TODO фаза F                                |
-| FSD frontend                     | TODO фаза D (постепенно)                   |
-| Refresh JWT                      | Не реализован (by design на текущем этапе) |
-| MATCHING/multi-CHOICE unit tests | Отсутствуют                                |
-| Email delivery                   | Лог сервера, не SMTP                       |
+| Область                          | Статус                                           |
+| -------------------------------- | ------------------------------------------------ |
+| `modules.service.ts` god object  | TODO фаза A                                      |
+| TEXT answer synonyms             | TODO фаза B                                      |
+| Playwright / regression e2e      | TODO фаза E                                      |
+| Sentry                           | TODO фаза F                                      |
+| FSD frontend                     | Phase D done; D.5 cleanup in progress (see TODO) |
+| Refresh JWT                      | Не реализован (by design на текущем этапе)       |
+| MATCHING/multi-CHOICE unit tests | Отсутствуют                                      |
+| Email delivery                   | Лог сервера, не SMTP                             |
 
 Полный бэклог с чекбоксами: [`TODO.md`](./TODO.md).
 

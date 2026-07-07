@@ -18,7 +18,7 @@ async function bootstrap() {
     .map((s) => s.trim())
     .filter(Boolean);
   app.enableCors({
-    origin: corsOrigins?.length ? corsOrigins : ['http://localhost:3000'],
+    origin: corsOrigins?.length ? corsOrigins : ['https://localhost'],
     credentials: true,
   });
 

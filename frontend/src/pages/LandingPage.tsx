@@ -1,6 +1,6 @@
 import heroIllustration from '@/assets/welcomeSectionImage.png';
-import { Button } from '@/components/ui';
-import { useI18n } from '@/i18n/useI18n';
+import { Button } from '@/shared/ui';
+import { useI18n } from '@/shared/i18n/useI18n';
 import { ArrowRight, BarChart3, MoveDiagonal, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 

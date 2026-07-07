@@ -1,5 +1,5 @@
-import { Button } from '@/components/ui/button';
-import { useI18n } from '@/i18n/useI18n';
+import { Button } from '@/shared/ui/button';
+import { useI18n } from '@/shared/i18n/useI18n';
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router-dom';
 
 function routeErrorMessage(error: unknown, fallback: string) {
