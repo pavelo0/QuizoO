@@ -9,7 +9,7 @@ import { getGoogleAuthStartUrl } from '@/shared/lib/googleAuth';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { fieldErrorsFromZod } from '@/shared/lib/zodFieldErrors';
 import { cn } from '@/shared/lib/utils';
-import { loginSchema, type LoginFormValues } from '@/schemas/auth';
+import { loginSchema, type LoginFormValues } from '@/features/auth-session';
 import type { ApiPublicUser } from '@/entities/user';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
