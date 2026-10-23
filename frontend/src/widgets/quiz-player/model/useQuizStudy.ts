@@ -81,7 +81,7 @@ export function isQuestionAnswered(
   return false;
 }
 
-function toSessionAnswerPayload(
+export function toSessionAnswerPayload(
   question: ModuleQuestion,
   draft: DraftAnswer | undefined,
 ) {
