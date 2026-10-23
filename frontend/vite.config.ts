@@ -18,8 +18,6 @@ export default defineConfig({
       'react-router-dom',
       'axios',
       'react-hot-toast',
-      '@reduxjs/toolkit',
-      'react-redux',
       'lucide-react',
     ],
   },

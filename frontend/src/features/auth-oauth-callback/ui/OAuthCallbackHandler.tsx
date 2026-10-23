@@ -1,5 +1,4 @@
-import { useAuthContext } from '@/auth/AuthContext';
-import { getHomeRouteByRole } from '@/lib/authRoute';
+import { getHomeRouteByRole, useAuthContext } from '@/features/auth-session';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { useEffect } from 'react';
 import toast from 'react-hot-toast';

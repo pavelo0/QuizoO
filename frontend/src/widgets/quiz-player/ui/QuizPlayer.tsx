@@ -1,4 +1,4 @@
-import { SortableOrderingList } from '@/components/modules/SortableOrderingList';
+import { SortableOrderingList } from '@/features/edit-question-ordering';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -22,7 +22,7 @@ import {
   formatStudyElapsed,
   readQuizTimerDurationSec,
   readQuizTimerEnabled,
-} from '@/lib/sessionTimerPrefs';
+} from '@/shared/lib/sessionTimerPrefs';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { cn } from '@/shared/lib/utils';
 import type {

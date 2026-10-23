@@ -1,4 +1,4 @@
-import { useAuthContext } from '@/auth/AuthContext';
+import { useAuthContext } from '@/features/auth-session';
 import { GuestOnlyOutlet } from '@/features/auth-guard';
 import { RequireAdmin } from '@/features/auth-guard';
 import { RedirectIfSignedIn } from '@/features/auth-guard';

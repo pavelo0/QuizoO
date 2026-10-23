@@ -1,8 +1,7 @@
-import { useAuthContext } from '@/auth/AuthContext';
+import { getHomeRouteByRole, useAuthContext } from '@/features/auth-session';
 import { Button, Input } from '@/shared/ui';
 import { apiErrorMessage } from '@/shared/lib/apiErrorMessage';
 import { apiClient } from '@/shared/api/client';
-import { getHomeRouteByRole } from '@/lib/authRoute';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { fieldErrorsFromZod } from '@/shared/lib/zodFieldErrors';
 import { cn } from '@/shared/lib/utils';
@@ -12,7 +11,7 @@ import {
   type ForgotPasswordEmailValues,
   type ResetPasswordFormValues,
 } from '@/schemas/auth';
-import type { ApiPublicUser } from '@/types/api-user';
+import type { ApiPublicUser } from '@/entities/user';
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';

@@ -1,11 +1,11 @@
-import { useAuthContext } from '@/auth/AuthContext';
+import { useAuthContext } from '@/features/auth-session';
 import { Button } from '@/shared/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import {
   profileAvatarBackground,
   profileDisplayInitial,
-} from '@/lib/profileAvatar';
-import { cn } from '@/lib/utils';
+} from '@/shared/lib/profileAvatar';
+import { cn } from '@/shared/lib/utils';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { useTheme } from '@/shared/ui/theme/useTheme';
 import {

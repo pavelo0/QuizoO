@@ -1,7 +1,7 @@
 import { Button } from '@/shared/ui';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { cn } from '@/shared/lib/utils';
-import { useTheme } from '@/theme/useTheme';
+import { useTheme } from '@/shared/ui/theme/useTheme';
 import { Home, Moon, Sun } from 'lucide-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 

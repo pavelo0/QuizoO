@@ -1,12 +1,12 @@
-import { useAuthContext } from '@/auth/AuthContext';
+import { useAuthContext } from '@/features/auth-session';
 import { Button } from '@/shared/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import {
   profileAvatarBackground,
   profileDisplayInitial,
-} from '@/lib/profileAvatar';
+} from '@/shared/lib/profileAvatar';
 import { useI18n } from '@/shared/i18n/useI18n';
-import { cn } from '@/lib/utils';
+import { cn } from '@/shared/lib/utils';
 import { useTheme } from '@/shared/ui/theme/useTheme';
 import {
   BarChart3,

@@ -12,11 +12,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Click {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-}
-
 enum UserRole {
   USER
   ADMIN

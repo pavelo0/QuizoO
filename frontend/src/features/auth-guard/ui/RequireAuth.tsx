@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthContext } from '@/auth/AuthContext';
+import { useAuthContext } from '@/features/auth-session';
 import { AuthLoadingState } from './AuthLoadingState';
 
 type Props = { children: ReactNode };

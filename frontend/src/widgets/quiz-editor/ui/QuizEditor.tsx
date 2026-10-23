@@ -49,7 +49,7 @@ import {
 } from '@/entities/module';
 import { apiErrorText } from '@/shared/lib/apiErrorMessage';
 import { MAX_MODULE_TITLE_LENGTH } from '@/shared/config/module';
-import { clearQuizDraftInflight } from '@/lib/quizModuleDraft';
+import { clearQuizDraftInflight } from '@/features/create-module';
 import {
   SESSION_TIMER_DURATION_OPTIONS_SEC,
   readQuizTimerDurationSec,
@@ -57,7 +57,7 @@ import {
   writeQuizTimerDurationSec,
   writeQuizTimerEnabled,
   type SessionTimerDurationSec,
-} from '@/lib/sessionTimerPrefs';
+} from '@/shared/lib/sessionTimerPrefs';
 import { cn } from '@/shared/lib/utils';
 import type { ModuleId, ModuleQuestion, QuestionType } from '@/entities/module';
 import {

@@ -1,5 +1,5 @@
-import Footer from '@/components/Footer';
-import Header from '@/components/Header';
+import { Footer, Header } from '@/widgets/service-shell';
+
 import { Outlet } from 'react-router-dom';
 
 export default function LandingLayout() {

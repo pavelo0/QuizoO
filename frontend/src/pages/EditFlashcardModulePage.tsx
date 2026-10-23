@@ -6,7 +6,7 @@ import {
   updateCard,
   updateModule,
 } from '@/entities/module';
-import { clearFlashcardDraftInflight } from '@/lib/flashcardModuleDraft';
+import { clearFlashcardDraftInflight } from '@/features/create-module';
 import { apiErrorText } from '@/shared/lib/apiErrorMessage';
 import { useI18n } from '@/shared/i18n/useI18n';
 import {
@@ -21,7 +21,7 @@ import {
   writeFlashTimerDurationSec,
   writeFlashTimerEnabled,
   type SessionTimerDurationSec,
-} from '@/lib/sessionTimerPrefs';
+} from '@/shared/lib/sessionTimerPrefs';
 import type { ModuleCard, ModuleId } from '@/entities/module';
 import {
   AlertDialog,
