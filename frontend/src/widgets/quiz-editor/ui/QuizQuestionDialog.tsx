@@ -6,7 +6,6 @@ import {
   DEFAULT_MATCHING_PAIRS,
   formatAcceptedVariantsText,
   getQuestionTypes,
-  parseAcceptedVariantsText,
 } from '@/features/edit-question-shared';
 import { Button } from '@/shared/ui/button';
 import {
@@ -33,10 +32,10 @@ import {
 } from 'react';
 import {
   createDefaultOrderingItems,
-  MAX_QUESTIONS_PER_MODULE,
   QUESTION_IMAGE_ALLOWED_MIMES,
   QUESTION_IMAGE_MAX_BYTES,
 } from '../model/quizQuestionDraft';
+import { validateQuizQuestionDraft } from '../model/validateQuizQuestionDraft';
 
 const textareaClass = cn(
   'min-h-28 w-full rounded-2xl border border-(--border-default) bg-(--input-bg) px-4 py-3 text-sm text-(--text-primary) shadow-none',
@@ -288,110 +287,26 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
   }, [hasExistingImage, imagePreviewUrl]);
 
   const onSubmit = useCallback(async () => {
-    const question = questionText.trim();
-    const nextErrors: {
-      questionText?: string;
-      textAnswer?: string;
-      options?: string;
-      matching?: string;
-      orderingItems?: string;
-      image?: string;
-      form?: string;
-    } = {};
-
-    if (!question)
-      nextErrors.questionText = t('editQuiz.validationQuestionText');
-    if (!editingQuestion && questionsCount >= MAX_QUESTIONS_PER_MODULE) {
-      nextErrors.form = t('editQuiz.validationMaxQuestions', {
-        count: MAX_QUESTIONS_PER_MODULE,
-      });
-    }
-
-    const cleanOptions = options
-      .map((o) => ({ text: o.text.trim(), isCorrect: o.isCorrect }))
-      .filter((o) => o.text.length > 0 || o.isCorrect);
-    const cleanPairs = pairs
-      .map((p) => ({
-        leftItem: p.leftItem.trim(),
-        rightItem: p.rightItem.trim(),
-      }))
-      .filter((p) => p.leftItem.length > 0 || p.rightItem.length > 0);
-
-    if (type === 'CHOICE') {
-      if (cleanOptions.length < 2) {
-        nextErrors.options = t('editQuiz.validationAtLeast2Options');
-      } else if (cleanOptions.some((o) => !o.text)) {
-        nextErrors.options = t('editQuiz.validationOptionEmpty');
-      } else if (cleanOptions.filter((o) => o.isCorrect).length < 1) {
-        nextErrors.options = t('editQuiz.validationAtLeastOneCorrect');
-      } else if (
-        !allowMultipleAnswers &&
-        cleanOptions.filter((o) => o.isCorrect).length !== 1
-      ) {
-        nextErrors.options = t('editQuiz.validationSingleCorrect');
-      }
-    }
-
-    if (type === 'MATCHING') {
-      if (cleanPairs.length < 2) {
-        nextErrors.matching = t('editQuiz.validationAtLeast2Pairs');
-      } else if (
-        cleanPairs.some(
-          (p) => p.leftItem.length === 0 || p.rightItem.length === 0,
-        )
-      ) {
-        nextErrors.matching = t('editQuiz.validationPairValues');
-      }
-    }
-
-    const cleanTextAnswer = textAnswer.trim();
-    if (type === 'TEXT' && !cleanTextAnswer) {
-      nextErrors.textAnswer = t('editQuiz.validationTextAnswer');
-    }
-
-    const cleanOrderingItems = orderingItems
-      .map((item) => ({ id: item.id, text: item.text.trim() }))
-      .filter((item) => item.text.length > 0);
-
-    if (type === 'ORDERING') {
-      if (cleanOrderingItems.length < 2) {
-        nextErrors.orderingItems = t('editQuiz.validationOrderingMinItems');
-      }
-    }
-
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
+    const draft = validateQuizQuestionDraft(
+      {
+        questionText,
+        type,
+        allowMultipleAnswers,
+        options,
+        pairs,
+        textAnswer,
+        orderingItems,
+        acceptedVariantsText,
+        editing: Boolean(editingQuestion),
+        questionsCount,
+      },
+      t,
+    );
+    if (!draft.ok) {
+      setErrors(draft.errors);
       return;
     }
-
-    const payload: {
-      questionText: string;
-      type: QuestionType;
-      allowMultipleAnswers?: boolean;
-      options?: Array<{ text: string; isCorrect: boolean }>;
-      matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
-      orderingItems?: Array<{ text: string; correctOrder: number }>;
-      acceptedVariants?: string[];
-    } = { questionText: question, type };
-
-    if (type === 'CHOICE') {
-      payload.allowMultipleAnswers = allowMultipleAnswers;
-      payload.options = cleanOptions;
-    }
-    if (type === 'TEXT') {
-      payload.options = [{ text: cleanTextAnswer, isCorrect: true }];
-      payload.acceptedVariants =
-        parseAcceptedVariantsText(acceptedVariantsText);
-    }
-    if (type === 'MATCHING') {
-      payload.matchingPairs = cleanPairs;
-    }
-    if (type === 'ORDERING') {
-      payload.orderingItems = cleanOrderingItems.map((item, index) => ({
-        text: item.text,
-        correctOrder: index,
-      }));
-    }
+    const payload = draft.payload;
 
     setSaving(true);
     setErrors({});
