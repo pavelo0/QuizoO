@@ -10,7 +10,7 @@ import {
   resetPasswordFormSchema,
   type ForgotPasswordEmailValues,
   type ResetPasswordFormValues,
-} from '@/schemas/auth';
+} from '@/features/auth-session';
 import type { ApiPublicUser } from '@/entities/user';
 import { Eye, EyeOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
