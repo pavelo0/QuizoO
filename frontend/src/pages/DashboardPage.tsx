@@ -1,4 +1,4 @@
-import { useAuthContext } from '@/auth/AuthContext';
+import { useAuthContext } from '@/features/auth-session';
 import {
   fetchModuleList,
   fetchModulesDashboardSummary,

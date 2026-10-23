@@ -22,8 +22,7 @@ const fsdElements = [
   { type: 'shared', pattern: 'src/shared/**' },
   {
     type: 'legacy',
-    pattern:
-      'src/{components,lib,types,hooks,i18n,theme,auth,layouts,store,schemas}/**',
+    pattern: 'src/schemas/**',
   },
 ];
 
@@ -102,7 +101,7 @@ export default defineConfig([
               disallow: {
                 to: {
                   element: {
-                    types: { anyOf: ['app', 'pages', 'widgets', 'features'] },
+                    types: { anyOf: ['app', 'pages', 'widgets'] },
                   },
                 },
               },
@@ -125,16 +124,6 @@ export default defineConfig([
                 },
               },
             },
-            {
-              from: { element: { types: 'app' } },
-              disallow: {
-                to: {
-                  element: {
-                    types: { anyOf: ['widgets', 'features', 'entities'] },
-                  },
-                },
-              },
-            },
           ],
         },
       ],
@@ -146,7 +135,6 @@ export default defineConfig([
       'src/entities/**/*.{ts,tsx}',
       'src/pages/**/*.{ts,tsx}',
       'src/widgets/**/*.{ts,tsx}',
-      'src/auth/**/*.{ts,tsx}',
       'src/shared/hooks/**/*.{ts,tsx}',
     ],
     rules: {
@@ -155,17 +143,7 @@ export default defineConfig([
     },
   },
   {
-    files: [
-      'src/shared/ui/**/*.{ts,tsx}',
-      'src/theme/**/*.{ts,tsx}',
-      'src/i18n/**/*.{ts,tsx}',
-      'src/hooks/**/*.{ts,tsx}',
-      'src/lib/**/*.{ts,tsx}',
-      'src/types/**/*.{ts,tsx}',
-      'src/components/**/*.{ts,tsx}',
-      'src/layouts/**/*.{ts,tsx}',
-      'src/app/router/**/*.{ts,tsx}',
-    ],
+    files: ['src/shared/ui/**/*.{ts,tsx}', 'src/app/router/**/*.{ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },

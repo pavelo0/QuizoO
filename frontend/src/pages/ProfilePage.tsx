@@ -1,4 +1,4 @@
-import { useAuthContext } from '@/auth/AuthContext';
+import { useAuthContext } from '@/features/auth-session';
 import { Button, Input, Label } from '@/shared/ui';
 import {
   AlertDialog,
@@ -27,7 +27,7 @@ import {
   PROFILE_AVATAR_MAX_BYTES,
   profileAvatarBackground,
   profileDisplayInitial,
-} from '@/lib/profileAvatar';
+} from '@/shared/lib/profileAvatar';
 import { cn } from '@/shared/lib/utils';
 import { fieldErrorsFromZod } from '@/shared/lib/zodFieldErrors';
 import {

@@ -126,7 +126,7 @@ npm run dev
 
 Дев-сервер: `http://localhost:3000`; прокси `/api` настроен в `vite.config.ts`.
 
-Каркас фронта и провайдеры: [`docs/frontend-setup-from-step4.md`](./docs/frontend-setup-from-step4.md).
+Каркас фронта и провайдеры: [`docs/AIContext.md`](./docs/AIContext.md).
 
 ---
 
@@ -188,7 +188,7 @@ npm run check        # format:check + lint + type-check
 | Docker и GitHub     | [`docs/docker-stack-guide.md`](./docs/docker-stack-guide.md) |
 | Деплой и прод       | [`docs/docker-and-deploy.md`](./docs/docker-and-deploy.md)   |
 | Краткая архитектура | [`docs/architecture.md`](./docs/architecture.md)             |
-| Чеклист разработки  | [`docs/checklist.md`](./docs/checklist.md)                   |
+| Сводка состояния    | [`docs/status-2026-09-19.md`](./docs/status-2026-09-19.md)   |
 
 ---
 

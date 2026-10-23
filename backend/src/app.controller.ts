@@ -1,4 +1,4 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Public } from './auth/public.decorator';
 
@@ -16,17 +16,5 @@ export class AppController {
   @Get('health')
   health(): { status: string } {
     return { status: 'ok' };
-  }
-
-  @Public()
-  @Post('click')
-  postClick() {
-    return this.appService.addClick();
-  }
-
-  @Public()
-  @Get('clicks')
-  getClicks() {
-    return this.appService.getClickCount();
   }
 }

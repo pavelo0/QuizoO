@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthContext } from '@/auth/AuthContext';
-import { getHomeRouteForUser } from '@/lib/authRoute';
+import { getHomeRouteForUser, useAuthContext } from '@/features/auth-session';
 import { AuthLoadingState } from './AuthLoadingState';
 
 type RequireAdminProps = {

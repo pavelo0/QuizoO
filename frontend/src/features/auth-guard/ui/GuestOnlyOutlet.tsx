@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { Outlet } from 'react-router-dom';
-import { RedirectIfSignedIn } from '@/components/auth/RedirectIfSignedIn';
+import { RedirectIfSignedIn } from './RedirectIfSignedIn';
 
 /**
  * Дочерние маршруты только для гостя (логин / регистрация).

@@ -16,7 +16,7 @@ import {
   formatStudyElapsed,
   readFlashTimerDurationSec,
   readFlashTimerEnabled,
-} from '@/lib/sessionTimerPrefs';
+} from '@/shared/lib/sessionTimerPrefs';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { cn } from '@/shared/lib/utils';
 import type { ModuleCard, ModuleId } from '@/entities/module';
