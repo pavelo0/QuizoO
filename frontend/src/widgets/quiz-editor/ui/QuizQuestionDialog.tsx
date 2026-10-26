@@ -8,13 +8,7 @@ import {
   getQuestionTypes,
 } from '@/features/edit-question-shared';
 import { Button } from '@/shared/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/ui/dialog';
+import { Dialog, DialogContent } from '@/shared/ui/dialog';
 import { Textarea } from '@/shared/ui/textarea';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { questionImageUrl } from '@/entities/module';
@@ -50,6 +44,7 @@ const labelClass = cn(
 
 type QuestionDialogProps = {
   open: boolean;
+  presentation?: 'dialog' | 'panel';
   editingQuestion: ModuleQuestion | null;
   questionsCount: number;
   onOpenChange: (open: boolean) => void;
@@ -85,6 +80,7 @@ type QuestionDialogProps = {
 
 export const QuizQuestionDialog = memo(function QuizQuestionDialog({
   open,
+  presentation = 'dialog',
   editingQuestion,
   questionsCount,
   onOpenChange,
@@ -320,7 +316,7 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
       } else {
         await onCreateQuestion(payload, imageFile);
       }
-      onOpenChange(false);
+      if (presentation === 'dialog') onOpenChange(false);
     } catch (err) {
       setErrors({ form: apiErrorText(err, t) });
     } finally {
@@ -340,11 +336,232 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
     questionText,
     textAnswer,
     acceptedVariantsText,
+    presentation,
     questionsCount,
     type,
     allowMultipleAnswers,
     t,
   ]);
+
+  const editorBody = (
+    <>
+      <div className="min-h-0 flex-1 overflow-y-auto p-6 sm:p-8">
+        <h2 className="font-(family-name:--font-syne) text-lg font-bold tracking-[0.02em] text-(--text-primary) sm:text-xl">
+          {editingQuestion ? t('editQuiz.dialogEdit') : t('editQuiz.dialogNew')}
+        </h2>
+        {errors.form ? (
+          <p
+            className="mt-3 font-(family-name:--font-dm-sans) text-xs text-destructive"
+            role="alert"
+          >
+            {errors.form}
+          </p>
+        ) : null}
+
+        <div className={cn('mt-6 space-y-6', errors.form ? 'mt-5' : 'mt-6')}>
+          <div>
+            <p className={labelClass}>{t('editQuiz.dialogQuestionType')}</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {QUESTION_TYPES.map((t) => (
+                <Button
+                  key={t.value}
+                  type="button"
+                  variant={type === t.value ? 'cta' : 'outline'}
+                  className={cn(
+                    'h-11 rounded-xl text-sm',
+                    type === t.value &&
+                      'shadow-[0_4px_15px_var(--purple-glow)]',
+                  )}
+                  onClick={() => {
+                    setType(t.value);
+                    if (t.value !== 'CHOICE') {
+                      setAllowMultipleAnswers(false);
+                    }
+                    setErrors((prev) => ({
+                      ...prev,
+                      textAnswer: undefined,
+                      options: undefined,
+                      matching: undefined,
+                      form: undefined,
+                    }));
+                  }}
+                >
+                  {t.title}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass} htmlFor="quiz-question-text">
+              {t('editQuiz.dialogQuestion')}
+            </label>
+            <Textarea
+              id="quiz-question-text"
+              value={questionText}
+              onChange={(e) => {
+                setQuestionText(e.target.value);
+                setErrors((prev) => ({
+                  ...prev,
+                  questionText: undefined,
+                  form: undefined,
+                }));
+              }}
+              placeholder={t('editQuiz.dialogQuestionPlaceholder')}
+              rows={4}
+              aria-invalid={!!errors.questionText}
+              className={cn(
+                textareaClass,
+                'resize-y',
+                errors.questionText && 'border-destructive',
+              )}
+            />
+            {errors.questionText ? (
+              <p
+                className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                role="alert"
+              >
+                {errors.questionText}
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <p className={labelClass}>{t('editQuiz.imageLabel')}</p>
+            {imagePreviewUrl || (hasExistingImage && !removeExistingImage) ? (
+              <div className="mb-3 overflow-hidden rounded-xl border border-(--border-default) bg-(--input-bg)/30 p-2">
+                <img
+                  src={imagePreviewUrl ?? existingImageUrl ?? ''}
+                  alt={t('editQuiz.imagePreviewAlt')}
+                  className="max-h-52 w-full rounded-lg object-contain"
+                />
+              </div>
+            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="inline-flex">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={onImageChange}
+                  aria-label={t('editQuiz.imageChoose')}
+                />
+                <span className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-(--border-default) px-4 text-sm text-(--text-primary) transition-colors hover:bg-(--input-bg)/60">
+                  {t('editQuiz.imageChoose')}
+                </span>
+              </label>
+              {imageFile || (hasExistingImage && !removeExistingImage) ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-10 rounded-xl text-(--text-secondary)"
+                  onClick={clearSelectedImage}
+                >
+                  <X className="size-4" />
+                  {t('editQuiz.imageRemove')}
+                </Button>
+              ) : null}
+            </div>
+            <p className="mt-2 text-xs text-(--text-secondary)">
+              {t('editQuiz.imageHint')}
+            </p>
+            {errors.image ? (
+              <p
+                className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                role="alert"
+              >
+                {errors.image}
+              </p>
+            ) : null}
+          </div>
+
+          {type === 'TEXT' ? (
+            <TextQuestionFields
+              textAnswer={textAnswer}
+              setTextAnswer={setTextAnswer}
+              acceptedVariantsText={acceptedVariantsText}
+              setAcceptedVariantsText={setAcceptedVariantsText}
+              errors={errors}
+              setErrors={setErrors}
+            />
+          ) : null}
+
+          {type === 'CHOICE' ? (
+            <ChoiceQuestionFields
+              options={options}
+              setOptions={setOptions}
+              allowMultipleAnswers={allowMultipleAnswers}
+              setAllowMultipleAnswers={setAllowMultipleAnswers}
+              errors={errors}
+              setErrors={setErrors}
+              addChoiceOption={addChoiceOption}
+            />
+          ) : null}
+
+          {type === 'MATCHING' ? (
+            <MatchingQuestionFields
+              pairs={pairs}
+              setPairs={setPairs}
+              errors={errors}
+              setErrors={setErrors}
+              addMatchingPair={addMatchingPair}
+            />
+          ) : null}
+
+          {type === 'ORDERING' ? (
+            <OrderingQuestionFields
+              orderingItems={orderingItems}
+              setOrderingItems={setOrderingItems}
+              errors={errors}
+              setErrors={setErrors}
+              addOrderingItem={addOrderingItem}
+              updateOrderingItemText={updateOrderingItemText}
+              removeOrderingItem={removeOrderingItem}
+            />
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-0 flex flex-col-reverse gap-3 border-t border-(--border-default) p-6 sm:flex-row sm:justify-end sm:gap-3 sm:px-8 sm:py-5">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          className="h-12 rounded-2xl px-6"
+          disabled={saving}
+        >
+          {t('common.cancel')}
+        </Button>
+        <Button
+          type="button"
+          variant="cta"
+          onClick={() => void onSubmit()}
+          className="h-12 rounded-2xl px-6"
+          disabled={saving}
+        >
+          {saving
+            ? t('common.saving')
+            : editingQuestion
+              ? t('editQuiz.dialogSave')
+              : t('editQuiz.dialogAdd')}
+        </Button>
+      </div>
+    </>
+  );
+
+  if (presentation === 'panel') {
+    return (
+      <section className="sticky top-4 flex max-h-[calc(100dvh-6rem)] min-h-64 flex-col overflow-hidden rounded-[20px] border border-(--border-default) bg-(--surface-color)">
+        {open ? (
+          editorBody
+        ) : (
+          <p className="px-6 py-16 text-center text-sm text-(--text-secondary)">
+            {t('editQuiz.selectQuestion')}
+          </p>
+        )}
+      </section>
+    );
+  }
 
   return (
     <Dialog
@@ -358,211 +575,7 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
         className="flex max-h-[calc(100dvh-2rem)] w-[min(44rem,calc(100%-2rem))] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl"
         showCloseButton
       >
-        <div className="min-h-0 overflow-y-auto p-6 sm:p-8">
-          <DialogHeader className="mb-0 gap-0 space-y-0 text-left sm:text-left">
-            <DialogTitle className="font-(family-name:--font-syne) text-lg font-bold tracking-[0.02em] text-(--text-primary) sm:text-xl">
-              {editingQuestion
-                ? t('editQuiz.dialogEdit')
-                : t('editQuiz.dialogNew')}
-            </DialogTitle>
-          </DialogHeader>
-          {errors.form ? (
-            <p
-              className="mt-3 font-(family-name:--font-dm-sans) text-xs text-destructive"
-              role="alert"
-            >
-              {errors.form}
-            </p>
-          ) : null}
-
-          <div className={cn('mt-6 space-y-6', errors.form ? 'mt-5' : 'mt-6')}>
-            <div>
-              <p className={labelClass}>{t('editQuiz.dialogQuestionType')}</p>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {QUESTION_TYPES.map((t) => (
-                  <Button
-                    key={t.value}
-                    type="button"
-                    variant={type === t.value ? 'cta' : 'outline'}
-                    className={cn(
-                      'h-11 rounded-xl text-sm',
-                      type === t.value &&
-                        'shadow-[0_4px_15px_var(--purple-glow)]',
-                    )}
-                    onClick={() => {
-                      setType(t.value);
-                      if (t.value !== 'CHOICE') {
-                        setAllowMultipleAnswers(false);
-                      }
-                      setErrors((prev) => ({
-                        ...prev,
-                        textAnswer: undefined,
-                        options: undefined,
-                        matching: undefined,
-                        form: undefined,
-                      }));
-                    }}
-                  >
-                    {t.title}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass} htmlFor="quiz-question-text">
-                {t('editQuiz.dialogQuestion')}
-              </label>
-              <Textarea
-                id="quiz-question-text"
-                value={questionText}
-                onChange={(e) => {
-                  setQuestionText(e.target.value);
-                  setErrors((prev) => ({
-                    ...prev,
-                    questionText: undefined,
-                    form: undefined,
-                  }));
-                }}
-                placeholder={t('editQuiz.dialogQuestionPlaceholder')}
-                rows={4}
-                aria-invalid={!!errors.questionText}
-                className={cn(
-                  textareaClass,
-                  'resize-y',
-                  errors.questionText && 'border-destructive',
-                )}
-              />
-              {errors.questionText ? (
-                <p
-                  className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
-                  role="alert"
-                >
-                  {errors.questionText}
-                </p>
-              ) : null}
-            </div>
-
-            <div>
-              <p className={labelClass}>{t('editQuiz.imageLabel')}</p>
-              {imagePreviewUrl || (hasExistingImage && !removeExistingImage) ? (
-                <div className="mb-3 overflow-hidden rounded-xl border border-(--border-default) bg-(--input-bg)/30 p-2">
-                  <img
-                    src={imagePreviewUrl ?? existingImageUrl ?? ''}
-                    alt={t('editQuiz.imagePreviewAlt')}
-                    className="max-h-52 w-full rounded-lg object-contain"
-                  />
-                </div>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    onChange={onImageChange}
-                    aria-label={t('editQuiz.imageChoose')}
-                  />
-                  <span className="inline-flex h-10 cursor-pointer items-center rounded-xl border border-(--border-default) px-4 text-sm text-(--text-primary) transition-colors hover:bg-(--input-bg)/60">
-                    {t('editQuiz.imageChoose')}
-                  </span>
-                </label>
-                {imageFile || (hasExistingImage && !removeExistingImage) ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="h-10 rounded-xl text-(--text-secondary)"
-                    onClick={clearSelectedImage}
-                  >
-                    <X className="size-4" />
-                    {t('editQuiz.imageRemove')}
-                  </Button>
-                ) : null}
-              </div>
-              <p className="mt-2 text-xs text-(--text-secondary)">
-                {t('editQuiz.imageHint')}
-              </p>
-              {errors.image ? (
-                <p
-                  className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
-                  role="alert"
-                >
-                  {errors.image}
-                </p>
-              ) : null}
-            </div>
-
-            {type === 'TEXT' ? (
-              <TextQuestionFields
-                textAnswer={textAnswer}
-                setTextAnswer={setTextAnswer}
-                acceptedVariantsText={acceptedVariantsText}
-                setAcceptedVariantsText={setAcceptedVariantsText}
-                errors={errors}
-                setErrors={setErrors}
-              />
-            ) : null}
-
-            {type === 'CHOICE' ? (
-              <ChoiceQuestionFields
-                options={options}
-                setOptions={setOptions}
-                allowMultipleAnswers={allowMultipleAnswers}
-                setAllowMultipleAnswers={setAllowMultipleAnswers}
-                errors={errors}
-                setErrors={setErrors}
-                addChoiceOption={addChoiceOption}
-              />
-            ) : null}
-
-            {type === 'MATCHING' ? (
-              <MatchingQuestionFields
-                pairs={pairs}
-                setPairs={setPairs}
-                errors={errors}
-                setErrors={setErrors}
-                addMatchingPair={addMatchingPair}
-              />
-            ) : null}
-
-            {type === 'ORDERING' ? (
-              <OrderingQuestionFields
-                orderingItems={orderingItems}
-                setOrderingItems={setOrderingItems}
-                errors={errors}
-                setErrors={setErrors}
-                addOrderingItem={addOrderingItem}
-                updateOrderingItemText={updateOrderingItemText}
-                removeOrderingItem={removeOrderingItem}
-              />
-            ) : null}
-          </div>
-        </div>
-
-        <DialogFooter className="mt-0 gap-3 border-t border-(--border-default) p-6 sm:gap-3 sm:px-8 sm:py-5">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="h-12 rounded-2xl px-6"
-            disabled={saving}
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button
-            type="button"
-            variant="cta"
-            onClick={() => void onSubmit()}
-            className="h-12 rounded-2xl px-6"
-            disabled={saving}
-          >
-            {saving
-              ? t('common.saving')
-              : editingQuestion
-                ? t('editQuiz.dialogSave')
-                : t('editQuiz.dialogAdd')}
-          </Button>
-        </DialogFooter>
+        {editorBody}
       </DialogContent>
     </Dialog>
   );

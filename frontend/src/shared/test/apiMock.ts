@@ -1,3 +1,3 @@
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 
-export const apiPost = vi.fn();
+export const apiPost: Mock = vi.fn();

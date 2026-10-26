@@ -8,4 +8,4 @@ export const profileFieldClass = cn(
 );
 
 export const profileSectionClass =
-  'rounded-2xl border border-(--border-default) bg-(--bg-color) p-5';
+  'rounded-[18px] border border-(--border-default) bg-(--surface-color) p-7';

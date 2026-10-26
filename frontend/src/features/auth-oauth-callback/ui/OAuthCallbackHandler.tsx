@@ -44,7 +44,15 @@ export function OAuthCallbackHandler() {
   }, [locale, navigate, refresh, searchParams, user]);
 
   return (
-    <div className="flex min-h-[220px] items-center justify-center py-10 text-center">
+    <div
+      className="flex min-h-[220px] flex-col items-center justify-center gap-3 py-10 text-center"
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="size-9 animate-spin rounded-full border-2 border-(--border-default) border-t-(--primary-accent)"
+        aria-hidden
+      />
       <p className="font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
         {t('common.loading')}
       </p>

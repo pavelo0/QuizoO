@@ -1,7 +1,5 @@
-import { Button } from '@/shared/ui';
+import { Brand, Button } from '@/shared/ui';
 import { useI18n } from '@/shared/i18n/useI18n';
-import { useTheme } from '@/shared/ui/theme/useTheme';
-import { Moon, Sun } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Burger from './Burger';
@@ -10,8 +8,7 @@ import BurgerButton from './BurgerButton';
 type MobileMenu = 'closed' | 'open' | 'closing';
 
 const Header = () => {
-  const { theme, toggle } = useTheme();
-  const { locale, setLocale, t } = useI18n();
+  const { t } = useI18n();
   const [mobileMenu, setMobileMenu] = useState<MobileMenu>('closed');
 
   const toggleMobileMenu = useCallback(() => {
@@ -24,110 +21,34 @@ const Header = () => {
 
   return (
     <>
-      <header className="relative z-40 h-20 w-full border-b-[0.5px] bg-(--bg-color)">
-        <div className="mx-auto flex h-full max-w-[1320px] px-5">
-          <div className="flex h-full w-full min-w-0 items-center justify-between gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-6">
-            <div className="min-w-0 justify-self-start">
-              <Link
-                to="/"
-                className="font-(family-name:--font-syne) text-[30px] font-extrabold leading-9 tracking-[-0.75px] text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
-              >
-                QuizoO
-              </Link>
-            </div>
+      <header className="relative z-40 h-20 w-full bg-(--bg-color)">
+        <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
+          <Brand />
 
-            <nav
-              className="hidden shrink-0 justify-self-center lg:block"
-              aria-label={t('aria.mainNavigation')}
+          <div className="flex items-center gap-2">
+            <BurgerButton
+              className="sm:hidden"
+              menuOpen={mobileMenu !== 'closed'}
+              onToggle={toggleMobileMenu}
+              openLabel={t('public.openMenu')}
+              closeLabel={t('public.closeMenu')}
+            />
+            <Button
+              className="hidden sm:inline-flex"
+              variant="outlineSoft"
+              size="outlineCompact"
+              asChild
             >
-              <ul className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 lg:gap-10">
-                <li>
-                  <a
-                    href="#features"
-                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
-                  >
-                    {t('public.features')}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#about"
-                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
-                  >
-                    {t('public.about')}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#how-it-works"
-                    className="font-(family-name:--font-dm-sans) text-sm font-medium text-(--text-primary) no-underline hover:opacity-70 transition-opacity duration-200"
-                  >
-                    {t('public.howItWorks')}
-                  </a>
-                </li>
-              </ul>
-            </nav>
-
-            <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-3 lg:justify-self-end">
-              <BurgerButton
-                menuOpen={mobileMenu !== 'closed'}
-                onToggle={toggleMobileMenu}
-                openLabel={t('public.openMenu')}
-                closeLabel={t('public.closeMenu')}
-              />
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="hidden h-12 w-12 shrink-0 rounded-2xl text-(--text-primary) transition-colors hover:text-(--primary-accent) lg:inline-flex"
-                aria-label={
-                  theme === 'dark'
-                    ? t('common.lightMode')
-                    : t('common.darkMode')
-                }
-                aria-pressed={theme === 'dark'}
-                onClick={toggle}
-              >
-                {theme === 'dark' ? (
-                  <Sun className="size-4.5" strokeWidth={1.5} />
-                ) : (
-                  <Moon className="size-4.5" strokeWidth={1.5} />
-                )}
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="hidden h-12 w-12 shrink-0 rounded-2xl text-(--text-primary) transition-colors hover:text-(--primary-accent) lg:inline-flex"
-                aria-label={t('common.language')}
-                title={t('common.language')}
-                onClick={() => setLocale(locale === 'en' ? 'ru' : 'en')}
-              >
-                <span className="text-xs font-semibold uppercase">
-                  {locale}
-                </span>
-              </Button>
-
-              <Button
-                className="hidden lg:inline-flex"
-                variant="outlineSoft"
-                size="outlineCompact"
-                asChild
-              >
-                <Link to="/auth/login">{t('auth.logIn')}</Link>
-              </Button>
-
-              <Button
-                className="hidden lg:inline-flex"
-                variant="cta"
-                size="cta"
-                asChild
-              >
-                <Link to="/auth/register">{t('public.getStarted')}</Link>
-              </Button>
-            </div>
+              <Link to="/auth/login">{t('auth.logIn')}</Link>
+            </Button>
+            <Button
+              className="hidden sm:inline-flex"
+              variant="cta"
+              size="cta"
+              asChild
+            >
+              <Link to="/auth/register">{t('public.getStarted')}</Link>
+            </Button>
           </div>
         </div>
       </header>

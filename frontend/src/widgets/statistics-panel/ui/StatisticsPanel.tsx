@@ -1,4 +1,4 @@
-import { Button } from '@/shared/ui';
+import { Button, PageHead } from '@/shared/ui';
 import {
   Table,
   TableBody,
@@ -13,7 +13,6 @@ import { cn } from '@/shared/lib/utils';
 import {
   BarChart3,
   BookOpenCheck,
-  Flame,
   RefreshCcw,
   Sparkles,
   Target,
@@ -48,27 +47,23 @@ export function StatisticsPanel() {
 
   return (
     <div className="font-(family-name:--font-dm-sans)">
-      <section className="rounded-3xl border border-(--border-default) bg-(--surface-color) p-6 shadow-sm lg:p-8">
-        <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-(family-name:--font-syne) text-3xl font-extrabold tracking-[-0.03em] text-(--text-primary)">
-              {t('statistics.title')}
-            </h1>
-            <p className="mt-1 text-sm text-(--text-secondary)">
-              {t('statistics.subtitle')}
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outlineSoft"
-            size="outlineCompact"
-            onClick={() => void reload()}
-            className="gap-2"
-          >
-            <RefreshCcw className="size-4" />
-            {t('common.refresh')}
-          </Button>
-        </header>
+      <section>
+        <PageHead
+          title={t('statistics.title')}
+          subtitle={t('statistics.subtitle')}
+          action={
+            <Button
+              type="button"
+              variant="outlineSoft"
+              size="outlineCompact"
+              onClick={() => void reload()}
+              className="gap-2"
+            >
+              <RefreshCcw className="size-4" />
+              {t('common.refresh')}
+            </Button>
+          }
+        />
 
         {error ? (
           <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -84,7 +79,7 @@ export function StatisticsPanel() {
             {t('statistics.scopeHint')}
           </p>
         </div>
-        <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-6 grid gap-3 md:grid-cols-3">
           <MetricCard
             icon={<BookOpenCheck className="size-4 text-(--primary-accent)" />}
             label={t('statistics.sessions')}
@@ -106,16 +101,6 @@ export function StatisticsPanel() {
                 : `${Math.round(stats.averageQuizScore)}%`
             }
             helper={t('statistics.avgQuizHint')}
-          />
-          <MetricCard
-            icon={<Flame className="size-4 text-(--danger-color)" />}
-            label={t('statistics.streak')}
-            value={
-              locale === 'ru'
-                ? `${stats.streakDays} дн.`
-                : `${stats.streakDays} days`
-            }
-            helper={t('statistics.streakHint')}
           />
         </div>
 

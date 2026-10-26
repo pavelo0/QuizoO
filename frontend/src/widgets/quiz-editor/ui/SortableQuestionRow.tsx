@@ -22,6 +22,7 @@ type SortableQuestionRowProps = {
   index: number;
   total: number;
   canReorder: boolean;
+  selected?: boolean;
   onEdit: (q: ModuleQuestion) => void;
   onDelete: (q: ModuleQuestion) => Promise<void>;
   onMoveUp: (questionId: string) => void;
@@ -34,6 +35,7 @@ export const SortableQuestionRow = memo(function SortableQuestionRow({
   index,
   total,
   canReorder,
+  selected = false,
   onEdit,
   onDelete,
   onMoveUp,
@@ -62,6 +64,7 @@ export const SortableQuestionRow = memo(function SortableQuestionRow({
       style={style}
       className={cn(
         'flex items-stretch gap-3 rounded-2xl border border-(--border-default) bg-(--input-bg)/35 px-3 py-3 transition-colors duration-300 sm:px-4',
+        selected && 'border-(--secondary-accent) bg-(--purple-tint)',
         isDragging && 'opacity-80 shadow-lg',
       )}
     >
@@ -71,11 +74,15 @@ export const SortableQuestionRow = memo(function SortableQuestionRow({
       >
         {n}
       </span>
-      <div className="min-w-0 flex-1 text-left">
+      <button
+        type="button"
+        className="min-w-0 flex-1 text-left"
+        onClick={() => onEdit(q)}
+      >
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-sm font-semibold text-(--text-primary) sm:text-base">
+          <span className="text-sm font-semibold text-(--text-primary) sm:text-base">
             {q.questionText}
-          </h3>
+          </span>
           <span className="inline-flex items-center rounded-full bg-(--module-badge-violet-bg) px-2.5 py-1 text-[0.625rem] font-bold tracking-[0.08em] text-(--module-badge-violet-fg) uppercase">
             {labelByType(q.type, t)}
           </span>
@@ -89,7 +96,7 @@ export const SortableQuestionRow = memo(function SortableQuestionRow({
             {t('editQuiz.imageAttached')}
           </p>
         ) : null}
-      </div>
+      </button>
       <div className="flex shrink-0 items-center gap-0.5">
         {canReorder ? (
           <Button

@@ -2,6 +2,7 @@ import { ChangePasswordSection } from '@/features/change-password';
 import { EditProfileSection } from '@/features/edit-profile';
 import { useAuthContext } from '@/features/auth-session';
 import { SignOutSection } from '@/features/sign-out';
+import { PageHead } from '@/shared/ui';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { Loader2 } from 'lucide-react';
 
@@ -19,15 +20,8 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="font-(family-name:--font-syne) text-3xl font-extrabold tracking-[-0.02em] text-(--text-primary)">
-          {t('profile.title')}
-        </h1>
-        <p className="mt-2 max-w-lg font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          {t('profile.subtitle')}
-        </p>
-      </div>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+      <PageHead title={t('profile.title')} subtitle={t('profile.subtitle')} />
 
       {!user.emailVerified ? (
         <div
@@ -43,8 +37,10 @@ const ProfilePage = () => {
         </div>
       ) : null}
 
-      <EditProfileSection />
-      <ChangePasswordSection />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <EditProfileSection />
+        <ChangePasswordSection />
+      </div>
       <SignOutSection />
     </div>
   );

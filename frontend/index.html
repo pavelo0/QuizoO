@@ -5,20 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- DM Sans: variable opsz + wght (400–1000), чтобы font-semibold…black совпадали с макетом -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@500&family=Syne:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
     <title>QuizoO | Create Learn Improve</title>
 
     <script>
       (function () {
         try {
           var t = localStorage.getItem('quizoo-theme');
-          var dark = t !== 'light';
+          var dark = t === 'dark';
           document.documentElement.classList.toggle('dark', dark);
           document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
         } catch (e) {}

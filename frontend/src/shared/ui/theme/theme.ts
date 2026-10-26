@@ -8,7 +8,7 @@ export function getStoredTheme(): Theme {
   } catch {
     /* storage unavailable */
   }
-  return 'dark';
+  return 'light';
 }
 
 export function setStoredTheme(theme: Theme) {

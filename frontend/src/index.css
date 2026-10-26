@@ -1,64 +1,84 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@import '@fontsource-variable/inter';
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   /* QuizoO — светлая тема (по умолчанию без класса .dark на <html>) */
-  --bg-color: #f4f5fb;
+  --bg-color: #f7f8fc;
   --surface-color: #ffffff;
-  --burger-btn: #000000;
-  --input-bg: #e8eaf4;
-  --primary-accent: #574fd6;
-  --secondary-accent: #00997a;
-  --danger-color: #e03e3e;
-  --text-primary: #111827;
-  --text-secondary: #5c6378;
-  --border-default: #dfe3ee;
-  --purple-glow: rgba(87, 79, 214, 0.18);
-  /* Пилюли меток модуля (tone-on-tone, светлая тема) */
-  --module-badge-mint-bg: color-mix(
-    in srgb,
-    var(--secondary-accent) 14%,
-    var(--surface-color)
-  );
-  --module-badge-mint-fg: #006b56;
-  --module-badge-violet-bg: color-mix(
-    in srgb,
-    var(--primary-accent) 12%,
-    var(--surface-color)
-  );
-  --module-badge-violet-fg: var(--primary-accent);
+  --burger-btn: #20243c;
+  --input-bg: #ffffff;
+  --primary-accent: #4561e8;
+  --secondary-accent: #8055d9;
+  --accent-yellow: #f6ce61;
+  --blue-tint: #eef2ff;
+  --purple-tint: #f3eefc;
+  --yellow-tint: #fff6d9;
+  --success-color: #1f7a4d;
+  --danger-color: #c24141;
+  --text-primary: #20243c;
+  --text-secondary: #71768d;
+  --border-default: #dfe3ef;
+  --purple-glow: rgba(69, 97, 232, 0.16);
+  --module-badge-mint-bg: #eef2ff;
+  --module-badge-mint-fg: #4561e8;
+  --module-badge-violet-bg: #f3eefc;
+  --module-badge-violet-fg: #8055d9;
 
-  --font-syne: 'Syne', system-ui, sans-serif;
-  --font-dm-sans: 'DM Sans', system-ui, sans-serif;
+  --font-brand: 'Syne', sans-serif;
+  --font-syne: 'Inter Variable', sans-serif;
+  --font-dm-sans: 'Inter Variable', sans-serif;
   --font-jetbrains-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: #f7f8fc;
+  --foreground: #20243c;
+  --card: #ffffff;
+  --card-foreground: #20243c;
+  --popover: #ffffff;
+  --popover-foreground: #20243c;
+  --primary: #4561e8;
+  --primary-foreground: #ffffff;
+  --secondary: #f3eefc;
+  --secondary-foreground: #20243c;
+  --muted: #f7f8fc;
+  --muted-foreground: #71768d;
+  --accent: #eef2ff;
+  --accent-foreground: #20243c;
+  --destructive: #c24141;
+  --border: #dfe3ef;
+  --input: #dfe3ef;
+  --ring: #4561e8;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -159,8 +179,13 @@ button:not(:disabled) {
   --surface-color: #1a1d2e;
   --burger-btn: #ffffff;
   --input-bg: #222640;
-  --primary-accent: #6c63ff;
-  --secondary-accent: #00d4aa;
+  --primary-accent: #7c93ff;
+  --secondary-accent: #b794f6;
+  --accent-yellow: #f6ce61;
+  --success-color: #3dbe86;
+  --blue-tint: rgba(124, 147, 255, 0.16);
+  --purple-tint: rgba(183, 148, 246, 0.16);
+  --yellow-tint: rgba(246, 206, 97, 0.16);
   --danger-color: #ff5c5c;
   --text-primary: #ffffff;
   --text-secondary: #8b8fa8;
@@ -168,9 +193,9 @@ button:not(:disabled) {
   --purple-glow: rgba(108, 99, 255, 0.3);
   /* Пилюли меток модуля (tone-on-tone, тёмная тема — как на макете) */
   --module-badge-mint-bg: #0a1f1c;
-  --module-badge-mint-fg: var(--secondary-accent);
+  --module-badge-mint-fg: var(--primary-accent);
   --module-badge-violet-bg: #1a1528;
-  --module-badge-violet-fg: var(--primary-accent);
+  --module-badge-violet-fg: var(--secondary-accent);
 
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

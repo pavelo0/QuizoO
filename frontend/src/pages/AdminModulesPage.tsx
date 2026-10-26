@@ -1,4 +1,4 @@
-import { Button } from '@/shared/ui';
+import { Button, PageHead } from '@/shared/ui';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -40,6 +40,10 @@ export default function AdminModulesPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] =
     useState<AdminModuleListItem | null>(null);
+  const [query, setQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'FLASHCARD' | 'QUIZ'>(
+    'all',
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,6 +69,22 @@ export default function AdminModulesPage() {
     return { all: modules.length, flashcards, quizzes, sessions };
   }, [modules]);
 
+  const visibleModules = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return modules.filter((module) => {
+      if (typeFilter !== 'all' && module.type !== typeFilter) return false;
+      if (!needle) return true;
+      const owner =
+        module.owner.username?.toLowerCase() ??
+        module.owner.email.toLowerCase();
+      return (
+        module.title.toLowerCase().includes(needle) ||
+        owner.includes(needle) ||
+        module.owner.email.toLowerCase().includes(needle)
+      );
+    });
+  }, [modules, query, typeFilter]);
+
   const handleConfirmDelete = useCallback(async () => {
     if (!confirmTarget) return;
     setPendingDeleteId(confirmTarget.id);
@@ -84,25 +104,21 @@ export default function AdminModulesPage() {
 
   return (
     <div className="font-(family-name:--font-dm-sans)">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-(family-name:--font-syne) text-3xl font-extrabold tracking-[-0.03em] text-(--text-primary)">
-            {t('admin.modulesTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-(--text-secondary)">
-            {t('admin.modulesSubtitle')}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outlineSoft"
-          size="outlineCompact"
-          onClick={() => void load()}
-        >
-          <RefreshCcw className="size-4" />
-          {t('common.refresh')}
-        </Button>
-      </header>
+      <PageHead
+        title={t('admin.modulesTitle')}
+        subtitle={t('admin.modulesSubtitle')}
+        action={
+          <Button
+            type="button"
+            variant="outlineSoft"
+            size="outlineCompact"
+            onClick={() => void load()}
+          >
+            <RefreshCcw className="size-4" />
+            {t('common.refresh')}
+          </Button>
+        }
+      />
 
       <section className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-(--border-default) bg-(--bg-color) p-4">
@@ -145,7 +161,29 @@ export default function AdminModulesPage() {
         </div>
       ) : null}
 
-      <section className="rounded-3xl border border-(--border-default) bg-(--bg-color) p-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('admin.searchModules')}
+          aria-label={t('admin.searchModules')}
+          className="h-11 min-w-0 flex-1 rounded-xl border border-(--border-default) bg-(--surface-color) px-3 text-sm text-(--text-primary)"
+        />
+        <select
+          value={typeFilter}
+          onChange={(event) =>
+            setTypeFilter(event.target.value as 'all' | 'FLASHCARD' | 'QUIZ')
+          }
+          aria-label={t('statistics.type')}
+          className="h-11 rounded-xl border border-(--border-default) bg-(--surface-color) px-3 text-sm text-(--text-primary)"
+        >
+          <option value="all">{t('admin.allTypes')}</option>
+          <option value="FLASHCARD">{t('admin.moduleTypeFlashcards')}</option>
+          <option value="QUIZ">{t('admin.moduleTypeQuiz')}</option>
+        </select>
+      </div>
+
+      <section className="overflow-x-auto rounded-[20px] border border-(--border-default) bg-(--surface-color) p-4">
         <Table>
           <TableHeader>
             <TableRow className="border-(--border-default)">
@@ -168,7 +206,7 @@ export default function AdminModulesPage() {
                   {t('admin.loadingModules')}
                 </TableCell>
               </TableRow>
-            ) : modules.length < 1 ? (
+            ) : visibleModules.length < 1 ? (
               <TableRow className="border-(--border-default)">
                 <TableCell
                   colSpan={7}
@@ -178,7 +216,7 @@ export default function AdminModulesPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              modules.map((module) => (
+              visibleModules.map((module) => (
                 <TableRow key={module.id} className="border-(--border-default)">
                   <TableCell className="font-semibold text-(--text-primary)">
                     {module.title}

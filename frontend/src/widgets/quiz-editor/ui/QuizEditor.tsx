@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from '@/shared/ui/alert-dialog';
 import { Button } from '@/shared/ui/button';
+import { FocusBar } from '@/shared/ui/focus-bar';
 import {
   Dialog,
   DialogContent,
@@ -194,8 +195,23 @@ const DeleteModuleDialog = memo(function DeleteModuleDialog({
 });
 DeleteModuleDialog.displayName = 'DeleteModuleDialog';
 
+function useWideQuizLayout() {
+  const [wide, setWide] = useState(
+    () => window.matchMedia('(min-width: 1024px)').matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1024px)');
+    const apply = () => setWide(media.matches);
+    apply();
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, []);
+  return wide;
+}
+
 export function QuizEditor() {
   const { t } = useI18n();
+  const wideLayout = useWideQuizLayout();
   const { moduleId: rawId } = useParams();
   const moduleId = (rawId ?? '') as ModuleId;
   const navigate = useNavigate();
@@ -412,6 +428,8 @@ export function QuizEditor() {
       setQuestions((prev) =>
         [...prev, created].sort((x, y) => x.orderIndex - y.orderIndex),
       );
+      setEditingQuestion(created);
+      setQuestionDialogOpen(true);
       toast.success(t('editQuiz.questionAdded'));
     },
     [moduleId, questions.length, t],
@@ -450,6 +468,9 @@ export function QuizEditor() {
       setQuestions((prev) =>
         prev.map((q) => (q.id === updated.id ? updated : q)),
       );
+      setEditingQuestion((current) =>
+        current?.id === updated.id ? updated : current,
+      );
       toast.success(t('editQuiz.questionUpdated'));
     },
     [moduleId, t],
@@ -460,12 +481,16 @@ export function QuizEditor() {
       try {
         await deleteQuestion(moduleId, q.id);
         setQuestions((prev) => prev.filter((x) => x.id !== q.id));
+        if (editingQuestion?.id === q.id) {
+          setEditingQuestion(null);
+          setQuestionDialogOpen(false);
+        }
         toast.success(t('editQuiz.questionRemoved'));
       } catch {
         toast.error(t('editQuiz.questionDeleteFailed'));
       }
     },
-    [moduleId, t],
+    [editingQuestion?.id, moduleId, t],
   );
 
   const onShuffle = useCallback(
@@ -694,469 +719,482 @@ export function QuizEditor() {
   const titleTrimmed = title.trim() || t('edit.common.newQuizModule');
 
   return (
-    <article
-      className={cn(
-        'mx-auto flex min-h-0 w-full max-w-[1200px] flex-1 flex-col gap-5 pb-4 sm:gap-6',
-        'text-(--text-primary)',
-      )}
-    >
-      <h1 className="sr-only">
-        {t('editQuiz.dialogEdit')}: {titleTrimmed}
-      </h1>
-      <nav
-        className="text-xs text-(--text-secondary)"
-        aria-label={t('aria.breadcrumb')}
+    <>
+      <FocusBar
+        backTo="/app"
+        backLabel={t('shell.leave')}
+        title={titleTrimmed}
+        status={isDirty ? t('shell.unsaved') : undefined}
+      />
+      <article
+        className={cn(
+          'mx-auto flex min-h-0 w-full max-w-[1180px] flex-1 flex-col gap-5 px-4 py-8 pb-16 sm:gap-6 sm:px-6',
+          'text-(--text-primary)',
+        )}
       >
-        <ol className="flex min-w-0 list-none flex-wrap items-center gap-x-1.5 gap-y-1 p-0">
-          <li className="shrink-0">
-            <Link
-              to="/app"
-              className="font-(family-name:--font-dm-sans) font-medium text-(--text-secondary) underline-offset-2 transition-opacity hover:opacity-100 hover:underline"
-            >
-              {t('modules.myModules')}
-            </Link>
-          </li>
-          <li className="shrink-0 text-(--text-secondary)/50" aria-hidden>
-            <span className="px-0.5">&gt;</span>
-          </li>
-          <li
-            className="min-w-0 font-(family-name:--font-dm-sans) font-medium text-(--text-primary)"
-            title={titleTrimmed}
-            aria-current="page"
-          >
-            <span className="line-clamp-2 wrap-break-word">{titleTrimmed}</span>
-          </li>
-        </ol>
-      </nav>
+        <h1 className="sr-only">
+          {t('editQuiz.dialogEdit')}: {titleTrimmed}
+        </h1>
 
-      <header className="grid gap-0">
-        <Panel
-          className="p-5 sm:px-7 sm:py-6 lg:px-8"
-          role="region"
-          aria-label={t('aria.moduleSummary')}
-        >
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
-            <div className="min-w-0 flex-1">
-              <label className="sr-only" htmlFor="module-title-input">
-                {t('edit.common.moduleTitle')}
-              </label>
-              <input
-                key={moduleId}
-                id="module-title-input"
-                name="quizoQuizModuleTitle"
-                value={title}
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-                maxLength={MAX_MODULE_TITLE_LENGTH}
-                onChange={(e) => {
-                  setTitle(e.target.value.slice(0, MAX_MODULE_TITLE_LENGTH));
-                  setTitleError(null);
-                }}
-                aria-invalid={titleError !== null}
-                className="w-full min-w-0 border-0 bg-transparent font-(family-name:--font-syne) text-2xl font-bold leading-tight tracking-[0.02em] wrap-break-word text-(--text-primary) outline-none placeholder:text-(--text-secondary) sm:text-3xl md:text-4xl"
-              />
-              {titleError ? (
-                <p
-                  className="mt-2 font-(family-name:--font-dm-sans) text-xs text-destructive"
-                  role="alert"
+        <header className="grid gap-0">
+          <Panel
+            className="p-5 sm:px-7 sm:py-6 lg:px-8"
+            role="region"
+            aria-label={t('aria.moduleSummary')}
+          >
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
+              <div className="min-w-0 flex-1">
+                <label className="sr-only" htmlFor="module-title-input">
+                  {t('edit.common.moduleTitle')}
+                </label>
+                <input
+                  key={moduleId}
+                  id="module-title-input"
+                  name="quizoQuizModuleTitle"
+                  value={title}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={MAX_MODULE_TITLE_LENGTH}
+                  onChange={(e) => {
+                    setTitle(e.target.value.slice(0, MAX_MODULE_TITLE_LENGTH));
+                    setTitleError(null);
+                  }}
+                  aria-invalid={titleError !== null}
+                  className="w-full min-w-0 border-0 bg-transparent font-(family-name:--font-syne) text-2xl font-bold leading-tight tracking-[0.02em] wrap-break-word text-(--text-primary) outline-none placeholder:text-(--text-secondary) sm:text-3xl md:text-4xl"
+                />
+                {titleError ? (
+                  <p
+                    className="mt-2 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                    role="alert"
+                  >
+                    {titleError}
+                  </p>
+                ) : null}
+                <ul
+                  className="mt-4 flex list-none flex-col gap-3 p-0 text-sm text-(--text-secondary)"
+                  aria-label={t('aria.moduleStatistics')}
                 >
-                  {titleError}
-                </p>
-              ) : null}
-              <ul
-                className="mt-4 flex list-none flex-col gap-3 p-0 text-sm text-(--text-secondary)"
-                aria-label={t('aria.moduleStatistics')}
-              >
-                <li className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-(--module-badge-mint-bg) text-(--module-badge-mint-fg)">
-                    <IdCard className="size-4" strokeWidth={2} aria-hidden />
-                  </span>
-                  <span className="font-(family-name:--font-dm-sans) text-(--text-primary)">
-                    {t('modules.questions', { count: questions.length })}
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-(--module-badge-violet-bg) text-(--module-badge-violet-fg)">
-                    <BookOpen className="size-4" strokeWidth={2} aria-hidden />
-                  </span>
-                  <span>{t('edit.common.zeroSessions')}</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
-                    <Clock className="size-4" strokeWidth={2} aria-hidden />
-                  </span>
-                  <span>{t('edit.common.lastStudiedNever')}</span>
-                </li>
-              </ul>
-            </div>
-            <div className="shrink-0 self-stretch">
-              <div className="mb-3 flex items-center justify-end gap-2">
+                  <li className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-(--module-badge-mint-bg) text-(--module-badge-mint-fg)">
+                      <IdCard className="size-4" strokeWidth={2} aria-hidden />
+                    </span>
+                    <span className="font-(family-name:--font-dm-sans) text-(--text-primary)">
+                      {t('modules.questions', { count: questions.length })}
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-(--module-badge-violet-bg) text-(--module-badge-violet-fg)">
+                      <BookOpen
+                        className="size-4"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    </span>
+                    <span>{t('edit.common.zeroSessions')}</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
+                      <Clock className="size-4" strokeWidth={2} aria-hidden />
+                    </span>
+                    <span>{t('edit.common.lastStudiedNever')}</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="shrink-0 self-stretch">
+                <div className="mb-3 flex items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 cursor-pointer rounded-[12px] px-4"
+                    onClick={() => void saveTitle()}
+                    disabled={!isDirty || titleSaving}
+                  >
+                    {titleSaving ? t('common.saving') : t('common.save')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outlineSoft"
+                    size="icon-header"
+                    className="rounded-[12px] text-(--text-secondary) hover:text-(--text-primary)"
+                    title={t('aria.deleteModule')}
+                    aria-label={t('aria.deleteModule')}
+                    onClick={() => setDeleteModuleOpen(true)}
+                  >
+                    <Trash2 className="size-4" strokeWidth={2} aria-hidden />
+                  </Button>
+                </div>
                 <Button
                   type="button"
-                  variant="outline"
-                  className="h-10 cursor-pointer rounded-[12px] px-4"
-                  onClick={() => void saveTitle()}
-                  disabled={!isDirty || titleSaving}
+                  disabled={questions.length === 0}
+                  className="h-12 w-full min-w-56 gap-2 rounded-xl border-0 bg-(--secondary-accent) text-base font-bold text-white hover:bg-(--secondary-accent)/90 sm:w-auto"
+                  onClick={openStudy}
                 >
-                  {titleSaving ? t('common.saving') : t('common.save')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outlineSoft"
-                  size="icon-header"
-                  className="rounded-[12px] text-(--text-secondary) hover:text-(--text-primary)"
-                  title={t('aria.deleteModule')}
-                  aria-label={t('aria.deleteModule')}
-                  onClick={() => setDeleteModuleOpen(true)}
-                >
-                  <Trash2 className="size-4" strokeWidth={2} aria-hidden />
+                  <ListChecks className="size-4" strokeWidth={2} aria-hidden />
+                  {t('editQuiz.startQuiz')}
                 </Button>
               </div>
+            </div>
+          </Panel>
+        </header>
+
+        <section
+          className="rounded-2xl border border-(--border-default) bg-(--input-bg)/25 px-4 py-3 sm:flex sm:items-center sm:justify-between sm:px-5"
+          aria-labelledby="quiz-settings-heading"
+        >
+          <h2
+            id="quiz-settings-heading"
+            className="font-(family-name:--font-syne) text-[0.6875rem] font-extrabold tracking-[0.2em] text-(--text-secondary) uppercase"
+          >
+            {t('editQuiz.settings')}
+          </h2>
+          <div className="mt-3 flex flex-col gap-4 sm:mt-0 sm:ml-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-x-8 sm:gap-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+              <span
+                className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
+                id="switch-quiz-timer-label"
+              >
+                {t('editQuiz.timer')}
+              </span>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <label
+                  className={cn(
+                    'flex items-center gap-2',
+                    !timerEnabled && 'opacity-60',
+                  )}
+                >
+                  <span className="sr-only" id="quiz-timer-duration-label">
+                    {t('editQuiz.timerDuration')}
+                  </span>
+                  <Select
+                    value={String(timerDurationSec)}
+                    disabled={!timerEnabled}
+                    onValueChange={(v) => {
+                      const n = Number.parseInt(v, 10);
+                      if (
+                        SESSION_TIMER_DURATION_OPTIONS_SEC.includes(
+                          n as SessionTimerDurationSec,
+                        )
+                      ) {
+                        onTimerDuration(n as SessionTimerDurationSec);
+                      }
+                    }}
+                  >
+                    <SelectTrigger
+                      size="sm"
+                      className="min-w-30"
+                      aria-labelledby="quiz-timer-duration-label"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SESSION_TIMER_DURATION_OPTIONS_SEC.map((sec) => (
+                        <SelectItem key={sec} value={String(sec)}>
+                          {t('sessionTimer.minutesShort', {
+                            count: sec / 60,
+                          })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+                <Switch
+                  checked={timerEnabled}
+                  onCheckedChange={onTimerEnabled}
+                  className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
+                  aria-labelledby="switch-quiz-timer-label"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 sm:justify-end">
+              <span
+                className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
+                id="switch-shuffle-label"
+              >
+                {t('editQuiz.shuffle')}
+              </span>
+              <Switch
+                checked={shuffle}
+                onCheckedChange={onShuffle}
+                className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
+                aria-labelledby="switch-shuffle-label"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section
+          className={cn(
+            'min-h-0 flex-1',
+            wideLayout &&
+              'lg:grid lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:items-start lg:gap-5',
+          )}
+          aria-labelledby="questions-section-heading"
+        >
+          <div>
+            <div className="mb-3 flex flex-col gap-3">
+              <h2
+                id="questions-section-heading"
+                className="min-w-0 font-(family-name:--font-syne) text-xl font-bold tracking-[-0.04em] text-(--text-primary) sm:text-2xl"
+              >
+                {t('editQuiz.questionsTitle', { count: questions.length })}
+              </h2>
+              <div className="relative w-full min-w-0">
+                <label htmlFor="question-search" className="sr-only">
+                  {t('editQuiz.searchQuestions')}
+                </label>
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-(--text-secondary)"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                <Input
+                  id="question-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('editQuiz.searchPlaceholder')}
+                  className="h-[52px] w-full rounded-[10px] border border-(--border-default) bg-(--input-bg) pl-10 text-base text-(--text-primary) shadow-none focus-visible:border-(--primary-accent) focus-visible:ring-2 focus-visible:ring-(--primary-accent)/20"
+                />
+              </div>
+            </div>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(event) => void onImportFile(event)}
+              />
               <Button
                 type="button"
-                disabled={questions.length === 0}
-                className="h-12 w-full min-w-56 gap-2 rounded-[12px] border-0 bg-(--primary-accent) font-(family-name:--font-syne) text-base font-bold text-white shadow-[0_4px_15px_rgba(108,99,255,0.2)] transition-all duration-300 ease-in-out hover:bg-(--primary-accent)/90 sm:w-auto"
-                onClick={openStudy}
+                variant="outline"
+                className="h-10 gap-2 rounded-xl"
+                onClick={onClickImport}
+                disabled={importing}
               >
-                <ListChecks className="size-4" strokeWidth={2} aria-hidden />
-                {t('editQuiz.startQuiz')}
+                <Upload className="size-4" strokeWidth={2} />
+                {importing ? t('common.loading') : t('editQuiz.importJson')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 gap-2 rounded-xl"
+                onClick={onExportJson}
+                disabled={importing}
+              >
+                <Download className="size-4" strokeWidth={2} />
+                {t('editQuiz.exportJson')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-(--text-secondary)"
+                onClick={() => setImportHelpOpen(true)}
+                title={t('editQuiz.importFormatHelpTitle')}
+                aria-label={t('editQuiz.importFormatHelpTitle')}
+              >
+                <CircleHelp className="size-4" strokeWidth={2} />
+              </Button>
+            </div>
+
+            <Panel className="flex max-h-[min(52vh,520px)] min-h-[220px] flex-col overflow-hidden">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain p-3 sm:space-y-2.5 sm:p-4">
+                {filtered.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-(--text-secondary) sm:py-12">
+                    {questions.length === 0
+                      ? t('editQuiz.noQuestions')
+                      : t('editQuiz.noQuestionsMatch')}
+                  </p>
+                ) : (
+                  <ul
+                    className="list-none space-y-2.5 p-0 sm:space-y-3"
+                    role="list"
+                  >
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={onDragEnd}
+                    >
+                      <SortableContext
+                        items={filtered.map((question) => question.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {filtered.map((q, index) => (
+                          <SortableQuestionRow
+                            key={q.id}
+                            q={q}
+                            index={index}
+                            total={filtered.length}
+                            canReorder={canDragReorder}
+                            selected={
+                              questionDialogOpen && editingQuestion?.id === q.id
+                            }
+                            onEdit={openEditQuestion}
+                            onDelete={onDeleteQuestion}
+                            onMoveUp={(questionId) =>
+                              onMoveQuestion(questionId, -1)
+                            }
+                            onMoveDown={(questionId) =>
+                              onMoveQuestion(questionId, 1)
+                            }
+                            t={t}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  </ul>
+                )}
+                {!canDragReorder ? (
+                  <p className="mt-2 px-1 text-xs text-(--text-secondary)">
+                    {t('editQuiz.reorderSearchHint')}
+                  </p>
+                ) : null}
+              </div>
+            </Panel>
+
+            <div className="mt-5 flex justify-center sm:mt-6">
+              <Button
+                type="button"
+                variant="cta"
+                className="h-12 gap-2 rounded-[12px] px-8 font-(family-name:--font-syne) text-base font-bold shadow-[0_4px_15px_var(--purple-glow)] transition-all duration-300 ease-in-out"
+                onClick={openAddQuestion}
+                disabled={questions.length >= MAX_QUESTIONS_PER_MODULE}
+              >
+                <Plus className="size-4" strokeWidth={2.5} />
+                {t('editQuiz.addQuestion')}
               </Button>
             </div>
           </div>
-        </Panel>
-      </header>
+          {wideLayout ? (
+            <QuizQuestionDialog
+              presentation="panel"
+              open={questionDialogOpen}
+              editingQuestion={editingQuestion}
+              questionsCount={questions.length}
+              moduleId={moduleId}
+              onOpenChange={(nextOpen) => {
+                setQuestionDialogOpen(nextOpen);
+                if (!nextOpen) setEditingQuestion(null);
+              }}
+              onCreateQuestion={onCreateQuestion}
+              onUpdateQuestion={onUpdateQuestion}
+            />
+          ) : null}
+        </section>
 
-      <section
-        className="rounded-2xl border border-(--border-default) bg-(--input-bg)/25 px-4 py-3 sm:flex sm:items-center sm:justify-between sm:px-5"
-        aria-labelledby="quiz-settings-heading"
-      >
-        <h2
-          id="quiz-settings-heading"
-          className="font-(family-name:--font-syne) text-[0.6875rem] font-extrabold tracking-[0.2em] text-(--text-secondary) uppercase"
-        >
-          {t('editQuiz.settings')}
-        </h2>
-        <div className="mt-3 flex flex-col gap-4 sm:mt-0 sm:ml-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-x-8 sm:gap-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
-            <span
-              className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
-              id="switch-quiz-timer-label"
-            >
-              {t('editQuiz.timer')}
-            </span>
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <label
-                className={cn(
-                  'flex items-center gap-2',
-                  !timerEnabled && 'opacity-60',
-                )}
-              >
-                <span className="sr-only" id="quiz-timer-duration-label">
-                  {t('editQuiz.timerDuration')}
-                </span>
-                <Select
-                  value={String(timerDurationSec)}
-                  disabled={!timerEnabled}
-                  onValueChange={(v) => {
-                    const n = Number.parseInt(v, 10);
-                    if (
-                      SESSION_TIMER_DURATION_OPTIONS_SEC.includes(
-                        n as SessionTimerDurationSec,
-                      )
-                    ) {
-                      onTimerDuration(n as SessionTimerDurationSec);
-                    }
-                  }}
-                >
-                  <SelectTrigger
-                    size="sm"
-                    className="min-w-30"
-                    aria-labelledby="quiz-timer-duration-label"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SESSION_TIMER_DURATION_OPTIONS_SEC.map((sec) => (
-                      <SelectItem key={sec} value={String(sec)}>
-                        {t('sessionTimer.minutesShort', {
-                          count: sec / 60,
-                        })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </label>
-              <Switch
-                checked={timerEnabled}
-                onCheckedChange={onTimerEnabled}
-                className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
-                aria-labelledby="switch-quiz-timer-label"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-3 sm:justify-end">
-            <span
-              className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
-              id="switch-shuffle-label"
-            >
-              {t('editQuiz.shuffle')}
-            </span>
-            <Switch
-              checked={shuffle}
-              onCheckedChange={onShuffle}
-              className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
-              aria-labelledby="switch-shuffle-label"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="min-h-0 flex-1"
-        aria-labelledby="questions-section-heading"
-      >
-        <div className="mb-3 flex flex-col gap-3 lg:mb-4 lg:flex-row lg:items-center lg:justify-between">
-          <h2
-            id="questions-section-heading"
-            className="min-w-0 font-(family-name:--font-syne) text-xl font-bold tracking-[-0.04em] text-(--text-primary) sm:text-2xl"
-          >
-            {t('editQuiz.questionsTitle', { count: questions.length })}
-          </h2>
-          <div className="relative w-full min-w-0 sm:max-w-full lg:w-80">
-            <label htmlFor="question-search" className="sr-only">
-              {t('editQuiz.searchQuestions')}
-            </label>
-            <Search
-              className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-(--text-secondary)"
-              strokeWidth={2}
-              aria-hidden
-            />
-            <Input
-              id="question-search"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('editQuiz.searchPlaceholder')}
-              className="h-[52px] w-full rounded-[10px] border border-(--border-default) bg-(--input-bg) pl-10 text-base text-(--text-primary) shadow-none focus-visible:border-(--primary-accent) focus-visible:ring-2 focus-visible:ring-(--primary-accent)/20"
-            />
-          </div>
-        </div>
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(event) => void onImportFile(event)}
+        {wideLayout ? null : (
+          <QuizQuestionDialog
+            open={questionDialogOpen}
+            editingQuestion={editingQuestion}
+            questionsCount={questions.length}
+            moduleId={moduleId}
+            onOpenChange={(nextOpen) => {
+              setQuestionDialogOpen(nextOpen);
+              if (!nextOpen) setEditingQuestion(null);
+            }}
+            onCreateQuestion={onCreateQuestion}
+            onUpdateQuestion={onUpdateQuestion}
           />
-          <Button
-            type="button"
-            variant="outline"
-            className="h-10 gap-2 rounded-xl"
-            onClick={onClickImport}
-            disabled={importing}
-          >
-            <Upload className="size-4" strokeWidth={2} />
-            {importing ? t('common.loading') : t('editQuiz.importJson')}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-10 gap-2 rounded-xl"
-            onClick={onExportJson}
-            disabled={importing}
-          >
-            <Download className="size-4" strokeWidth={2} />
-            {t('editQuiz.exportJson')}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="text-(--text-secondary)"
-            onClick={() => setImportHelpOpen(true)}
-            title={t('editQuiz.importFormatHelpTitle')}
-            aria-label={t('editQuiz.importFormatHelpTitle')}
-          >
-            <CircleHelp className="size-4" strokeWidth={2} />
-          </Button>
-        </div>
+        )}
 
-        <Panel className="flex max-h-[min(52vh,520px)] min-h-[220px] flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain p-3 sm:space-y-2.5 sm:p-4">
-            {filtered.length === 0 ? (
-              <p className="py-10 text-center text-sm text-(--text-secondary) sm:py-12">
-                {questions.length === 0
-                  ? t('editQuiz.noQuestions')
-                  : t('editQuiz.noQuestionsMatch')}
-              </p>
-            ) : (
-              <ul
-                className="list-none space-y-2.5 p-0 sm:space-y-3"
-                role="list"
+        <AlertDialog
+          open={pendingImportFile !== null}
+          onOpenChange={(open) => {
+            if (!open) setPendingImportFile(null);
+          }}
+        >
+          <AlertDialogContent className="max-w-sm border-(--border-default) bg-(--bg-color) text-(--text-primary)">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
+                {t('editQuiz.importReplaceTitle')}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
+                {t('editQuiz.importReplaceDescription', {
+                  count: questions.length,
+                })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="sm:flex-col sm:gap-2">
+              <AlertDialogCancel
+                className="w-full border-(--border-default) sm:w-full"
+                disabled={importing}
               >
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={onDragEnd}
-                >
-                  <SortableContext
-                    items={filtered.map((question) => question.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {filtered.map((q, index) => (
-                      <SortableQuestionRow
-                        key={q.id}
-                        q={q}
-                        index={index}
-                        total={filtered.length}
-                        canReorder={canDragReorder}
-                        onEdit={openEditQuestion}
-                        onDelete={onDeleteQuestion}
-                        onMoveUp={(questionId) =>
-                          onMoveQuestion(questionId, -1)
-                        }
-                        onMoveDown={(questionId) =>
-                          onMoveQuestion(questionId, 1)
-                        }
-                        t={t}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-              </ul>
-            )}
-            {!canDragReorder ? (
-              <p className="mt-2 px-1 text-xs text-(--text-secondary)">
-                {t('editQuiz.reorderSearchHint')}
-              </p>
-            ) : null}
-          </div>
-        </Panel>
+                {t('common.cancel')}
+              </AlertDialogCancel>
+              <Button
+                type="button"
+                variant="destructive"
+                className="w-full sm:w-full"
+                disabled={importing}
+                onClick={() => void confirmImportReplace()}
+              >
+                {importing
+                  ? t('common.loading')
+                  : t('edit.common.importReplaceAction')}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-        <div className="mt-5 flex justify-center sm:mt-6">
-          <Button
-            type="button"
-            variant="cta"
-            className="h-12 gap-2 rounded-[12px] px-8 font-(family-name:--font-syne) text-base font-bold shadow-[0_4px_15px_var(--purple-glow)] transition-all duration-300 ease-in-out"
-            onClick={openAddQuestion}
-            disabled={questions.length >= MAX_QUESTIONS_PER_MODULE}
-          >
-            <Plus className="size-4" strokeWidth={2.5} />
-            {t('editQuiz.addQuestion')}
-          </Button>
-        </div>
-      </section>
+        <DeleteModuleDialog
+          open={deleteModuleOpen}
+          pending={deleteModulePending}
+          moduleTitle={titleTrimmed}
+          onOpenChange={setDeleteModuleOpen}
+          onConfirm={onDeleteModule}
+        />
 
-      <QuizQuestionDialog
-        open={questionDialogOpen}
-        editingQuestion={editingQuestion}
-        questionsCount={questions.length}
-        moduleId={moduleId}
-        onOpenChange={(nextOpen) => {
-          setQuestionDialogOpen(nextOpen);
-          if (!nextOpen) setEditingQuestion(null);
-        }}
-        onCreateQuestion={onCreateQuestion}
-        onUpdateQuestion={onUpdateQuestion}
-      />
+        <Dialog open={importHelpOpen} onOpenChange={setImportHelpOpen}>
+          <DialogContent className="w-[min(52rem,calc(100%-2rem))] max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{t('editQuiz.importFormatHelpTitle')}</DialogTitle>
+              <DialogDescription>
+                {t('editQuiz.importFormatHelpDescription')}
+              </DialogDescription>
+            </DialogHeader>
+            <p className="text-xs text-(--text-secondary)">
+              {t('editQuiz.importImagesNotSupported')}
+            </p>
+            <pre className="max-h-[50vh] overflow-auto rounded-xl border border-(--border-default) bg-(--input-bg)/30 p-4 text-xs leading-relaxed text-(--text-primary)">
+              {quizJsonExample}
+            </pre>
+          </DialogContent>
+        </Dialog>
 
-      <AlertDialog
-        open={pendingImportFile !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingImportFile(null);
-        }}
-      >
-        <AlertDialogContent className="max-w-sm border-(--border-default) bg-(--bg-color) text-(--text-primary)">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
-              {t('editQuiz.importReplaceTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="font-(family-name:--font-dm-sans) text-(--text-secondary)">
-              {t('editQuiz.importReplaceDescription', {
-                count: questions.length,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:flex-col sm:gap-2">
-            <AlertDialogCancel
-              className="w-full border-(--border-default) sm:w-full"
-              disabled={importing}
-            >
-              {t('common.cancel')}
-            </AlertDialogCancel>
-            <Button
-              type="button"
-              variant="destructive"
-              className="w-full sm:w-full"
-              disabled={importing}
-              onClick={() => void confirmImportReplace()}
-            >
-              {importing
-                ? t('common.loading')
-                : t('edit.common.importReplaceAction')}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <DeleteModuleDialog
-        open={deleteModuleOpen}
-        pending={deleteModulePending}
-        moduleTitle={titleTrimmed}
-        onOpenChange={setDeleteModuleOpen}
-        onConfirm={onDeleteModule}
-      />
-
-      <Dialog open={importHelpOpen} onOpenChange={setImportHelpOpen}>
-        <DialogContent className="w-[min(52rem,calc(100%-2rem))] max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{t('editQuiz.importFormatHelpTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('editQuiz.importFormatHelpDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          <p className="text-xs text-(--text-secondary)">
-            {t('editQuiz.importImagesNotSupported')}
-          </p>
-          <pre className="max-h-[50vh] overflow-auto rounded-xl border border-(--border-default) bg-(--input-bg)/30 p-4 text-xs leading-relaxed text-(--text-primary)">
-            {quizJsonExample}
-          </pre>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={leaveOpen} onOpenChange={onLeaveDialogOpenChange}>
-        <AlertDialogContent className="max-w-sm" size="default">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('common.unsavedChanges')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('edit.common.unsavedDescriptionQuiz')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:flex-col sm:gap-2">
-            <Button
-              type="button"
-              variant="cta"
-              className="w-full sm:w-full"
-              onClick={() => void finishLeaveSave()}
-            >
-              {t('common.saveAndLeave')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-full"
-              onClick={finishLeaveNoSave}
-            >
-              {t('common.leaveWithoutSaving')}
-            </Button>
-            <AlertDialogCancel className="w-full sm:w-full">
-              {t('common.cancel')}
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </article>
+        <AlertDialog open={leaveOpen} onOpenChange={onLeaveDialogOpenChange}>
+          <AlertDialogContent className="max-w-sm" size="default">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('common.unsavedChanges')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('edit.common.unsavedDescriptionQuiz')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="sm:flex-col sm:gap-2">
+              <Button
+                type="button"
+                variant="cta"
+                className="w-full sm:w-full"
+                onClick={() => void finishLeaveSave()}
+              >
+                {t('common.saveAndLeave')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-full"
+                onClick={finishLeaveNoSave}
+              >
+                {t('common.leaveWithoutSaving')}
+              </Button>
+              <AlertDialogCancel className="w-full sm:w-full">
+                {t('common.cancel')}
+              </AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </article>
+    </>
   );
 }

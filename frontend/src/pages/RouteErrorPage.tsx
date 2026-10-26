@@ -1,51 +1,42 @@
+import { QMascot } from '@/shared/ui/mascot/QMascot';
 import { Button } from '@/shared/ui/button';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router-dom';
 
-function routeErrorMessage(error: unknown, fallback: string) {
-  if (isRouteErrorResponse(error)) {
-    if (typeof error.data === 'string' && error.data.trim()) return error.data;
-    if (error.statusText) return error.statusText;
-  }
-  if (error instanceof Error && error.message.trim()) return error.message;
-  return fallback;
-}
-
 export default function RouteErrorPage() {
   const error = useRouteError();
-  const { locale, t } = useI18n();
-  const fallbackMessage =
-    locale === 'ru'
-      ? 'Произошла непредвиденная ошибка.'
-      : 'An unexpected error occurred.';
-  const message = routeErrorMessage(error, fallbackMessage);
+  const { t } = useI18n();
+  const reference = isRouteErrorResponse(error) ? String(error.status) : null;
 
   return (
-    <div className="mx-auto flex min-h-[50vh] w-full max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
-      <h1 className="font-(family-name:--font-syne) text-2xl font-extrabold tracking-[-0.03em] text-(--text-primary)">
-        {fallbackMessage}
-      </h1>
-      <p className="text-sm text-(--text-secondary)">{message}</p>
-      <div className="flex items-center gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="outlineCompact"
-          className="rounded-xl"
-          onClick={() => window.location.reload()}
-        >
-          {t('common.refresh')}
-        </Button>
-        <Button
-          asChild
-          type="button"
-          variant="cta"
-          size="outlineCompact"
-          className="rounded-xl"
-        >
-          <Link to="/app">{t('common.backToDashboard')}</Link>
-        </Button>
-      </div>
+    <div className="flex min-h-dvh items-center justify-center bg-(--bg-color) px-5">
+      <section className="flex w-full max-w-lg flex-col items-center text-center">
+        <div className="relative mb-6 flex h-40 w-56 items-center justify-center rounded-full bg-(--blue-tint)">
+          <QMascot className="w-28" />
+        </div>
+        <h1 className="font-(family-name:--font-syne) text-3xl font-extrabold tracking-[-0.03em] text-(--text-primary)">
+          {t('error.pageTitle')}
+        </h1>
+        <p className="mt-3 text-sm leading-relaxed text-(--text-secondary)">
+          {t('error.pageBody')}
+        </p>
+        {reference ? (
+          <p className="mt-3 text-xs text-(--text-secondary)">{reference}</p>
+        ) : null}
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <Button
+            type="button"
+            variant="cta"
+            size="cta"
+            onClick={() => window.location.reload()}
+          >
+            {t('error.tryAgain')}
+          </Button>
+          <Button asChild variant="outlineSoft" size="outlineCompact">
+            <Link to="/">{t('notFound.goHome')}</Link>
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }

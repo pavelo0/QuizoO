@@ -19,6 +19,9 @@ const badgeVariants = cva(
         ghost:
           'hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50',
         link: 'text-primary underline-offset-4 hover:underline',
+        flashcard:
+          'h-auto rounded-full bg-(--blue-tint) px-2.5 py-1.5 text-xs font-bold text-(--primary-accent)',
+        quiz: 'h-auto rounded-full bg-(--purple-tint) px-2.5 py-1.5 text-xs font-bold text-(--secondary-accent)',
       },
     },
     defaultVariants: {
