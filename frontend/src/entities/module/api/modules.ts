@@ -176,6 +176,7 @@ export async function createQuestion(
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
     orderingItems?: Array<{ text: string; correctOrder: number }>;
+    fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
     acceptedVariants?: string[];
   },
 ) {
@@ -197,6 +198,7 @@ export async function updateQuestion(
     options?: Array<{ text: string; isCorrect: boolean }>;
     matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
     orderingItems?: Array<{ text: string; correctOrder: number }>;
+    fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
     acceptedVariants?: string[];
   },
 ) {

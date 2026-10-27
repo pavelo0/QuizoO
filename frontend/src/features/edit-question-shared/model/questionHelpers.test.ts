@@ -20,6 +20,7 @@ function question(
     questionOptions: [],
     matchingPairs: [],
     orderingItems: [],
+    fillBlanks: [],
     ...partial,
   };
 }
@@ -78,6 +79,24 @@ describe('summarizeQuestion', () => {
         tStub,
       ),
     ).toBe('Сначала → Потом → Дальше…');
+
+    expect(
+      summarizeQuestion(
+        question({
+          type: 'FILL_BLANK',
+          questionText: 'GET обычно {{1}} данные',
+          fillBlanks: [
+            {
+              id: 'b1',
+              blankIndex: 1,
+              answer: 'читает',
+              acceptedVariants: ['получает'],
+            },
+          ],
+        }),
+        tStub,
+      ),
+    ).toBe('читает');
   });
 });
 

@@ -16,6 +16,7 @@ export type QuestionPayload = {
   options?: Array<{ text: string; isCorrect: boolean }>;
   matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
   orderingItems?: Array<{ text: string; correctOrder: number }>;
+  fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
   acceptedVariants?: string[];
 };
 
@@ -64,6 +65,11 @@ export const quizJsonExample = JSON.stringify(
         type: 'ORDERING',
         questionText: 'Расположите исторические даты в хронологическом порядке',
         items: ['1914', '1789', '1945', '1969'],
+      },
+      {
+        type: 'FILL_BLANK',
+        questionText: 'GET-запрос обычно {{1}} данные',
+        blanks: [{ answer: 'читает', acceptedVariants: ['получает'] }],
       },
     ],
   },
@@ -117,6 +123,24 @@ export function toExportQuestion(q: ModuleQuestion) {
         left: p.leftItem,
         right: p.rightItem,
       })),
+    };
+  }
+  if (q.type === 'FILL_BLANK') {
+    const blanks = [...(Array.isArray(q.fillBlanks) ? q.fillBlanks : [])]
+      .sort((a, b) => a.blankIndex - b.blankIndex)
+      .map((blank) => {
+        const exported: { answer: string; acceptedVariants?: string[] } = {
+          answer: blank.answer,
+        };
+        if (blank.acceptedVariants && blank.acceptedVariants.length > 0) {
+          exported.acceptedVariants = blank.acceptedVariants;
+        }
+        return exported;
+      });
+    return {
+      type: 'FILL_BLANK' as const,
+      questionText: q.questionText,
+      blanks,
     };
   }
   return {
@@ -176,6 +200,7 @@ export function parseQuizImportJson(
       acceptedVariants?: unknown;
       pairs?: unknown;
       items?: unknown;
+      blanks?: unknown;
     };
     const questionText = q.questionText?.trim() ?? '';
     if (!questionText) {
@@ -301,6 +326,63 @@ export function parseQuizImportJson(
         questionText,
         type: 'ORDERING' as const,
         orderingItems,
+      };
+    }
+
+    if (q.type === 'FILL_BLANK') {
+      if (
+        !Array.isArray(q.blanks) ||
+        q.blanks.length < 1 ||
+        q.blanks.length > 8
+      ) {
+        throw new Error(
+          t('editQuiz.importFillBlanksRequired', { index: idx + 1 }),
+        );
+      }
+      const fillBlanks = q.blanks.map((blank) => {
+        if (!blank || typeof blank !== 'object' || Array.isArray(blank)) {
+          throw new Error(
+            t('editQuiz.importFillBlankAnswerRequired', { index: idx + 1 }),
+          );
+        }
+        const value = blank as { answer?: string; acceptedVariants?: unknown };
+        const answer = value.answer?.trim() ?? '';
+        if (!answer) {
+          throw new Error(
+            t('editQuiz.importFillBlankAnswerRequired', { index: idx + 1 }),
+          );
+        }
+        let acceptedVariants: string[] | undefined;
+        if (value.acceptedVariants !== undefined) {
+          if (!Array.isArray(value.acceptedVariants)) {
+            throw new Error(
+              t('editQuiz.importTextVariantsInvalid', { index: idx + 1 }),
+            );
+          }
+          acceptedVariants = value.acceptedVariants
+            .map((item) => (typeof item === 'string' ? item.trim() : ''))
+            .filter((item) => item.length > 0);
+        }
+        return { answer, acceptedVariants };
+      });
+      const markers = [...questionText.matchAll(/\{\{(\d+)\}\}/g)].map(
+        (match) => Number(match[1]),
+      );
+      const expected = fillBlanks.map((_, blankIndex) => blankIndex + 1);
+      const markerSet = new Set(markers);
+      const markersOk =
+        markers.length === expected.length &&
+        markerSet.size === expected.length &&
+        expected.every((index) => markerSet.has(index));
+      if (!markersOk) {
+        throw new Error(
+          t('editQuiz.importFillBlankMarkers', { index: idx + 1 }),
+        );
+      }
+      return {
+        questionText,
+        type: 'FILL_BLANK' as const,
+        fillBlanks,
       };
     }
 

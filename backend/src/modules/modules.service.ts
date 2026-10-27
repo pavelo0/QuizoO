@@ -21,6 +21,12 @@ import {
   sanitizeAcceptedVariants,
 } from './quiz/answer-normalizer';
 import { gradeOrderingAnswer } from './quiz/ordering-grader';
+import {
+  FILL_BLANK_MAX,
+  FILL_BLANK_MIN,
+  fillBlankMarkersMatch,
+  gradeFillBlankAnswer,
+} from './quiz/fill-blank-grader';
 
 function isModuleType(v: unknown): v is ModuleType {
   return v === ModuleType.FLASHCARD || v === ModuleType.QUIZ;
@@ -31,8 +37,39 @@ function isQuestionType(v: unknown): v is QuestionType {
     v === QuestionType.CHOICE ||
     v === QuestionType.TEXT ||
     v === QuestionType.MATCHING ||
-    v === QuestionType.ORDERING
+    v === QuestionType.ORDERING ||
+    v === QuestionType.FILL_BLANK
   );
+}
+
+function parseFillBlankInputs(
+  questionText: string,
+  raw: Array<{ answer?: string; acceptedVariants?: string[] }> | undefined,
+) {
+  const items = raw ?? [];
+  if (items.length < FILL_BLANK_MIN || items.length > FILL_BLANK_MAX) {
+    throw new BadRequestException(
+      `FILL_BLANK questions require ${FILL_BLANK_MIN} to ${FILL_BLANK_MAX} blanks`,
+    );
+  }
+  if (!fillBlankMarkersMatch(questionText, items.length)) {
+    throw new BadRequestException(
+      'questionText markers must be {{1}}..{{n}} once each and match the blank list',
+    );
+  }
+  return items.map((item, index) => {
+    const answer = item.answer?.trim() ?? '';
+    if (!answer) {
+      throw new BadRequestException(
+        `Blank ${index + 1} answer cannot be empty`,
+      );
+    }
+    return {
+      blankIndex: index + 1,
+      answer,
+      acceptedVariants: sanitizeAcceptedVariants(item.acceptedVariants, answer),
+    };
+  });
 }
 
 type QuestionWithRelations = Prisma.QuestionGetPayload<{
@@ -40,20 +77,34 @@ type QuestionWithRelations = Prisma.QuestionGetPayload<{
     questionOptions: true;
     matchingPairs: true;
     orderingItems: true;
+    fillBlanks: true;
   };
 }>;
 
 function sanitizeQuestionForStudy(question: QuestionWithRelations) {
-  if (question.type !== QuestionType.ORDERING) {
-    return question;
+  if (question.type === QuestionType.ORDERING) {
+    return {
+      ...question,
+      orderingItems: question.orderingItems.map(({ id, text }) => ({
+        id,
+        text,
+      })),
+    };
   }
-  return {
-    ...question,
-    orderingItems: question.orderingItems.map(({ id, text }) => ({
-      id,
-      text,
-    })),
-  };
+  if (question.type === QuestionType.FILL_BLANK) {
+    return {
+      ...question,
+      fillBlanks: [...question.fillBlanks]
+        .sort((left, right) => left.blankIndex - right.blankIndex)
+        .map(({ id, blankIndex }) => ({
+          id,
+          blankIndex,
+          answer: '',
+          acceptedVariants: [] as string[],
+        })),
+    };
+  }
+  return question;
 }
 
 type ActivityKind = 'FLASHCARD_SESSION' | 'QUIZ_SESSION';
@@ -451,6 +502,7 @@ export class ModulesService implements OnModuleInit {
             questionOptions: true,
             matchingPairs: true,
             orderingItems: true,
+            fillBlanks: true,
           },
         },
         _count: { select: { cards: true, questions: true } },
@@ -493,6 +545,7 @@ export class ModulesService implements OnModuleInit {
         questionOptions: true,
         matchingPairs: true,
         orderingItems: true,
+        fillBlanks: true,
       },
     });
 
@@ -729,6 +782,7 @@ export class ModulesService implements OnModuleInit {
         textAnswer?: string | null;
         matchingAnswer?: Record<string, string> | null;
         orderingAnswer?: string[] | null;
+        fillBlankAnswers?: string[] | null;
       }>;
     },
   ) {
@@ -759,6 +813,7 @@ export class ModulesService implements OnModuleInit {
         questionOptions: true,
         matchingPairs: true,
         orderingItems: true,
+        fillBlanks: true,
       },
     });
     if (questions.length !== questionIds.length) {
@@ -775,6 +830,7 @@ export class ModulesService implements OnModuleInit {
       }
 
       let isCorrect = false;
+      let credit = 0;
       let userAnswer: string | null = null;
 
       if (q.type === QuestionType.CHOICE) {
@@ -891,21 +947,51 @@ export class ModulesService implements OnModuleInit {
             orderingAnswer: grade.userOrder,
           });
         }
+      } else if (q.type === QuestionType.FILL_BLANK) {
+        const rawAnswers = a.fillBlankAnswers ?? [];
+        if (!Array.isArray(rawAnswers)) {
+          throw new BadRequestException('fillBlankAnswers must be an array');
+        }
+        const blanks = [...q.fillBlanks].sort(
+          (left, right) => left.blankIndex - right.blankIndex,
+        );
+        const userAnswers = rawAnswers.map((value) => String(value ?? ''));
+        if (userAnswers.length !== blanks.length) {
+          throw new BadRequestException(
+            'fillBlankAnswers must include one value per blank',
+          );
+        }
+        const grade = gradeFillBlankAnswer(userAnswers, blanks);
+        isCorrect = grade.isCorrect;
+        credit = grade.credit;
+        userAnswer = JSON.stringify({
+          fillBlankAnswers: grade.normalizedAnswers,
+          blankCorrect: grade.blankCorrect,
+        });
       } else {
         throw new BadRequestException('Unsupported question type');
+      }
+
+      if (q.type !== QuestionType.FILL_BLANK) {
+        credit = isCorrect ? 1 : 0;
       }
 
       return {
         questionId: q.id,
         userAnswer,
         isCorrect,
+        credit,
       };
     });
 
     const correctCount = normalizedAnswers.filter((a) => a.isCorrect).length;
     const totalQuestions = normalizedAnswers.length;
+    const creditSum = normalizedAnswers.reduce(
+      (sum, answer) => sum + answer.credit,
+      0,
+    );
     const scorePercent =
-      totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+      totalQuestions > 0 ? (creditSum / totalQuestions) * 100 : 0;
 
     const session = await this.prisma.$transaction(async (tx) => {
       const created = await tx.quizSession.create({
@@ -944,6 +1030,7 @@ export class ModulesService implements OnModuleInit {
                 questionOptions: true,
                 matchingPairs: true,
                 orderingItems: true,
+                fillBlanks: true,
               },
             },
           },
@@ -986,6 +1073,7 @@ export class ModulesService implements OnModuleInit {
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
       orderingItems?: Array<{ text?: string; correctOrder?: number }>;
+      fillBlanks?: Array<{ answer?: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
     },
   ) {
@@ -996,7 +1084,7 @@ export class ModulesService implements OnModuleInit {
     }
     if (!isQuestionType(body.type)) {
       throw new BadRequestException(
-        'type must be CHOICE, TEXT, MATCHING, or ORDERING',
+        'type must be CHOICE, TEXT, MATCHING, ORDERING, or FILL_BLANK',
       );
     }
 
@@ -1025,6 +1113,7 @@ export class ModulesService implements OnModuleInit {
           questionOptions: true,
           matchingPairs: true,
           orderingItems: true,
+          fillBlanks: true,
         },
       });
     }
@@ -1061,6 +1150,7 @@ export class ModulesService implements OnModuleInit {
           questionOptions: true,
           matchingPairs: true,
           orderingItems: true,
+          fillBlanks: true,
         },
       });
     }
@@ -1114,6 +1204,7 @@ export class ModulesService implements OnModuleInit {
           questionOptions: true,
           matchingPairs: true,
           orderingItems: true,
+          fillBlanks: true,
         },
       });
     }
@@ -1172,6 +1263,27 @@ export class ModulesService implements OnModuleInit {
           questionOptions: true,
           matchingPairs: true,
           orderingItems: true,
+          fillBlanks: true,
+        },
+      });
+    }
+
+    if (body.type === QuestionType.FILL_BLANK) {
+      const blanks = parseFillBlankInputs(questionText, body.fillBlanks);
+      return this.prisma.question.create({
+        data: {
+          moduleId,
+          questionText,
+          type: QuestionType.FILL_BLANK,
+          allowMultipleAnswers: false,
+          orderIndex,
+          fillBlanks: { create: blanks },
+        },
+        include: {
+          questionOptions: true,
+          matchingPairs: true,
+          orderingItems: true,
+          fillBlanks: true,
         },
       });
     }
@@ -1188,6 +1300,7 @@ export class ModulesService implements OnModuleInit {
         questionOptions: true,
         matchingPairs: true,
         orderingItems: true,
+        fillBlanks: true,
       },
     });
   }
@@ -1204,6 +1317,7 @@ export class ModulesService implements OnModuleInit {
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
       orderingItems?: Array<{ text?: string; correctOrder?: number }>;
+      fillBlanks?: Array<{ answer?: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
     },
   ) {
@@ -1211,7 +1325,7 @@ export class ModulesService implements OnModuleInit {
     await this.assertQuizModule(moduleId, userId);
     const q = await this.prisma.question.findFirst({
       where: { id: questionId, moduleId },
-      include: { questionOptions: true },
+      include: { questionOptions: true, fillBlanks: true },
     });
     if (!q) {
       throw new NotFoundException('Question not found');
@@ -1224,7 +1338,7 @@ export class ModulesService implements OnModuleInit {
         : false;
     if (body.type !== undefined && !isQuestionType(body.type)) {
       throw new BadRequestException(
-        'type must be CHOICE, TEXT, MATCHING, or ORDERING',
+        'type must be CHOICE, TEXT, MATCHING, ORDERING, or FILL_BLANK',
       );
     }
 
@@ -1255,9 +1369,18 @@ export class ModulesService implements OnModuleInit {
           'When changing type to ORDERING, orderingItems are required',
         );
       }
+      if (
+        body.type === QuestionType.FILL_BLANK &&
+        body.fillBlanks === undefined
+      ) {
+        throw new BadRequestException(
+          'When changing type to FILL_BLANK, fillBlanks are required',
+        );
+      }
       await this.prisma.questionOption.deleteMany({ where: { questionId } });
       await this.prisma.matchingPair.deleteMany({ where: { questionId } });
       await this.prisma.orderingItem.deleteMany({ where: { questionId } });
+      await this.prisma.fillBlank.deleteMany({ where: { questionId } });
       if (body.type !== QuestionType.TEXT) {
         await this.prisma.question.update({
           where: { id: questionId },
@@ -1454,12 +1577,42 @@ export class ModulesService implements OnModuleInit {
       });
     }
 
+    if (nextType === QuestionType.FILL_BLANK) {
+      const nextQuestionText =
+        body.questionText !== undefined
+          ? body.questionText.trim()
+          : q.questionText;
+      if (body.fillBlanks !== undefined) {
+        const blanks = parseFillBlankInputs(nextQuestionText, body.fillBlanks);
+        await this.prisma.questionOption.deleteMany({ where: { questionId } });
+        await this.prisma.matchingPair.deleteMany({ where: { questionId } });
+        await this.prisma.orderingItem.deleteMany({ where: { questionId } });
+        await this.prisma.fillBlank.deleteMany({ where: { questionId } });
+        await this.prisma.fillBlank.createMany({
+          data: blanks.map((blank) => ({
+            questionId,
+            blankIndex: blank.blankIndex,
+            answer: blank.answer,
+            acceptedVariants: blank.acceptedVariants,
+          })),
+        });
+      } else if (
+        body.questionText !== undefined &&
+        !fillBlankMarkersMatch(nextQuestionText, q.fillBlanks.length)
+      ) {
+        throw new BadRequestException(
+          'questionText markers must be {{1}}..{{n}} once each and match the blank list',
+        );
+      }
+    }
+
     return this.prisma.question.findFirst({
       where: { id: questionId },
       include: {
         questionOptions: true,
         matchingPairs: true,
         orderingItems: true,
+        fillBlanks: true,
       },
     });
   }
@@ -1519,6 +1672,7 @@ export class ModulesService implements OnModuleInit {
         questionOptions: true,
         matchingPairs: true,
         orderingItems: true,
+        fillBlanks: true,
       },
     });
   }

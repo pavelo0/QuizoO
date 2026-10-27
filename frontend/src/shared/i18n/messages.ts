@@ -400,16 +400,29 @@ export const messages: Record<Locale, Record<string, string>> = {
     'questionType.text': 'Text answer',
     'questionType.matching': 'Matching',
     'questionType.ordering': 'Ordering',
+    'questionType.fillBlank': 'Fill in the blank',
     'questionType.badgeChoice': 'Choice',
     'questionType.badgeText': 'Text',
     'questionType.badgeMatching': 'Matching',
     'questionType.badgeOrdering': 'Order',
+    'questionType.badgeFillBlank': 'Blank',
     'editQuiz.orderingItemPlaceholder': 'Enter item text',
     'editQuiz.validationOrderingMinItems': 'At least 2 items required',
     'editQuiz.dialogOrderingItems': 'Ordering items and their correct order',
     'editQuiz.dialogAddOrderingItem': 'Add item',
     'editQuiz.orderingHint':
       'Arrange items in the correct order. Drag to reorder.',
+    'editQuiz.dialogFillBlanks': 'Blanks',
+    'editQuiz.dialogAddFillBlank': 'Add blank',
+    'editQuiz.fillBlankRemove': 'Remove',
+    'editQuiz.fillBlankHint':
+      'Write the sentence with markers {{1}}, {{2}}. Each blank has its own answer and optional synonyms, one per line.',
+    'editQuiz.fillBlankAnswerPlaceholder': 'Correct word or phrase',
+    'editQuiz.validationFillBlank':
+      'Add 1 to 8 blanks and fill in every answer.',
+    'editQuiz.validationFillBlankMarkers':
+      'The sentence must contain {{1}}…{{n}} once each, matching the blank list.',
+    'editQuiz.summaryNoFillBlanks': 'No blanks yet',
     'editQuiz.questionAdded': 'Question added',
     'editQuiz.questionUpdated': 'Question updated',
     'editQuiz.questionRemoved': 'Question removed',
@@ -491,7 +504,7 @@ export const messages: Record<Locale, Record<string, string>> = {
       'This module already has {count} question(s). Import will delete them and replace them with the file. This cannot be undone.',
     'editQuiz.importFormatHelpTitle': 'Quiz JSON format',
     'editQuiz.importFormatHelpDescription':
-      'Use this structure for import/export. Supported types: CHOICE, TEXT, MATCHING, ORDERING.',
+      'Use this structure for import/export. Supported types: CHOICE, TEXT, MATCHING, ORDERING, FILL_BLANK.',
     'editQuiz.importImagesNotSupported':
       'Question images are not exported to JSON and cannot be restored by JSON import.',
     'editQuiz.importInvalidStructure': 'JSON root must be an object.',
@@ -505,7 +518,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.importQuestionTextRequired':
       'Question #{index}: questionText is required.',
     'editQuiz.importUnknownType':
-      'Question #{index}: unsupported type. Use CHOICE, TEXT, MATCHING, or ORDERING.',
+      'Question #{index}: unsupported type. Use CHOICE, TEXT, MATCHING, ORDERING, or FILL_BLANK.',
     'editQuiz.importChoiceOptionsMin':
       'Question #{index}: CHOICE requires at least 2 options.',
     'editQuiz.importChoiceOptionInvalid':
@@ -530,6 +543,12 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Question #{index}: ORDERING requires at least 2 items.',
     'editQuiz.importOrderingItemTextRequired':
       'Question #{index}: each ORDERING item must be a non-empty string.',
+    'editQuiz.importFillBlanksRequired':
+      'Question #{index}: FILL_BLANK needs 1 to 8 blanks.',
+    'editQuiz.importFillBlankAnswerRequired':
+      'Question #{index}: each blank needs a non-empty answer.',
+    'editQuiz.importFillBlankMarkers':
+      'Question #{index}: questionText must contain {{1}}…{{n}} once each.',
     'editFlash.cardAdded': 'Card added',
     'editFlash.cardUpdated': 'Card updated',
     'editFlash.cardRemoved': 'Card removed',
@@ -595,6 +614,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.selectMatch': 'Select match',
     'quizStudy.orderingInstruction':
       'Arrange the items in the correct order by dragging them.',
+    'quizStudy.fillBlankInput': 'Blank {index}',
     'quizStudy.finishQuiz': 'Finish quiz',
     'quizStudy.submitting': 'Submitting…',
     'quizStudy.lazyLoadHint':
@@ -1108,10 +1128,12 @@ export const messages: Record<Locale, Record<string, string>> = {
     'questionType.text': 'Текстовый ответ',
     'questionType.matching': 'Сопоставление',
     'questionType.ordering': 'Упорядочивание',
+    'questionType.fillBlank': 'Пропуски',
     'questionType.badgeChoice': 'Выбор',
     'questionType.badgeText': 'Текст',
     'questionType.badgeMatching': 'Пары',
     'questionType.badgeOrdering': 'Порядок',
+    'questionType.badgeFillBlank': 'Пропуск',
     'editQuiz.orderingItemPlaceholder': 'Введите текст элемента',
     'editQuiz.validationOrderingMinItems': 'Требуется минимум 2 элемента',
     'editQuiz.dialogOrderingItems':
@@ -1119,6 +1141,17 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.dialogAddOrderingItem': 'Добавить элемент',
     'editQuiz.orderingHint':
       'Расположите элементы в правильном порядке. Перетаскивайте для изменения.',
+    'editQuiz.dialogFillBlanks': 'Пропуски',
+    'editQuiz.dialogAddFillBlank': 'Добавить пропуск',
+    'editQuiz.fillBlankRemove': 'Убрать',
+    'editQuiz.fillBlankHint':
+      'Напишите фразу с маркерами {{1}}, {{2}}. У каждого пропуска свой эталон и необязательные синонимы, по одному на строку.',
+    'editQuiz.fillBlankAnswerPlaceholder': 'Верное слово или фраза',
+    'editQuiz.validationFillBlank':
+      'Нужно от 1 до 8 пропусков, и у каждого должен быть ответ.',
+    'editQuiz.validationFillBlankMarkers':
+      'Во фразе должны быть маркеры {{1}}…{{n}} по одному разу, в том же количестве, что и пропуски.',
+    'editQuiz.summaryNoFillBlanks': 'Пропуски пока не добавлены',
     'editQuiz.questionAdded': 'Вопрос добавлен',
     'editQuiz.questionUpdated': 'Вопрос обновлен',
     'editQuiz.questionRemoved': 'Вопрос удален',
@@ -1205,7 +1238,7 @@ export const messages: Record<Locale, Record<string, string>> = {
       'В модуле уже есть {count} вопрос(ов). Импорт удалит их и подставит данные из файла. Это действие нельзя отменить.',
     'editQuiz.importFormatHelpTitle': 'Формат JSON для теста',
     'editQuiz.importFormatHelpDescription':
-      'Используйте эту структуру для импорта/экспорта. Поддерживаемые типы: CHOICE, TEXT, MATCHING, ORDERING.',
+      'Используйте эту структуру для импорта/экспорта. Поддерживаемые типы: CHOICE, TEXT, MATCHING, ORDERING, FILL_BLANK.',
     'editQuiz.importImagesNotSupported':
       'Изображения вопросов не экспортируются в JSON и не могут быть восстановлены через импорт JSON.',
     'editQuiz.importInvalidStructure': 'Корневой JSON должен быть объектом.',
@@ -1219,7 +1252,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.importQuestionTextRequired':
       'Вопрос №{index}: поле questionText обязательно.',
     'editQuiz.importUnknownType':
-      'Вопрос №{index}: неизвестный тип. Используйте CHOICE, TEXT, MATCHING или ORDERING.',
+      'Вопрос №{index}: неизвестный тип. Используйте CHOICE, TEXT, MATCHING, ORDERING или FILL_BLANK.',
     'editQuiz.importChoiceOptionsMin':
       'Вопрос №{index}: для CHOICE нужно минимум 2 варианта.',
     'editQuiz.importChoiceOptionInvalid':
@@ -1244,6 +1277,12 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Вопрос №{index}: для ORDERING нужно минимум 2 элемента.',
     'editQuiz.importOrderingItemTextRequired':
       'Вопрос №{index}: каждый элемент ORDERING должен быть непустой строкой.',
+    'editQuiz.importFillBlanksRequired':
+      'Вопрос №{index}: для FILL_BLANK нужно от 1 до 8 пропусков.',
+    'editQuiz.importFillBlankAnswerRequired':
+      'Вопрос №{index}: у каждого пропуска должен быть непустой ответ.',
+    'editQuiz.importFillBlankMarkers':
+      'Вопрос №{index}: в questionText должны быть маркеры {{1}}…{{n}} по одному разу.',
     'editFlash.cardAdded': 'Карточка добавлена',
     'editFlash.cardUpdated': 'Карточка обновлена',
     'editFlash.cardRemoved': 'Карточка удалена',
@@ -1311,6 +1350,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.selectMatch': 'Выберите пару',
     'quizStudy.orderingInstruction':
       'Расположите элементы в правильном порядке, перетаскивая их.',
+    'quizStudy.fillBlankInput': 'Пропуск {index}',
     'quizStudy.finishQuiz': 'Завершить тест',
     'quizStudy.submitting': 'Отправка…',
     'quizStudy.lazyLoadHint':

@@ -5,7 +5,12 @@
 export type ModuleId = string;
 
 export type ModuleType = 'FLASHCARD' | 'QUIZ';
-export type QuestionType = 'CHOICE' | 'TEXT' | 'MATCHING' | 'ORDERING';
+export type QuestionType =
+  | 'CHOICE'
+  | 'TEXT'
+  | 'MATCHING'
+  | 'ORDERING'
+  | 'FILL_BLANK';
 
 /** Карточка модуля (флешкарточки) */
 export interface ModuleCard {
@@ -38,6 +43,14 @@ export interface ModuleOrderingItem {
   correctOrder?: number;
 }
 
+export interface ModuleFillBlank {
+  id: string;
+  questionId?: string;
+  blankIndex: number;
+  answer: string;
+  acceptedVariants?: string[];
+}
+
 export interface ModuleQuestion {
   id: string;
   moduleId: string;
@@ -50,6 +63,7 @@ export interface ModuleQuestion {
   questionOptions: ModuleQuestionOption[];
   matchingPairs: ModuleMatchingPair[];
   orderingItems: ModuleOrderingItem[];
+  fillBlanks: ModuleFillBlank[];
   acceptedVariants?: string[];
 }
 
@@ -137,12 +151,17 @@ export type QuizChoiceUserAnswer = {
 export type QuizTextUserAnswer = { textAnswer: string };
 export type QuizMatchingUserAnswer = { matchingAnswer: Record<string, string> };
 export type QuizOrderingUserAnswer = { orderingAnswer: string[] };
+export type QuizFillBlankUserAnswer = {
+  fillBlankAnswers: string[];
+  blankCorrect?: boolean[];
+};
 
 export type QuizUserAnswer =
   | QuizChoiceUserAnswer
   | QuizTextUserAnswer
   | QuizMatchingUserAnswer
-  | QuizOrderingUserAnswer;
+  | QuizOrderingUserAnswer
+  | QuizFillBlankUserAnswer;
 
 export interface QuizSessionAnswerDetail {
   id: string;

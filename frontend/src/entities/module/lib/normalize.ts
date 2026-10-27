@@ -20,6 +20,7 @@ export function normalizeModuleQuestion(q: ModuleQuestion): ModuleQuestion {
     questionOptions: Array.isArray(q.questionOptions) ? q.questionOptions : [],
     matchingPairs: Array.isArray(q.matchingPairs) ? q.matchingPairs : [],
     orderingItems: Array.isArray(q.orderingItems) ? q.orderingItems : [],
+    fillBlanks: Array.isArray(q.fillBlanks) ? q.fillBlanks : [],
   };
 }
 

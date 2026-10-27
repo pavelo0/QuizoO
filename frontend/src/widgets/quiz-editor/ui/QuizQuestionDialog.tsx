@@ -1,4 +1,11 @@
 import { ChoiceQuestionFields } from '@/features/edit-question-choice';
+import {
+  FillBlankQuestionFields,
+  FILL_BLANK_MAX,
+  appendFillBlankMarker,
+  removeFillBlankMarker,
+  type FillBlankDraft,
+} from '@/features/edit-question-fill-blank';
 import { MatchingQuestionFields } from '@/features/edit-question-matching';
 import { OrderingQuestionFields } from '@/features/edit-question-ordering';
 import { TextQuestionFields } from '@/features/edit-question-text';
@@ -55,6 +62,8 @@ type QuestionDialogProps = {
       allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+      orderingItems?: Array<{ text: string; correctOrder: number }>;
+      fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
     },
     imageFile: File | null,
@@ -67,6 +76,8 @@ type QuestionDialogProps = {
       allowMultipleAnswers?: boolean;
       options?: Array<{ text: string; isCorrect: boolean }>;
       matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
+      orderingItems?: Array<{ text: string; correctOrder: number }>;
+      fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
     },
     imageUpdate: {
@@ -103,6 +114,9 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
   const [orderingItems, setOrderingItems] = useState<
     Array<{ id: string; text: string }>
   >(createDefaultOrderingItems);
+  const [fillBlanks, setFillBlanks] = useState<FillBlankDraft[]>(() => [
+    { id: crypto.randomUUID(), answer: '', variantsText: '' },
+  ]);
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -113,6 +127,7 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
     options?: string;
     matching?: string;
     orderingItems?: string;
+    fillBlanks?: string;
     image?: string;
     form?: string;
   }>({});
@@ -155,6 +170,9 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
       ]);
       setPairs(DEFAULT_MATCHING_PAIRS);
       setOrderingItems(createDefaultOrderingItems());
+      setFillBlanks([
+        { id: crypto.randomUUID(), answer: '', variantsText: '' },
+      ]);
       return;
     }
     setType(editingQuestion.type);
@@ -203,6 +221,28 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
     } else {
       setOrderingItems(createDefaultOrderingItems());
     }
+    if (editingQuestion.type === 'FILL_BLANK') {
+      const loaded = [
+        ...(Array.isArray(editingQuestion.fillBlanks)
+          ? editingQuestion.fillBlanks
+          : []),
+      ]
+        .sort((a, b) => a.blankIndex - b.blankIndex)
+        .map((blank) => ({
+          id: blank.id,
+          answer: blank.answer,
+          variantsText: formatAcceptedVariantsText(blank.acceptedVariants),
+        }));
+      setFillBlanks(
+        loaded.length > 0
+          ? loaded
+          : [{ id: crypto.randomUUID(), answer: '', variantsText: '' }],
+      );
+    } else {
+      setFillBlanks([
+        { id: crypto.randomUUID(), answer: '', variantsText: '' },
+      ]);
+    }
   }, [open, editingQuestion]);
 
   const addChoiceOption = useCallback(() => {
@@ -229,6 +269,43 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
   const removeOrderingItem = useCallback((id: string) => {
     setOrderingItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
+
+  const addFillBlank = useCallback(() => {
+    setFillBlanks((prev) => {
+      if (prev.length >= FILL_BLANK_MAX) return prev;
+      const next = [
+        ...prev,
+        { id: crypto.randomUUID(), answer: '', variantsText: '' },
+      ];
+      setQuestionText((text) => appendFillBlankMarker(text, next.length));
+      return next;
+    });
+    setErrors((prev) => ({ ...prev, fillBlanks: undefined, form: undefined }));
+  }, []);
+
+  const removeFillBlank = useCallback((id: string) => {
+    setFillBlanks((prev) => {
+      const index = prev.findIndex((item) => item.id === id);
+      if (index < 0 || prev.length <= 1) return prev;
+      setQuestionText((text) => removeFillBlankMarker(text, index + 1));
+      return prev.filter((item) => item.id !== id);
+    });
+    setErrors((prev) => ({ ...prev, fillBlanks: undefined, form: undefined }));
+  }, []);
+
+  const updateFillBlank = useCallback(
+    (id: string, patch: Partial<Omit<FillBlankDraft, 'id'>>) => {
+      setFillBlanks((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+      );
+      setErrors((prev) => ({
+        ...prev,
+        fillBlanks: undefined,
+        form: undefined,
+      }));
+    },
+    [],
+  );
 
   const onImageChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -292,6 +369,7 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
         pairs,
         textAnswer,
         orderingItems,
+        fillBlanks,
         acceptedVariantsText,
         editing: Boolean(editingQuestion),
         questionsCount,
@@ -333,6 +411,7 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
     options,
     pairs,
     orderingItems,
+    fillBlanks,
     questionText,
     textAnswer,
     acceptedVariantsText,
@@ -377,11 +456,15 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
                     if (t.value !== 'CHOICE') {
                       setAllowMultipleAnswers(false);
                     }
+                    if (t.value === 'FILL_BLANK') {
+                      setQuestionText((text) => appendFillBlankMarker(text, 1));
+                    }
                     setErrors((prev) => ({
                       ...prev,
                       textAnswer: undefined,
                       options: undefined,
                       matching: undefined,
+                      fillBlanks: undefined,
                       form: undefined,
                     }));
                   }}
@@ -517,6 +600,16 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
               addOrderingItem={addOrderingItem}
               updateOrderingItemText={updateOrderingItemText}
               removeOrderingItem={removeOrderingItem}
+            />
+          ) : null}
+
+          {type === 'FILL_BLANK' ? (
+            <FillBlankQuestionFields
+              blanks={fillBlanks}
+              errors={errors}
+              onAdd={addFillBlank}
+              onRemove={removeFillBlank}
+              onChange={updateFillBlank}
             />
           ) : null}
         </div>

@@ -25,6 +25,7 @@ type DraftAnswer = {
   textAnswer?: string;
   matchingAnswer?: Record<string, string>;
   orderingAnswer?: string[];
+  fillBlankAnswers?: string[];
 };
 
 function readShuffle(id: string) {
@@ -78,6 +79,14 @@ export function isQuestionAnswered(
       : [];
     return (draft.orderingAnswer?.length ?? 0) === items.length;
   }
+  if (question.type === 'FILL_BLANK') {
+    const blanks = Array.isArray(question.fillBlanks)
+      ? question.fillBlanks
+      : [];
+    if (blanks.length < 1) return false;
+    const answers = draft.fillBlankAnswers ?? [];
+    return blanks.every((_, index) => Boolean(answers[index]?.trim()));
+  }
   return false;
 }
 
@@ -107,6 +116,18 @@ export function toSessionAnswerPayload(
       orderingAnswer: draft?.orderingAnswer ?? null,
     };
   }
+  if (question.type === 'FILL_BLANK') {
+    const count = Array.isArray(question.fillBlanks)
+      ? question.fillBlanks.length
+      : 0;
+    return {
+      questionId: question.id,
+      fillBlankAnswers: Array.from(
+        { length: count },
+        (_, index) => draft?.fillBlankAnswers?.[index]?.trim() ?? '',
+      ),
+    };
+  }
   return {
     questionId: question.id,
     matchingAnswer: draft?.matchingAnswer ?? null,
@@ -130,6 +151,16 @@ export function renderCorrectAnswer(answer: QuizSessionAnswerDetail) {
       .sort((a, b) => (a.correctOrder ?? 0) - (b.correctOrder ?? 0))
       .map((item) => item.text);
     return items.length > 0 ? items.join(' → ') : '—';
+  }
+  if (q.type === 'FILL_BLANK') {
+    const blanks = [...(Array.isArray(q.fillBlanks) ? q.fillBlanks : [])].sort(
+      (left, right) => left.blankIndex - right.blankIndex,
+    );
+    if (blanks.length < 1) return '—';
+    return q.questionText.replace(/\{\{(\d+)\}\}/g, (_match, raw: string) => {
+      const blank = blanks.find((item) => item.blankIndex === Number(raw));
+      return `[${blank?.answer?.trim() || '…'}]`;
+    });
   }
   const pairs = Array.isArray(q.matchingPairs) ? q.matchingPairs : [];
   return pairs
@@ -184,6 +215,23 @@ export function renderUserAnswer(
         return `${index + 1}. ${item?.text ?? t('quizStudy.unknownOption')} ${isCorrect ? '✓' : '✗'}`;
       })
       .join(' · ');
+  }
+  if (q.type === 'FILL_BLANK') {
+    if (!('fillBlankAnswers' in answer.userAnswer)) {
+      return t('quizStudy.noAnswer');
+    }
+    const values = answer.userAnswer.fillBlankAnswers;
+    const flags = answer.userAnswer.blankCorrect ?? [];
+    if (!Array.isArray(values) || values.length < 1) {
+      return t('quizStudy.noAnswer');
+    }
+    return q.questionText.replace(/\{\{(\d+)\}\}/g, (_match, raw: string) => {
+      const index = Number(raw) - 1;
+      const value = values[index]?.trim() || '…';
+      const flag = flags[index];
+      const mark = flag === undefined ? '' : flag ? ' ✓' : ' ✗';
+      return `[${value}${mark}]`;
+    });
   }
   const pairs = Array.isArray(q.matchingPairs) ? q.matchingPairs : [];
   const matchingAnswer =
@@ -605,6 +653,23 @@ export function useQuizStudy() {
     [],
   );
 
+  const setFillBlankAnswer = useCallback(
+    (questionId: string, blankIndex: number, value: string) => {
+      setAnswers((prev) => {
+        const current = [...(prev[questionId]?.fillBlankAnswers ?? [])];
+        while (current.length < blankIndex) {
+          current.push('');
+        }
+        current[blankIndex - 1] = value;
+        return {
+          ...prev,
+          [questionId]: { ...prev[questionId], fillBlankAnswers: current },
+        };
+      });
+    },
+    [],
+  );
+
   const setMatchingAnswer = useCallback(
     (questionId: string, leftPairId: string, rightPairId: string) => {
       setAnswers((prev) => ({
@@ -759,6 +824,7 @@ export function useQuizStudy() {
     submitError,
     setChoiceAnswer,
     setTextAnswer,
+    setFillBlankAnswer,
     setMatchingAnswer,
     setStudyOrderingOrder,
     goPrev,

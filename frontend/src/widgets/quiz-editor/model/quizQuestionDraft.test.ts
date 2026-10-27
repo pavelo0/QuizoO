@@ -23,6 +23,7 @@ function question(
     questionOptions: [],
     matchingPairs: [],
     orderingItems: [],
+    fillBlanks: [],
     ...partial,
   };
 }
@@ -88,6 +89,7 @@ describe('parseQuizImportJson', () => {
       'TEXT',
       'MATCHING',
       'ORDERING',
+      'FILL_BLANK',
     ]);
     expect(parsed[1]).toMatchObject({
       options: [{ text: 'Париж', isCorrect: true }],
@@ -99,6 +101,10 @@ describe('parseQuizImportJson', () => {
       { text: '1945', correctOrder: 2 },
       { text: '1969', correctOrder: 3 },
     ]);
+    expect(parsed[4]).toMatchObject({
+      questionText: 'GET-запрос обычно {{1}} данные',
+      fillBlanks: [{ answer: 'читает', acceptedVariants: ['получает'] }],
+    });
   });
 
   it('отклоняет битую структуру, версию, тип и лимит', () => {

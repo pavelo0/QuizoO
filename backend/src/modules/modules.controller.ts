@@ -144,6 +144,8 @@ export class ModulesController {
         choiceOptionIds?: string[] | null;
         textAnswer?: string | null;
         matchingAnswer?: Record<string, string> | null;
+        orderingAnswer?: string[] | null;
+        fillBlankAnswers?: string[] | null;
       }>;
     },
   ) {
@@ -171,6 +173,8 @@ export class ModulesController {
       orderIndex?: number;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
+      orderingItems?: Array<{ text?: string; correctOrder?: number }>;
+      fillBlanks?: Array<{ answer?: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
     },
   ) {
@@ -190,6 +194,8 @@ export class ModulesController {
       allowMultipleAnswers?: boolean;
       options?: Array<{ text?: string; isCorrect?: boolean }>;
       matchingPairs?: Array<{ leftItem?: string; rightItem?: string }>;
+      orderingItems?: Array<{ text?: string; correctOrder?: number }>;
+      fillBlanks?: Array<{ answer?: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
     },
   ) {
