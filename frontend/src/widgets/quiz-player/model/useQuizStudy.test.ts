@@ -25,6 +25,7 @@ function question(
     questionOptions: [],
     matchingPairs: [],
     orderingItems: [],
+    fillBlanks: [],
     ...partial,
   };
 }
@@ -74,6 +75,19 @@ describe('isQuestionAnswered', () => {
     expect(isQuestionAnswered(ordering, { orderingAnswer: ['i1', 'i2'] })).toBe(
       true,
     );
+    const blanks = question({
+      type: 'FILL_BLANK',
+      fillBlanks: [
+        { id: 'b1', blankIndex: 1, answer: 'читает' },
+        { id: 'b2', blankIndex: 2, answer: 'тела' },
+      ],
+    });
+    expect(
+      isQuestionAnswered(blanks, { fillBlankAnswers: ['читает', ' '] }),
+    ).toBe(false);
+    expect(
+      isQuestionAnswered(blanks, { fillBlankAnswers: ['читает', 'тела'] }),
+    ).toBe(true);
   });
 });
 
@@ -105,6 +119,22 @@ describe('toSessionAnswerPayload', () => {
     ).toEqual({
       questionId: 'm1',
       matchingAnswer: { left: 'right' },
+    });
+    expect(
+      toSessionAnswerPayload(
+        question({
+          type: 'FILL_BLANK',
+          id: 'f1',
+          fillBlanks: [
+            { id: 'b1', blankIndex: 1, answer: 'читает' },
+            { id: 'b2', blankIndex: 2, answer: 'тела' },
+          ],
+        }),
+        { fillBlankAnswers: [' получает ', ''] },
+      ),
+    ).toEqual({
+      questionId: 'f1',
+      fillBlankAnswers: ['получает', ''],
     });
   });
 });
@@ -165,5 +195,26 @@ describe('render answers', () => {
     expect(
       renderUserAnswer(answer(ordering, { orderingAnswer: ['b', 'a'] }), tStub),
     ).toBe('1. Потом ✗ · 2. Сначала ✗');
+
+    const blanks = question({
+      type: 'FILL_BLANK',
+      questionText: 'GET обычно {{1}} данные из {{2}}',
+      fillBlanks: [
+        { id: 'b1', blankIndex: 1, answer: 'читает' },
+        { id: 'b2', blankIndex: 2, answer: 'тела' },
+      ],
+    });
+    expect(renderCorrectAnswer(answer(blanks, null))).toBe(
+      'GET обычно [читает] данные из [тела]',
+    );
+    expect(
+      renderUserAnswer(
+        answer(blanks, {
+          fillBlankAnswers: ['получает', 'заголовка'],
+          blankCorrect: [true, false],
+        }),
+        tStub,
+      ),
+    ).toBe('GET обычно [получает ✓] данные из [заголовка ✗]');
   });
 });

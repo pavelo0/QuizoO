@@ -7,6 +7,7 @@ export type {
   QuizChoiceUserAnswer,
   QuizMatchingUserAnswer,
   QuizOrderingUserAnswer,
+  QuizFillBlankUserAnswer,
   QuizQuestionsPage,
   QuizTextUserAnswer,
   QuizUserAnswer,

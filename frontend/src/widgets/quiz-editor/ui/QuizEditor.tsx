@@ -414,6 +414,7 @@ export function QuizEditor() {
         options?: Array<{ text: string; isCorrect: boolean }>;
         matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
         orderingItems?: Array<{ text: string; correctOrder: number }>;
+        fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
         acceptedVariants?: string[];
       },
       imageFile: File | null,
@@ -445,6 +446,7 @@ export function QuizEditor() {
         options?: Array<{ text: string; isCorrect: boolean }>;
         matchingPairs?: Array<{ leftItem: string; rightItem: string }>;
         orderingItems?: Array<{ text: string; correctOrder: number }>;
+        fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
         acceptedVariants?: string[];
       },
       imageUpdate: {

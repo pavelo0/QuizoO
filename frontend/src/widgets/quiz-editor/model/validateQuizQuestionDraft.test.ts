@@ -20,6 +20,7 @@ function draft(
     pairs: [],
     textAnswer: '',
     orderingItems: [],
+    fillBlanks: [],
     acceptedVariantsText: '',
     editing: false,
     questionsCount: 0,

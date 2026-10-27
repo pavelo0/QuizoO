@@ -95,6 +95,23 @@ describe('question', () => {
     expect(types).toEqual(['CHOICE', 'CHOICE', 'TEXT', 'MATCHING', 'ORDERING']);
     expect(detail.body.questionCount).toBe(5);
 
+    const fillBlank = await user.agent
+      .post(`/api/modules/${moduleId}/questions`)
+      .send({
+        questionText: 'GET обычно {{1}} данные',
+        type: 'FILL_BLANK',
+        orderIndex: 5,
+        fillBlanks: [{ answer: 'читает', acceptedVariants: ['получает'] }],
+      })
+      .expect(201);
+    expect(fillBlank.body.fillBlanks).toEqual([
+      expect.objectContaining({
+        blankIndex: 1,
+        answer: 'читает',
+        acceptedVariants: ['получает'],
+      }),
+    ]);
+
     const renamed = await user.agent
       .patch(`/api/modules/${moduleId}/questions/${choice.body.id}`)
       .send({ questionText: 'Один верный?' })
@@ -105,7 +122,7 @@ describe('question', () => {
       .delete(`/api/modules/${moduleId}/questions/${ordering.body.id}`)
       .expect(200);
     const after = await user.agent.get(`/api/modules/${moduleId}`).expect(200);
-    expect(after.body.questions).toHaveLength(4);
+    expect(after.body.questions).toHaveLength(5);
   });
 
   it('отклоняет вопрос в модуле карточек и неполный CHOICE', async () => {

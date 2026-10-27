@@ -194,4 +194,72 @@ describe('quiz-session', () => {
       ),
     ).toBe(true);
   });
+
+  it('даёт долю балла за FILL_BLANK и не отдаёт эталон в прохождении', async () => {
+    const user = await registerVerifiedUser(api.getApp());
+    const created = await user.agent
+      .post('/api/modules')
+      .send({ title: 'Blanks', type: 'QUIZ' })
+      .expect(201);
+    const moduleId = created.body.id as string;
+
+    const question = await user.agent
+      .post(`/api/modules/${moduleId}/questions`)
+      .send({
+        questionText: 'GET обычно {{1}} данные из {{2}}',
+        type: 'FILL_BLANK',
+        fillBlanks: [
+          { answer: 'читает', acceptedVariants: ['получает'] },
+          { answer: 'тела', acceptedVariants: [] },
+        ],
+      })
+      .expect(201);
+
+    const study = await user.agent
+      .get(`/api/modules/${moduleId}/quiz-questions`)
+      .expect(200);
+    const studyBlank = (
+      study.body.items as Array<{
+        fillBlanks: Array<{ answer: string; acceptedVariants: string[] }>;
+      }>
+    )[0];
+    expect(studyBlank.fillBlanks.map((blank) => blank.answer)).toEqual([
+      '',
+      '',
+    ]);
+    expect(
+      studyBlank.fillBlanks.every(
+        (blank) => blank.acceptedVariants.length === 0,
+      ),
+    ).toBe(true);
+
+    const partial = await user.agent
+      .post(`/api/modules/${moduleId}/quiz-sessions`)
+      .send({
+        answers: [
+          {
+            questionId: question.body.id,
+            fillBlankAnswers: ['получает', 'заголовка'],
+          },
+        ],
+      })
+      .expect(201);
+
+    expect(partial.body).toMatchObject({
+      totalQuestions: 1,
+      correctCount: 0,
+      scorePercent: 50,
+    });
+    expect(partial.body.answers[0]).toMatchObject({
+      isCorrect: false,
+      userAnswer: {
+        fillBlankAnswers: ['получает', 'заголовка'],
+        blankCorrect: [true, false],
+      },
+    });
+    expect(partial.body.answers[0].question.fillBlanks).toEqual([
+      expect.objectContaining({ blankIndex: 1, answer: 'читает' }),
+      expect.objectContaining({ blankIndex: 2, answer: 'тела' }),
+    ]);
+  });
 });

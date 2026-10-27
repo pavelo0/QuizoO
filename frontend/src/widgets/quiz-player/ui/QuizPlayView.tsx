@@ -1,4 +1,5 @@
 import { SortableOrderingList } from '@/features/edit-question-ordering';
+import { splitFillBlankPrompt } from '@/features/edit-question-fill-blank';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -47,6 +48,7 @@ export function QuizPlayView({ study }: { study: QuizStudy }) {
     imageLoadFailedByQuestionId,
     setChoiceAnswer,
     setTextAnswer,
+    setFillBlankAnswer,
     setMatchingAnswer,
     setStudyOrderingOrder,
     goPrev,
@@ -164,9 +166,39 @@ export function QuizPlayView({ study }: { study: QuizStudy }) {
             />
           </div>
 
-          <h2 className="font-(family-name:--font-syne) text-2xl leading-tight font-extrabold tracking-[-0.03em] sm:text-3xl">
-            {currentQuestion.questionText}
-          </h2>
+          {currentQuestion.type === 'FILL_BLANK' ? (
+            <p className="font-(family-name:--font-syne) text-2xl leading-relaxed font-extrabold tracking-[-0.03em] sm:text-3xl">
+              {splitFillBlankPrompt(currentQuestion.questionText).map(
+                (segment, index) =>
+                  segment.kind === 'text' ? (
+                    <span key={`text-${index}`}>{segment.value}</span>
+                  ) : (
+                    <input
+                      key={`blank-${segment.index}`}
+                      value={
+                        currentDraft?.fillBlankAnswers?.[segment.index - 1] ??
+                        ''
+                      }
+                      onChange={(event) =>
+                        setFillBlankAnswer(
+                          currentQuestion.id,
+                          segment.index,
+                          event.target.value,
+                        )
+                      }
+                      aria-label={t('quizStudy.fillBlankInput', {
+                        index: segment.index,
+                      })}
+                      className="mx-1 inline-block w-28 border-b-2 border-(--primary-accent) bg-transparent px-1 text-center text-[0.9em] font-semibold text-(--text-primary) outline-none placeholder:text-(--text-secondary)"
+                    />
+                  ),
+              )}
+            </p>
+          ) : (
+            <h2 className="font-(family-name:--font-syne) text-2xl leading-tight font-extrabold tracking-[-0.03em] sm:text-3xl">
+              {currentQuestion.questionText}
+            </h2>
+          )}
           {currentQuestion.questionImageMime &&
           !imageLoadFailedByQuestionId[currentQuestion.id] ? (
             <div className="mt-4 overflow-hidden rounded-2xl border border-(--border-default) bg-(--input-bg)/30 p-2">

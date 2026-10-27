@@ -1,4 +1,8 @@
 import { parseAcceptedVariantsText } from '@/features/edit-question-shared';
+import {
+  fillBlankMarkersMatch,
+  FILL_BLANK_MAX,
+} from '@/features/edit-question-fill-blank';
 import type { QuestionType } from '@/entities/module';
 import type { TranslationKey } from '@/shared/i18n/messages';
 import {
@@ -12,6 +16,7 @@ export type QuizQuestionFieldErrors = {
   options?: string;
   matching?: string;
   orderingItems?: string;
+  fillBlanks?: string;
   image?: string;
   form?: string;
 };
@@ -24,6 +29,7 @@ export type QuizQuestionDraftInput = {
   pairs: Array<{ leftItem: string; rightItem: string }>;
   textAnswer: string;
   orderingItems: Array<{ id: string; text: string }>;
+  fillBlanks: Array<{ answer: string; variantsText: string }>;
   acceptedVariantsText: string;
   editing: boolean;
   questionsCount: number;
@@ -105,6 +111,22 @@ export function validateQuizQuestionDraft(
     errors.orderingItems = t('editQuiz.validationOrderingMinItems');
   }
 
+  if (input.type === 'FILL_BLANK') {
+    const cleanBlanks = input.fillBlanks.map((blank) => ({
+      answer: blank.answer.trim(),
+      acceptedVariants: parseAcceptedVariantsText(blank.variantsText),
+    }));
+    if (
+      cleanBlanks.length < 1 ||
+      cleanBlanks.length > FILL_BLANK_MAX ||
+      cleanBlanks.some((blank) => !blank.answer)
+    ) {
+      errors.fillBlanks = t('editQuiz.validationFillBlank');
+    } else if (!fillBlankMarkersMatch(question, cleanBlanks.length)) {
+      errors.fillBlanks = t('editQuiz.validationFillBlankMarkers');
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
@@ -127,6 +149,12 @@ export function validateQuizQuestionDraft(
     payload.orderingItems = cleanOrderingItems.map((item, index) => ({
       text: item.text,
       correctOrder: index,
+    }));
+  }
+  if (input.type === 'FILL_BLANK') {
+    payload.fillBlanks = input.fillBlanks.map((blank) => ({
+      answer: blank.answer.trim(),
+      acceptedVariants: parseAcceptedVariantsText(blank.variantsText),
     }));
   }
 

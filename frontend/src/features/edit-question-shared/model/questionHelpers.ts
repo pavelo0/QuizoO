@@ -28,6 +28,11 @@ export function getQuestionTypes(t: (key: string) => string): QuestionTypeUi[] {
       title: t('questionType.ordering'),
       badge: t('questionType.badgeOrdering'),
     },
+    {
+      value: 'FILL_BLANK',
+      title: t('questionType.fillBlank'),
+      badge: t('questionType.badgeFillBlank'),
+    },
   ];
 }
 
@@ -78,6 +83,13 @@ export function summarizeQuestion(
     return items.length > 3
       ? `${preview}…`
       : preview || t('editQuiz.summaryNoOrderingItems');
+  }
+  if (q.type === 'FILL_BLANK') {
+    const answers = [...(Array.isArray(q.fillBlanks) ? q.fillBlanks : [])]
+      .sort((a, b) => a.blankIndex - b.blankIndex)
+      .map((blank) => blank.answer)
+      .filter(Boolean);
+    return answers.join(' · ') || t('editQuiz.summaryNoFillBlanks');
   }
   return q.questionText;
 }

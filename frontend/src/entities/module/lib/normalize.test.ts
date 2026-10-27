@@ -25,10 +25,12 @@ describe('normalize module payloads', () => {
       questionOptions: undefined,
       matchingPairs: undefined,
       orderingItems: undefined,
+      fillBlanks: undefined,
     } as unknown as ModuleQuestion);
     expect(question.questionOptions).toEqual([]);
     expect(question.matchingPairs).toEqual([]);
     expect(question.orderingItems).toEqual([]);
+    expect(question.fillBlanks).toEqual([]);
 
     const detail = normalizeModuleDetail({
       id: 'm1',
