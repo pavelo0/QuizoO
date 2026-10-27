@@ -95,10 +95,9 @@ function DashboardModuleCardInner({
           }
         }}
         className={cn(
-          'gap-0 rounded-2xl border border-(--border-default) bg-zinc-100/90 py-0 shadow-sm ring-0',
-          'cursor-pointer transition-colors duration-200 hover:border-(--primary-accent)/35',
+          'min-h-[290px] gap-0 rounded-[17px] border border-(--border-default) bg-(--surface-color) py-0 shadow-none ring-0',
+          'cursor-pointer transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_color-mix(in_srgb,var(--text-primary)_8%,transparent)]',
           'focus-visible:border-(--primary-accent) focus-visible:ring-2 focus-visible:ring-(--primary-accent)/25 focus-visible:outline-none',
-          'dark:border-white/6 dark:bg-[#161b22]',
         )}
       >
         <CardContent className="flex flex-col px-5 pt-5 pb-0">
@@ -168,12 +167,9 @@ function DashboardModuleCardInner({
                   : t('modules.addQuestionsToStart')
                 : undefined
             }
-            className={cn(
-              'h-11 w-full gap-2 rounded-xl font-(family-name:--font-dm-sans) text-sm font-bold text-white shadow-md',
-              isFlash
-                ? 'border-0 bg-(--secondary-accent) hover:bg-(--secondary-accent)/90'
-                : 'border-0 bg-(--primary-accent) hover:bg-(--primary-accent)/90',
-            )}
+            variant={isFlash ? 'cta' : 'quiz'}
+            size="cta"
+            className="w-full"
           >
             {isFlash ? (
               <>

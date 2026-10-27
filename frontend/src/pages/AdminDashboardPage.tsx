@@ -1,4 +1,4 @@
-import { Button } from '@/shared/ui';
+import { Button, PageHead } from '@/shared/ui';
 import {
   Table,
   TableBody,
@@ -33,7 +33,7 @@ function StatCard({
   icon: ReactNode;
 }) {
   return (
-    <article className="rounded-2xl border border-(--border-default) bg-(--bg-color) p-5">
+    <article className="rounded-2xl border border-(--border-default) bg-(--surface-color) p-5">
       <div className="mb-2 flex items-center justify-between text-(--text-secondary)">
         <span className="text-sm">{label}</span>
         {icon}
@@ -78,25 +78,21 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="font-(family-name:--font-dm-sans)">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-(family-name:--font-syne) text-3xl font-extrabold tracking-[-0.03em] text-(--text-primary)">
-            {t('admin.overviewTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-(--text-secondary)">
-            {t('admin.overviewSubtitle')}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outlineSoft"
-          size="outlineCompact"
-          onClick={() => void load()}
-        >
-          <RefreshCcw className="size-4" />
-          {t('common.refresh')}
-        </Button>
-      </header>
+      <PageHead
+        title={t('admin.overviewTitle')}
+        subtitle={t('admin.overviewSubtitle')}
+        action={
+          <Button
+            type="button"
+            variant="outlineSoft"
+            size="outlineCompact"
+            onClick={() => void load()}
+          >
+            <RefreshCcw className="size-4" />
+            {t('common.refresh')}
+          </Button>
+        }
+      />
 
       {error ? (
         <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -128,7 +124,7 @@ export default function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-12">
-        <article className="rounded-3xl border border-(--border-default) bg-(--bg-color) p-4 xl:col-span-6">
+        <article className="overflow-x-auto rounded-[20px] border border-(--border-default) bg-(--surface-color) p-4 xl:col-span-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-(--text-primary)">
               {t('admin.recentUsers')}
@@ -161,7 +157,7 @@ export default function AdminDashboardPage() {
                         {t('common.blocked')}
                       </span>
                     ) : (
-                      <span className="rounded-full bg-(--secondary-accent)/15 px-2 py-1 text-xs font-semibold text-(--secondary-accent)">
+                      <span className="rounded-full bg-(--success-color)/12 px-2 py-1 text-xs font-semibold text-(--success-color)">
                         {t('common.active')}
                       </span>
                     )}
@@ -182,7 +178,7 @@ export default function AdminDashboardPage() {
           </Table>
         </article>
 
-        <article className="rounded-3xl border border-(--border-default) bg-(--bg-color) p-4 xl:col-span-6">
+        <article className="overflow-x-auto rounded-[20px] border border-(--border-default) bg-(--surface-color) p-4 xl:col-span-6">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-(--text-primary)">
               {t('admin.recentModules')}

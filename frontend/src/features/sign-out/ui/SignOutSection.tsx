@@ -13,15 +13,22 @@ import {
 import { useI18n } from '@/shared/i18n/useI18n';
 import { apiClient } from '@/shared/api/client';
 import { apiErrorText } from '@/shared/lib/apiErrorMessage';
+import { cn } from '@/shared/lib/utils';
 import { LogOut } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 const profileSectionClass =
-  'rounded-2xl border border-(--border-default) bg-(--bg-color) p-5';
+  'rounded-[18px] border border-(--border-default) bg-(--surface-color) p-7';
 
-export function SignOutSection() {
+export function SignOutButton({
+  className,
+  onSignedOut,
+}: {
+  className?: string;
+  onSignedOut?: () => void;
+}) {
   const { signOutLocal } = useAuthContext();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -34,6 +41,7 @@ export function SignOutSection() {
       await apiClient.post('/auth/logout');
       signOutLocal();
       toast.success(t('profile.toastSignedOut'), { duration: 3500 });
+      onSignedOut?.();
       navigate('/', { replace: true });
     } catch (err) {
       toast.error(apiErrorText(err, t));
@@ -45,34 +53,21 @@ export function SignOutSection() {
 
   return (
     <>
-      <section
-        className={profileSectionClass}
-        aria-labelledby="profile-session-heading"
+      <Button
+        type="button"
+        variant="ghost"
+        className={cn(
+          'h-11 gap-2 rounded-xl px-3 text-sm font-medium text-(--text-primary)',
+          className,
+        )}
+        onClick={() => setLogoutOpen(true)}
+        disabled={logoutPending}
       >
-        <h2
-          id="profile-session-heading"
-          className="font-(family-name:--font-dm-sans) text-sm font-semibold text-(--text-primary)"
-        >
-          {t('profile.session')}
-        </h2>
-        <p className="mt-1 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
-          {t('profile.sessionHint')}
-        </p>
-        <Button
-          type="button"
-          variant="outlineSoft"
-          size="outlineCompact"
-          className="mt-4 gap-2"
-          onClick={() => setLogoutOpen(true)}
-          disabled={logoutPending}
-        >
-          <LogOut className="size-4" strokeWidth={1.75} />
-          {t('profile.logOut')}
-        </Button>
-      </section>
-
+        <LogOut className="size-4" strokeWidth={1.75} />
+        {t('profile.logOut')}
+      </Button>
       <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
-        <AlertDialogContent className="border-(--border-default) bg-(--bg-color) text-(--text-primary)">
+        <AlertDialogContent className="border-(--border-default) bg-(--surface-color) text-(--text-primary)">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-(family-name:--font-syne) text-base">
               {t('profile.signOutQuestion')}
@@ -99,5 +94,27 @@ export function SignOutSection() {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+export function SignOutSection() {
+  const { t } = useI18n();
+
+  return (
+    <section
+      className={profileSectionClass}
+      aria-labelledby="profile-session-heading"
+    >
+      <h2
+        id="profile-session-heading"
+        className="font-(family-name:--font-dm-sans) text-sm font-semibold text-(--text-primary)"
+      >
+        {t('profile.session')}
+      </h2>
+      <p className="mt-1 font-(family-name:--font-dm-sans) text-sm text-(--text-secondary)">
+        {t('profile.sessionHint')}
+      </p>
+      <SignOutButton className="mt-3" />
+    </section>
   );
 }

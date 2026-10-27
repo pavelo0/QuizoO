@@ -278,10 +278,10 @@ export function useFlashcardStudy() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (!currentCard || allAnswered) return;
-      if (e.key === 'ArrowLeft') {
+      if (e.key === 'ArrowLeft' && showAnswer) {
         e.preventDefault();
         markCurrent('unknown');
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === 'ArrowRight' && showAnswer) {
         e.preventDefault();
         markCurrent('known');
       } else if (e.key === ' ' || e.key === 'Enter') {
@@ -291,7 +291,7 @@ export function useFlashcardStudy() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [allAnswered, currentCard, markCurrent, toggleFace]);
+  }, [allAnswered, currentCard, markCurrent, showAnswer, toggleFace]);
 
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {

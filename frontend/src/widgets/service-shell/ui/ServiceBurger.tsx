@@ -1,3 +1,4 @@
+import { SignOutButton } from '@/features/sign-out';
 import { useAuthContext } from '@/features/auth-session';
 import { Button } from '@/shared/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -14,6 +15,7 @@ import {
   LayoutDashboard,
   Moon,
   Sun,
+  Undo2,
   Users,
   X,
 } from 'lucide-react';
@@ -140,7 +142,7 @@ const ServiceBurger = ({
             className={linkClass}
           >
             <LayoutDashboard className="size-5 shrink-0" strokeWidth={1.75} />
-            {t('common.dashboard')}
+            {isAdmin ? t('admin.overviewTitle') : t('modules.myModules')}
           </NavLink>
           {isAdmin ? (
             <>
@@ -160,6 +162,14 @@ const ServiceBurger = ({
                 <BookOpen className="size-5 shrink-0" strokeWidth={1.75} />
                 {t('common.modules')}
               </NavLink>
+              <Link
+                to="/app"
+                onClick={onDismiss}
+                className="flex h-11 items-center gap-2.5 rounded-[10px] px-3 text-sm font-semibold text-(--text-secondary) no-underline hover:bg-(--bg-color) hover:text-(--text-primary)"
+              >
+                <Undo2 className="size-5 shrink-0" strokeWidth={1.75} />
+                {t('admin.backToApp')}
+              </Link>
             </>
           ) : null}
           {!isAdmin ? (
@@ -207,51 +217,44 @@ const ServiceBurger = ({
             {t('common.language')}
           </Button>
 
-          <Button
-            variant="outlineSoft"
-            size="cta"
-            className="w-full px-4 hover:bg-(--primary-accent)/12"
-            asChild
+          <Link
+            to="/app/profile"
+            onClick={onDismiss}
+            className="inline-flex w-full items-center justify-start gap-3 rounded-xl px-2 py-2 no-underline hover:bg-(--bg-color)"
+            aria-label={t('nav.openProfile')}
           >
-            <Link
-              to="/app/profile"
-              onClick={onDismiss}
-              className="inline-flex w-full items-center justify-start gap-3 no-underline"
-              aria-label={t('nav.openProfile')}
+            <Avatar
+              key={avatarInstanceKey}
+              className="size-10 shrink-0 border border-(--border-default)"
             >
-              <Avatar
-                key={avatarInstanceKey}
-                className="size-10 shrink-0 border border-(--border-default)"
+              {avatarSrc ? (
+                <AvatarImage src={avatarSrc} alt="" className="object-cover" />
+              ) : null}
+              <AvatarFallback
+                delayMs={0}
+                className="font-(family-name:--font-dm-sans) text-sm font-semibold text-white"
+                style={
+                  user
+                    ? { backgroundColor: profileAvatarBackground(user.id) }
+                    : undefined
+                }
               >
-                {avatarSrc ? (
-                  <AvatarImage
-                    src={avatarSrc}
-                    alt=""
-                    className="object-cover"
-                  />
-                ) : null}
-                <AvatarFallback
-                  delayMs={0}
-                  className="font-(family-name:--font-dm-sans) text-sm font-semibold text-white"
-                  style={
-                    user
-                      ? { backgroundColor: profileAvatarBackground(user.id) }
-                      : undefined
-                  }
-                >
-                  {initial}
-                </AvatarFallback>
-              </Avatar>
-              <span className="min-w-0 flex-1 text-left">
-                <span className="block truncate font-(family-name:--font-dm-sans) text-sm font-semibold">
-                  {profileLabel}
-                </span>
-                <span className="block truncate font-(family-name:--font-dm-sans) text-xs font-normal text-(--text-secondary)">
-                  {user?.email ?? t('service.account')}
-                </span>
+                {initial}
+              </AvatarFallback>
+            </Avatar>
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block truncate font-(family-name:--font-dm-sans) text-sm font-semibold">
+                {profileLabel}
               </span>
-            </Link>
-          </Button>
+              <span className="block truncate font-(family-name:--font-dm-sans) text-xs font-normal text-(--text-secondary)">
+                {user?.email ?? t('service.account')}
+              </span>
+            </span>
+          </Link>
+          <SignOutButton
+            className="w-full justify-start"
+            onSignedOut={onDismiss}
+          />
         </div>
       </div>
     </div>

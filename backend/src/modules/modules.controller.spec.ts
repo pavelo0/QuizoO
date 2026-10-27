@@ -88,12 +88,7 @@ describe('ModulesController (русские сценарии)', () => {
     modules.getQuestionImageForDownload = jest.fn().mockResolvedValue(null);
 
     await expect(
-      controller.getQuestionImage(
-        'u1',
-        'm1',
-        'q1',
-        createResponseMock() as Response,
-      ),
+      controller.getQuestionImage('u1', 'm1', 'q1', createResponseMock()),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 

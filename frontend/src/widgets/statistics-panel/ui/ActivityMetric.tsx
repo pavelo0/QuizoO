@@ -6,7 +6,7 @@ export function scoreColor(score: number | null) {
     return 'bg-(--input-bg) text-(--text-secondary)';
   }
   if (score >= 85) {
-    return 'bg-(--secondary-accent)/15 text-(--secondary-accent)';
+    return 'bg-(--success-color)/12 text-(--success-color)';
   }
   if (score >= 70) {
     return 'bg-(--primary-accent)/15 text-(--primary-accent)';
@@ -39,7 +39,7 @@ export function ActivityMetric({
       ? (session.knownCount / session.totalCards) * 100
       : 0;
   return (
-    <span className="inline-flex rounded-full bg-(--secondary-accent)/15 px-2 py-1 text-[11px] font-semibold text-(--secondary-accent)">
+    <span className="inline-flex rounded-full bg-(--blue-tint) px-2 py-1 text-[11px] font-semibold text-(--primary-accent)">
       {`${Math.round(flashPercent)}% (${session.knownCount}/${session.totalCards})`}
     </span>
   );

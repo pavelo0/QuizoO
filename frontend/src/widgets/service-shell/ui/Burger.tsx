@@ -71,7 +71,7 @@ const Burger = ({ phase, onDismiss, onExitComplete }: BurgerProps) => {
         onTransitionEnd={handlePanelTransitionEnd}
       >
         <div className="flex h-20 shrink-0 items-center justify-between border-b border-(--border-default) px-5">
-          <span className="font-(family-name:--font-syne) text-xl font-bold text-(--text-primary)">
+          <span className="font-(family-name:--font-brand) text-xl font-bold text-(--text-primary)">
             QuizoO
           </span>
           <button

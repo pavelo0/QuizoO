@@ -12,8 +12,8 @@ afterEach(() => {
 });
 
 describe('theme', () => {
-  it('по умолчанию тёмная и переключается', () => {
-    expect(getStoredTheme()).toBe('dark');
+  it('по умолчанию светлая и переключается', () => {
+    expect(getStoredTheme()).toBe('light');
     expect(toggleTheme('dark')).toBe('light');
     setStoredTheme('light');
     expect(getStoredTheme()).toBe('light');

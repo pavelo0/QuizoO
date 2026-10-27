@@ -1,14 +1,23 @@
+import { Brand } from '@/shared/ui';
 import {
   BurgerButton,
   ServiceBurger,
   ServiceHeader,
 } from '@/widgets/service-shell';
 import { useCallback, useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 type MobileMenu = 'closed' | 'open' | 'closing';
 
+function isFocusRoute(pathname: string) {
+  return /^\/app\/modules\/(?:create|[^/]+\/(?:edit|quiz-edit|flash-study|quiz-study))$/.test(
+    pathname,
+  );
+}
+
 export default function ServiceLayout() {
+  const { pathname } = useLocation();
+  const focus = isFocusRoute(pathname);
   const [mobileMenu, setMobileMenu] = useState<MobileMenu>('closed');
 
   const toggleMobileMenu = useCallback(() => {
@@ -19,16 +28,19 @@ export default function ServiceLayout() {
     });
   }, []);
 
+  if (focus) {
+    return (
+      <div className="min-h-dvh bg-(--bg-color)">
+        <Outlet />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-(--bg-color)">
-      <div className="fixed inset-x-0 top-0 z-40 px-3 pt-3 lg:hidden">
-        <div className="mx-auto flex h-14 max-w-[120rem] items-center justify-between rounded-2xl border border-(--border-default) bg-(--surface-color)/95 px-4 shadow-sm backdrop-blur">
-          <Link
-            to="/app"
-            className="font-(family-name:--font-syne) text-xl font-extrabold tracking-[-0.04em] text-(--text-primary) no-underline transition-opacity hover:opacity-70"
-          >
-            QuizoO
-          </Link>
+      <div className="fixed inset-x-0 top-0 z-40 border-b border-(--border-default) bg-(--surface-color) lg:hidden">
+        <div className="flex h-14 items-center justify-between px-4">
+          <Brand to="/app" className="text-xl" />
           <BurgerButton
             menuOpen={mobileMenu !== 'closed'}
             onToggle={toggleMobileMenu}
@@ -45,22 +57,12 @@ export default function ServiceLayout() {
         />
       )}
 
-      <div className="mx-auto flex min-h-dvh w-full max-w-[120rem] flex-col gap-3 px-3 pb-8 pt-[5.25rem] lg:flex-row lg:items-stretch lg:gap-0 lg:px-4 lg:pt-6">
-        <aside className="hidden shrink-0 lg:block lg:self-start">
-          <div className="sticky top-6 h-[calc(100dvh-3rem)]">
-            <ServiceHeader />
-          </div>
+      <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="sticky top-0 hidden h-dvh border-r border-(--border-default) bg-(--surface-color) lg:block">
+          <ServiceHeader />
         </aside>
-
-        <div
-          className="hidden shrink-0 self-stretch lg:block lg:w-4 lg:min-w-4 lg:flex-none"
-          aria-hidden
-        />
-
-        <main className="min-h-[calc(100dvh-5.25rem-2rem)] min-w-0 flex-1 rounded-3xl border border-(--border-default) bg-(--surface-color) p-4 shadow-sm sm:p-5 lg:min-h-[calc(100dvh-3rem)] lg:p-6">
-          <div className="min-h-full">
-            <Outlet />
-          </div>
+        <main className="min-w-0 px-4 pt-20 pb-10 sm:px-8 lg:px-10 lg:pt-8">
+          <Outlet />
         </main>
       </div>
     </div>

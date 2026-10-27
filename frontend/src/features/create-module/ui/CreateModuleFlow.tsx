@@ -1,4 +1,6 @@
+import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { PageHead } from '@/shared/ui/page-head';
 import { getOrCreateQuizDraftId } from '@/features/create-module/lib/quizModuleDraft';
 import { getOrCreateFlashcardDraftId } from '@/features/create-module/lib/flashcardModuleDraft';
 import { useI18n } from '@/shared/i18n/useI18n';
@@ -51,18 +53,43 @@ export function CreateModuleFlow() {
 
   if (type === null) {
     return (
-      <div className="mx-auto max-w-lg">
-        <p className="text-sm text-(--text-secondary)">
-          {t('createModule.invalidType')}
-        </p>
-        <Button
-          asChild
-          variant="outline"
-          className="mt-6 rounded-xl"
-          size="outlineCompact"
-        >
+      <div className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col justify-center">
+        <Button asChild variant="ghost" className="mb-6 w-fit rounded-xl px-2">
           <Link to="/app">{t('common.backToDashboard')}</Link>
         </Button>
+        <PageHead
+          title={t('createDialog.title')}
+          subtitle={t('createDialog.description')}
+          className="mb-2"
+        />
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <button
+            type="button"
+            className="rounded-[20px] border border-(--border-default) bg-(--surface-color) p-8 text-left transition-transform hover:-translate-y-0.5 hover:border-(--primary-accent)"
+            onClick={() => navigate('/app/modules/create?type=FLASHCARD')}
+          >
+            <Badge variant="flashcard">{t('modules.filterCards')}</Badge>
+            <h2 className="mt-3 text-xl font-bold">
+              {t('createDialog.flashcardsTitle')}
+            </h2>
+            <p className="mt-2 text-sm text-(--text-secondary)">
+              {t('createDialog.flashcardsDescription')}
+            </p>
+          </button>
+          <button
+            type="button"
+            className="rounded-[20px] border border-(--border-default) bg-(--surface-color) p-8 text-left transition-transform hover:-translate-y-0.5 hover:border-(--secondary-accent)"
+            onClick={() => navigate('/app/modules/create?type=QUIZ')}
+          >
+            <Badge variant="quiz">{t('modules.filterQuizzes')}</Badge>
+            <h2 className="mt-3 text-xl font-bold">
+              {t('createDialog.quizTitle')}
+            </h2>
+            <p className="mt-2 text-sm text-(--text-secondary)">
+              {t('createDialog.quizDescription')}
+            </p>
+          </button>
+        </div>
       </div>
     );
   }

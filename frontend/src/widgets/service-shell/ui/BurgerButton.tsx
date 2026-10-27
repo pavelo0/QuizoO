@@ -1,3 +1,5 @@
+import { cn } from '@/shared/lib/utils';
+
 type BurgerButtonProps = {
   menuOpen: boolean;
   onToggle: () => void;
@@ -5,6 +7,7 @@ type BurgerButtonProps = {
   closeLabel?: string;
   /** id of the controlled menu dialog (for aria-controls) */
   menuId?: string;
+  className?: string;
 };
 
 const BurgerButton = ({
@@ -13,11 +16,15 @@ const BurgerButton = ({
   openLabel = 'Open menu',
   closeLabel = 'Close menu',
   menuId = 'mobile-menu',
+  className,
 }: BurgerButtonProps) => {
   return (
     <button
       type="button"
-      className="inline-flex shrink-0 flex-col gap-1.5 lg:hidden"
+      className={cn(
+        'inline-flex shrink-0 flex-col gap-1.5 lg:hidden',
+        className,
+      )}
       onClick={onToggle}
       aria-label={menuOpen ? closeLabel : openLabel}
       aria-expanded={menuOpen}

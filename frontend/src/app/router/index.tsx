@@ -30,10 +30,6 @@ import RouteErrorPage from '@/pages/RouteErrorPage';
 import StatisticsPage from '@/pages/statistics';
 
 function UserHomeRoute() {
-  const { user } = useAuthContext();
-  if (user?.role === 'ADMIN') {
-    return <Navigate to="/app/admin" replace />;
-  }
   return <DashboardPage />;
 }
 

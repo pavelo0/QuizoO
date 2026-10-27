@@ -1,4 +1,4 @@
-import { Button } from '@/shared/ui';
+import { Button, PageHead } from '@/shared/ui';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -41,6 +41,8 @@ export default function AdminUsersPage() {
   const [confirmTarget, setConfirmTarget] = useState<AdminUserListItem | null>(
     null,
   );
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<'all' | 'active' | 'blocked'>('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,6 +70,17 @@ export default function AdminUsersPage() {
     };
   }, [users]);
 
+  const visibleUsers = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return users.filter((user) => {
+      if (status === 'active' && user.isBlocked) return false;
+      if (status === 'blocked' && !user.isBlocked) return false;
+      if (!needle) return true;
+      const name = user.username?.toLowerCase() ?? '';
+      return name.includes(needle) || user.email.toLowerCase().includes(needle);
+    });
+  }, [query, status, users]);
+
   const handleConfirm = useCallback(async () => {
     if (!confirmTarget) return;
     setPendingId(confirmTarget.id);
@@ -87,25 +100,21 @@ export default function AdminUsersPage() {
 
   return (
     <div className="font-(family-name:--font-dm-sans)">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-(family-name:--font-syne) text-3xl font-extrabold tracking-[-0.03em] text-(--text-primary)">
-            {t('admin.usersTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-(--text-secondary)">
-            {t('admin.usersSubtitle')}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outlineSoft"
-          size="outlineCompact"
-          onClick={() => void load()}
-        >
-          <RefreshCcw className="size-4" />
-          {t('common.refresh')}
-        </Button>
-      </header>
+      <PageHead
+        title={t('admin.usersTitle')}
+        subtitle={t('admin.usersSubtitle')}
+        action={
+          <Button
+            type="button"
+            variant="outlineSoft"
+            size="outlineCompact"
+            onClick={() => void load()}
+          >
+            <RefreshCcw className="size-4" />
+            {t('common.refresh')}
+          </Button>
+        }
+      />
 
       <section className="mb-4 grid gap-3 sm:grid-cols-3">
         <article className="rounded-2xl border border-(--border-default) bg-(--bg-color) p-4">
@@ -138,7 +147,29 @@ export default function AdminUsersPage() {
         </div>
       ) : null}
 
-      <section className="rounded-3xl border border-(--border-default) bg-(--bg-color) p-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('admin.searchUsers')}
+          aria-label={t('admin.searchUsers')}
+          className="h-11 min-w-0 flex-1 rounded-xl border border-(--border-default) bg-(--surface-color) px-3 text-sm text-(--text-primary)"
+        />
+        <select
+          value={status}
+          onChange={(event) =>
+            setStatus(event.target.value as 'all' | 'active' | 'blocked')
+          }
+          aria-label={t('admin.status')}
+          className="h-11 rounded-xl border border-(--border-default) bg-(--surface-color) px-3 text-sm text-(--text-primary)"
+        >
+          <option value="all">{t('admin.allStatuses')}</option>
+          <option value="active">{t('common.active')}</option>
+          <option value="blocked">{t('common.blocked')}</option>
+        </select>
+      </div>
+
+      <section className="overflow-x-auto rounded-[20px] border border-(--border-default) bg-(--surface-color) p-4">
         <Table>
           <TableHeader>
             <TableRow className="border-(--border-default)">
@@ -161,7 +192,7 @@ export default function AdminUsersPage() {
                   {t('admin.loadingUsers')}
                 </TableCell>
               </TableRow>
-            ) : users.length < 1 ? (
+            ) : visibleUsers.length < 1 ? (
               <TableRow className="border-(--border-default)">
                 <TableCell
                   colSpan={7}
@@ -171,7 +202,7 @@ export default function AdminUsersPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user) => (
+              visibleUsers.map((user) => (
                 <TableRow key={user.id} className="border-(--border-default)">
                   <TableCell className="font-semibold text-(--text-primary)">
                     {user.username?.trim() || user.email.split('@')[0]}
@@ -186,7 +217,7 @@ export default function AdminUsersPage() {
                         {t('common.blocked')}
                       </span>
                     ) : (
-                      <span className="rounded-full bg-(--secondary-accent)/15 px-2 py-1 text-xs font-semibold text-(--secondary-accent)">
+                      <span className="rounded-full bg-(--success-color)/12 px-2 py-1 text-xs font-semibold text-(--success-color)">
                         {t('common.active')}
                       </span>
                     )}
