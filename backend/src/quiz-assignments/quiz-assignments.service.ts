@@ -5,8 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ModuleType, Prisma } from '@prisma/client';
+import { ModuleType, Prisma, XpActivity } from '@prisma/client';
 import { randomBytes } from 'crypto';
+import { ExperienceService } from '../experience/experience.service';
+import { ASSIGNMENT_POINTS } from '../experience/experience.math';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuizAssignmentDto } from './dto/create-quiz-assignment.dto';
 import {
@@ -90,7 +92,10 @@ function parseDeadline(raw: string): Date {
 
 @Injectable()
 export class QuizAssignmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly experience: ExperienceService,
+  ) {}
 
   async list(userId: string): Promise<QuizAssignmentSummary[]> {
     await this.assertLearner(userId);
@@ -144,6 +149,12 @@ export class QuizAssignmentsService {
             module: { select: { title: true } },
             _count: { select: { sessions: true } },
           },
+        });
+        await this.experience.record(this.prisma, {
+          userId,
+          activity: XpActivity.ASSIGNMENT,
+          sourceId: created.id,
+          points: ASSIGNMENT_POINTS,
         });
         return this.toSummary(created);
       } catch (error) {

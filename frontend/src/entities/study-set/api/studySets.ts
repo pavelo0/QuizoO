@@ -2,8 +2,16 @@ import { apiClient } from '@/shared/api/client';
 import type {
   StudySetDetail,
   StudySetId,
+  StudySetStat,
   StudySetSummary,
 } from '../model/types';
+
+export async function fetchStudySetStatistics() {
+  const { data } = await apiClient.get<StudySetStat[]>(
+    '/study-sets/statistics',
+  );
+  return data;
+}
 
 export async function fetchStudySetList() {
   const { data } = await apiClient.get<StudySetSummary[]>('/study-sets');

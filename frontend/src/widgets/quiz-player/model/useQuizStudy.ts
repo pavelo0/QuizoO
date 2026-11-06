@@ -607,6 +607,7 @@ export function useQuizStudy() {
       const nextSession = await createQuizSession(moduleId, {
         answers: payload,
         ...(assignmentId ? { assignmentId } : {}),
+        ...(retrySessionId ? { retryOfSessionId: retrySessionId } : {}),
       });
       const elapsed =
         studyStartedAtRef.current !== null
@@ -628,6 +629,7 @@ export function useQuizStudy() {
     assignmentId,
     moduleId,
     questions,
+    retrySessionId,
     session,
     submitState,
     t,
@@ -800,6 +802,7 @@ export function useQuizStudy() {
       const nextSession = await createQuizSession(moduleId, {
         answers: payload,
         ...(assignmentId ? { assignmentId } : {}),
+        ...(retrySessionId ? { retryOfSessionId: retrySessionId } : {}),
       });
       const elapsed =
         studyStartedAtRef.current !== null
@@ -815,7 +818,16 @@ export function useQuizStudy() {
       setSubmitError(message);
       toast.error(message);
     }
-  }, [answers, assignmentId, canSubmit, moduleId, questions, submitState, t]);
+  }, [
+    answers,
+    assignmentId,
+    canSubmit,
+    moduleId,
+    questions,
+    retrySessionId,
+    submitState,
+    t,
+  ]);
 
   useEffect(() => {
     if (session) return;

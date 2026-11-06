@@ -157,6 +157,7 @@ export async function createQuizSession(
       orderingAnswer?: string[] | null;
     }>;
     assignmentId?: string;
+    retryOfSessionId?: string;
   },
 ) {
   const { data } = await apiClient.post<QuizSessionDetail>(

@@ -6,10 +6,16 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
-import { ModuleType, Prisma, QuestionType } from '@prisma/client';
+import { ModuleType, Prisma, QuestionType, XpActivity } from '@prisma/client';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import { ExperienceService } from '../experience/experience.service';
+import {
+  pointsForFlashcard,
+  pointsForQuiz,
+  RETRY_POINTS,
+} from '../experience/experience.math';
 import { QuizAssignmentsService } from '../quiz-assignments/quiz-assignments.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
@@ -200,6 +206,7 @@ export class ModulesService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly quizAssignments: QuizAssignmentsService,
+    private readonly experience: ExperienceService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -767,7 +774,7 @@ export class ModulesService implements OnModuleInit {
       );
     }
 
-    return this.prisma.flashcardSession.create({
+    const created = await this.prisma.flashcardSession.create({
       data: {
         userId,
         moduleId,
@@ -777,6 +784,13 @@ export class ModulesService implements OnModuleInit {
         completedAt: new Date(),
       },
     });
+    await this.experience.record(this.prisma, {
+      userId,
+      activity: XpActivity.FLASHCARD,
+      sourceId: created.id,
+      points: pointsForFlashcard(knownCount),
+    });
+    return created;
   }
 
   async createQuizSession(
@@ -793,10 +807,17 @@ export class ModulesService implements OnModuleInit {
         fillBlankAnswers?: string[] | null;
       }>;
       assignmentId?: string;
+      retryOfSessionId?: string;
     },
   ) {
     await this.assertLearningModuleAccessAllowed(userId);
     const assignmentId = body.assignmentId?.trim() ?? '';
+    const retryOfSessionId = body.retryOfSessionId?.trim() ?? '';
+    if (assignmentId && retryOfSessionId) {
+      throw new BadRequestException(
+        'An assignment attempt cannot be a mistake retry',
+      );
+    }
     if (assignmentId) {
       await this.quizAssignments.assertOpen(assignmentId, moduleId);
     } else {
@@ -819,6 +840,15 @@ export class ModulesService implements OnModuleInit {
     );
     if (questionIds.length !== answers.length) {
       throw new BadRequestException('Each answer must have a questionId');
+    }
+    const xpActivity = retryOfSessionId ? XpActivity.RETRY : XpActivity.QUIZ;
+    if (retryOfSessionId) {
+      await this.assertRetrySource(
+        userId,
+        moduleId,
+        retryOfSessionId,
+        questionIds,
+      );
     }
 
     const questions = await this.prisma.question.findMany({
@@ -1025,6 +1055,15 @@ export class ModulesService implements OnModuleInit {
             })),
           },
         },
+      });
+      await this.experience.record(tx, {
+        userId,
+        activity: xpActivity,
+        sourceId: created.id,
+        points:
+          xpActivity === XpActivity.RETRY
+            ? RETRY_POINTS
+            : pointsForQuiz(scorePercent),
       });
       return created;
     });
@@ -1757,6 +1796,34 @@ export class ModulesService implements OnModuleInit {
       throw new BadRequestException(
         'Cards can only be managed in FLASHCARD modules',
       );
+    }
+  }
+
+  private async assertRetrySource(
+    userId: string,
+    moduleId: string,
+    sessionId: string,
+    questionIds: string[],
+  ) {
+    const previous = await this.prisma.quizSession.findFirst({
+      where: { id: sessionId, userId, moduleId },
+      select: {
+        answers: { select: { questionId: true, isCorrect: true } },
+      },
+    });
+    if (!previous) {
+      throw new BadRequestException('Retry source was not found');
+    }
+    const wrong = new Set(
+      previous.answers
+        .filter((answer) => !answer.isCorrect)
+        .map((answer) => answer.questionId),
+    );
+    if (wrong.size === 0) {
+      throw new BadRequestException('Retry source has no mistakes');
+    }
+    if (questionIds.some((id) => !wrong.has(id))) {
+      throw new BadRequestException('Retry can include only missed questions');
     }
   }
 

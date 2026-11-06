@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ModuleType } from '@prisma/client';
+import { ExperienceService } from '../experience/experience.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuizAssignmentsService } from './quiz-assignments.service';
 
@@ -28,7 +29,9 @@ describe('QuizAssignmentsService', () => {
   beforeEach(() => {
     prisma = createPrismaMock();
     prisma.user.findUnique = jest.fn().mockResolvedValue({ role: 'USER' });
-    service = new QuizAssignmentsService(prisma);
+    service = new QuizAssignmentsService(prisma, {
+      record: jest.fn(),
+    } as unknown as ExperienceService);
   });
 
   it('rejects an admin', async () => {

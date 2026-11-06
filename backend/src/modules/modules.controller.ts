@@ -150,6 +150,7 @@ export class ModulesController {
         fillBlankAnswers?: string[] | null;
       }>;
       assignmentId?: string;
+      retryOfSessionId?: string;
     },
   ) {
     return this.modules.createQuizSession(userId, moduleId, body);

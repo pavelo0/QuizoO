@@ -33,6 +33,29 @@ export type StudySetDetail = StudySetSummary & {
   modules: StudySetModuleView[];
 };
 
+export type StudySetSessionStat = {
+  id: string;
+  moduleId: string;
+  moduleTitle: string;
+  kind: 'FLASHCARD' | 'QUIZ';
+  at: string;
+  knownCount: number | null;
+  totalCards: number | null;
+  scorePercent: number | null;
+  correctCount: number | null;
+  totalQuestions: number | null;
+};
+
+export type StudySetStat = {
+  id: string;
+  title: string;
+  moduleCount: number;
+  studiedCount: number;
+  progress: number;
+  sessionCount: number;
+  recent: StudySetSessionStat[];
+};
+
 function progressPercent(studiedCount: number, moduleCount: number): number {
   if (moduleCount === 0) return 0;
   return Math.round((studiedCount / moduleCount) * 100);
@@ -99,6 +122,41 @@ export class StudySetsService {
       createdAt: created.createdAt.toISOString(),
       updatedAt: created.updatedAt.toISOString(),
     };
+  }
+
+  async statistics(userId: string): Promise<StudySetStat[]> {
+    await this.assertLearner(userId);
+    const sets = await this.prisma.studySet.findMany({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        items: {
+          include: { module: { select: { id: true, title: true } } },
+        },
+      },
+    });
+    const moduleIds = [
+      ...new Set(sets.flatMap((set) => set.items.map((item) => item.moduleId))),
+    ];
+    const studied = await this.studiedModuleIds(userId, moduleIds);
+    const sessions = await this.sessionsForModules(userId, moduleIds);
+    return sets.map((set) => {
+      const ids = new Set(set.items.map((item) => item.moduleId));
+      const own = sessions.filter((session) => ids.has(session.moduleId));
+      const studiedCount = set.items.filter((item) =>
+        studied.has(item.moduleId),
+      ).length;
+      const moduleCount = set.items.length;
+      return {
+        id: set.id,
+        title: set.title,
+        moduleCount,
+        studiedCount,
+        progress: progressPercent(studiedCount, moduleCount),
+        sessionCount: own.length,
+        recent: own.slice(0, 5),
+      };
+    });
   }
 
   async getOne(userId: string, setId: string): Promise<StudySetDetail> {
@@ -237,6 +295,56 @@ export class StudySetsService {
       updatedAt: set.updatedAt.toISOString(),
       modules,
     };
+  }
+
+  private async sessionsForModules(
+    userId: string,
+    moduleIds: string[],
+  ): Promise<StudySetSessionStat[]> {
+    if (moduleIds.length === 0) return [];
+    const where = {
+      userId,
+      moduleId: { in: moduleIds },
+      completedAt: { not: null },
+    };
+    const [flash, quiz] = await Promise.all([
+      this.prisma.flashcardSession.findMany({
+        where,
+        include: { module: { select: { title: true } } },
+      }),
+      this.prisma.quizSession.findMany({
+        where,
+        include: { module: { select: { title: true } } },
+      }),
+    ]);
+    const rows: StudySetSessionStat[] = [
+      ...flash.map((row) => ({
+        id: row.id,
+        moduleId: row.moduleId,
+        moduleTitle: row.module.title,
+        kind: 'FLASHCARD' as const,
+        at: row.completedAt?.toISOString() ?? '',
+        knownCount: row.knownCount,
+        totalCards: row.totalCards,
+        scorePercent: null,
+        correctCount: null,
+        totalQuestions: null,
+      })),
+      ...quiz.map((row) => ({
+        id: row.id,
+        moduleId: row.moduleId,
+        moduleTitle: row.module.title,
+        kind: 'QUIZ' as const,
+        at: row.completedAt?.toISOString() ?? '',
+        knownCount: null,
+        totalCards: null,
+        scorePercent: Math.round(row.scorePercent * 10) / 10,
+        correctCount: row.correctCount,
+        totalQuestions: row.totalQuestions,
+      })),
+    ];
+    rows.sort((left, right) => right.at.localeCompare(left.at));
+    return rows;
   }
 
   private async studiedModuleIds(

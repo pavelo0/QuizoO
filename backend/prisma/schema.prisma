@@ -45,9 +45,17 @@ model User {
   quizSessions      QuizSession[]
   studySets         StudySet[]
   quizAssignments   QuizAssignment[]
+  xpEvents          XpEvent[]
 
   @@unique([oauthProvider, oauthId])
   @@map("users")
+}
+
+enum XpActivity {
+  FLASHCARD
+  QUIZ
+  RETRY
+  ASSIGNMENT
 }
 
 enum ModuleType {
@@ -223,6 +231,21 @@ model QuizAssignment {
   @@index([userId])
   @@index([moduleId])
   @@map("quiz_assignments")
+}
+
+model XpEvent {
+  id        String     @id @default(cuid())
+  userId    String
+  activity  XpActivity
+  sourceId  String
+  points    Int
+  createdAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activity, sourceId])
+  @@index([userId])
+  @@map("xp_events")
 }
 
 model QuizAnswer {

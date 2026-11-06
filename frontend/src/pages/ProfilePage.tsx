@@ -3,6 +3,7 @@ import { EditProfileSection } from '@/features/edit-profile';
 import { useAuthContext } from '@/features/auth-session';
 import { SignOutSection } from '@/features/sign-out';
 import { PageHead } from '@/shared/ui';
+import { ProfileProgress } from '@/widgets/profile-progress';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { Loader2 } from 'lucide-react';
 
@@ -36,6 +37,8 @@ const ProfilePage = () => {
           </p>
         </div>
       ) : null}
+
+      <ProfileProgress />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <EditProfileSection />

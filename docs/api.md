@@ -89,10 +89,12 @@ REST API серверной части построен вокруг ресур�
 | GET    | `/quiz-assignments/by-code/:code`                | `QuizAssignmentsController` | Авторизован | Найти занятие по короткому коду                                   |
 | GET    | `/quiz-assignments/:assignmentId`                | `QuizAssignmentsController` | Авторизован | Журнал попыток своего занятия                                     |
 | DELETE | `/quiz-assignments/:assignmentId`                | `QuizAssignmentsController` | Авторизован | Удалить занятие; попытки остаются без привязки                    |
+| GET    | `/study-sets/statistics`                         | `StudySetsController`       | Авторизован | Статистика наборов: прогресс и последние попытки                  |
+| GET    | `/experience/me`                                 | `ExperienceController`      | Авторизован | Уровень, сумма опыта и достижения                                 |
 
 **Порядок маршрутов в `ModulesController` важен:** статические сегменты (`summary`, `activity`) объявлены **раньше** параметрического `:moduleId`, чтобы не перехватывались как id модуля.
 
-**Итого:** в таблице **56** HTTP-эндпоинтов (все объявленные в коде контроллеров).
+**Итого:** в таблице **58** HTTP-эндпоинтов (все объявленные в коде контроллеров).
 
 Маршрут `GET /quiz-assignments/by-code/:code` объявлен **раньше** `GET /quiz-assignments/:assignmentId`.
 
@@ -170,6 +172,16 @@ REST API серверной части построен вокруг ресур�
 
 ---
 
+## Таблица 7 — Опыт и статистика наборов
+
+**Опыт** начисляется на сервере один раз на попытку или занятие: карточки `10 + min(известные, 20)`, квиз `15 + round(балл / 10)`, повтор ошибок `12` (только если вопросы входят в ошибки прошлой своей сессии), создание занятия `30`. Уровень растёт каждые 100 очков. `GET /experience/me` отдаёт `xp`, `level`, `xpIntoLevel`, `xpForLevel` и список достижений с `earned`, `current`, `target`.
+
+Повтор ошибок: тело `POST .../quiz-sessions` может содержать `retryOfSessionId`. Занятие и повтор вместе не принимаются.
+
+`GET /study-sets/statistics` объявлен раньше `/:setId`. По каждому набору: прогресс, число попыток по его модулям и до пяти последних.
+
+---
+
 ## Frontend и прокси
 
 - Базовый URL для axios: `import.meta.env.VITE_API_URL` или по умолчанию **`/api`** (относительный путь к backend за Nginx).
@@ -186,4 +198,4 @@ REST API серверной части построен вокруг ресур�
 
 ---
 
-_Источники в репозитории:_ `backend/src/main.ts`, `backend/src/app.controller.ts`, `backend/src/auth/auth.controller.ts`, `backend/src/users/users.controller.ts`, `backend/src/modules/modules.controller.ts`, `backend/src/study-sets/study-sets.controller.ts`, `backend/src/quiz-assignments/quiz-assignments.controller.ts`, `backend/src/auth/jwt-auth.guard.ts`, `backend/prisma/schema.prisma`.
+_Источники в репозитории:_ `backend/src/main.ts`, `backend/src/app.controller.ts`, `backend/src/auth/auth.controller.ts`, `backend/src/users/users.controller.ts`, `backend/src/modules/modules.controller.ts`, `backend/src/study-sets/study-sets.controller.ts`, `backend/src/quiz-assignments/quiz-assignments.controller.ts`, `backend/src/experience/experience.controller.ts`, `backend/src/auth/jwt-auth.guard.ts`, `backend/prisma/schema.prisma`.
