@@ -1,5 +1,9 @@
 import { useDeadlineCountdown } from '@/shared/hooks/useDeadlineCountdown';
-import { createQuizSession, fetchQuizQuestionsPage } from '@/entities/module';
+import {
+  createQuizSession,
+  fetchQuizQuestionsPage,
+  fetchQuizSession,
+} from '@/entities/module';
 import { apiErrorMessage, apiErrorText } from '@/shared/lib/apiErrorMessage';
 import {
   readQuizTimerDurationSec,
@@ -14,7 +18,14 @@ import type {
 } from '@/entities/module';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { useBlocker, useParams, type Location } from 'react-router-dom';
+import {
+  useBlocker,
+  useNavigate,
+  useParams,
+  useSearchParams,
+  type Location,
+} from 'react-router-dom';
+import { questionsForWrongRetry } from './wrongRetryQuestions';
 
 const SHUFFLE_KEY = (id: string) => `quizo:quiz-shuffle:${id}`;
 const PAGE_SIZE = 12;
@@ -268,12 +279,15 @@ function isArrowNavBlockedTarget(target: EventTarget | null): boolean {
 
 export function useQuizStudy() {
   const { t } = useI18n();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { moduleId: rawId } = useParams();
   const moduleId = (rawId ?? '') as ModuleId;
+  const retrySessionId = searchParams.get('retrySession')?.trim() ?? '';
   const tRef = useRef(t);
 
   const [loadState, setLoadState] = useState<
-    'loading' | 'ok' | 'notfound' | 'wrongType'
+    'loading' | 'ok' | 'notfound' | 'wrongType' | 'emptyRetry' | 'retryMissing'
   >('loading');
   const [moduleTitle, setModuleTitle] = useState(t('quizStudy.quizModule'));
   const [questions, setQuestions] = useState<ModuleQuestion[]>([]);
@@ -336,6 +350,33 @@ export function useQuizStudy() {
     setLoadState('loading');
     countdownResetRef.current();
     try {
+      if (retrySessionId) {
+        const previous = await fetchQuizSession(moduleId, retrySessionId);
+        const retryQuestions = questionsForWrongRetry(previous);
+        if (retryQuestions.length === 0) {
+          setLoadState('emptyRetry');
+          return;
+        }
+        const prepared = maybeShuffleQuestions(retryQuestions, shuffleEnabled);
+        setModuleTitle(
+          previous.moduleTitle?.trim() || tRef.current('quizStudy.quizModule'),
+        );
+        setTotalQuestions(prepared.length);
+        setQuestions(prepared);
+        setNextCursor(null);
+        nextCursorRef.current = null;
+        setCurrentIndex(0);
+        setAnswers({});
+        setSession(null);
+        setSubmitState('idle');
+        setSubmitError(null);
+        setImageLoadFailedByQuestionId({});
+        setAllowNavigation(false);
+        studyStartedAtRef.current = null;
+        setQuizElapsedMs(null);
+        setLoadState('ok');
+        return;
+      }
       const page = await fetchQuizQuestionsPage(moduleId, { take: PAGE_SIZE });
       setModuleTitle(
         page.moduleTitle?.trim() || tRef.current('quizStudy.quizModule'),
@@ -356,13 +397,17 @@ export function useQuizStudy() {
       setLoadState('ok');
     } catch (e) {
       const msg = apiErrorMessage(e);
+      if (retrySessionId) {
+        setLoadState('retryMissing');
+        return;
+      }
       if (normalizeText(msg).includes('quiz modules')) {
         setLoadState('wrongType');
         return;
       }
       setLoadState('notfound');
     }
-  }, [moduleId, shuffleEnabled]);
+  }, [moduleId, retrySessionId, shuffleEnabled]);
 
   const loadMore = useCallback(async () => {
     const cursor = nextCursorRef.current;
@@ -773,8 +818,14 @@ export function useQuizStudy() {
   }, []);
 
   const restart = useCallback(() => {
+    if (retrySessionId) {
+      void navigate(`/app/modules/${encodeURIComponent(moduleId)}/quiz-study`, {
+        replace: true,
+      });
+      return;
+    }
     void loadInitial();
-  }, [loadInitial]);
+  }, [loadInitial, moduleId, navigate, retrySessionId]);
 
   const confirmLeave = useCallback(() => {
     setAllowNavigation(true);
