@@ -102,6 +102,15 @@ export const messages: Record<Locale, Record<string, string>> = {
     'statistics.yesterday': 'yesterday',
     'statistics.hoursAgo': '{count}h ago',
     'statistics.daysAgo': '{count}d ago',
+    'statistics.setsTitle': 'Thematic sets',
+    'statistics.setsHint':
+      'Progress is the share of modules you have already studied. Recent attempts are listed under each set.',
+    'statistics.setsEmpty': 'No thematic sets yet.',
+    'statistics.setProgress': '{studied} of {total} modules · {percent}%',
+    'statistics.setSessions': '{count} attempts in this set',
+    'statistics.setQuizResult': 'Quiz {percent}%',
+    'statistics.setFlashResult': 'Cards {known}/{total}',
+    'statistics.setNoHistory': 'No attempts in this set yet.',
     'admin.overviewTitle': 'Overview',
     'admin.overviewSubtitle': 'Main platform metrics and latest activity.',
     'admin.totalUsers': 'Total users',
@@ -174,6 +183,34 @@ export const messages: Record<Locale, Record<string, string>> = {
     'profile.title': 'Profile',
     'profile.subtitle':
       'Photo, display name, email, and password. Sign out when you are done on this device.',
+    'progress.levelLabel': 'Level',
+    'progress.levelBar': 'Progress to the next level',
+    'progress.levelHint': '{into} / {span} XP to the next level',
+    'progress.xpTotal': '{xp} XP',
+    'progress.achievements': 'Achievements',
+    'progress.earned': 'Earned',
+    'progress.progressCount': '{current} / {target}',
+    'progress.achievements.first-flashcard.title': 'First cards',
+    'progress.achievements.first-flashcard.hint':
+      'Finish one flashcard session.',
+    'progress.achievements.first-quiz.title': 'Quiz taker',
+    'progress.achievements.first-quiz.hint': 'Finish one quiz.',
+    'progress.achievements.first-retry.title': 'Second look',
+    'progress.achievements.first-retry.hint':
+      'Retry a quiz using only the questions you missed.',
+    'progress.achievements.first-assignment.title': 'Host',
+    'progress.achievements.first-assignment.hint':
+      'Create a quiz assignment with a code and a deadline.',
+    'progress.achievements.first-set.title': 'Collector',
+    'progress.achievements.first-set.hint': 'Create a thematic set.',
+    'progress.achievements.five-studies.title': 'Steady',
+    'progress.achievements.five-studies.hint':
+      'Finish five study attempts: cards, quizzes, or mistake retries.',
+    'progress.achievements.perfect-quiz.title': 'Perfect',
+    'progress.achievements.perfect-quiz.hint': 'Score 100% on a quiz.',
+    'progress.achievements.set-complete.title': 'Set complete',
+    'progress.achievements.set-complete.hint':
+      'Study every module in one thematic set.',
     'profile.identity': 'Identity',
     'profile.security': 'Security',
     'profile.session': 'Session',
@@ -409,6 +446,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'assignments.participant': 'Participant',
     'assignments.score': 'Score',
     'assignments.scoreValue': '{correct} of {total} · {percent}%',
+    'assignments.scorePoints': '{earned} of {max} points · {percent}%',
     'assignments.when': 'Finished',
     'assignments.deleteTitle': 'Delete assignment?',
     'assignments.deleteDescription':
@@ -498,6 +536,13 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.timer': 'Attempt timer',
     'editQuiz.timerDuration': 'Time limit',
     'editQuiz.shuffle': 'Shuffle questions',
+    'editQuiz.customScoring': 'Custom point scale',
+    'editQuiz.customScoringHint':
+      'Each question can be worth a different number of points.',
+    'editQuiz.customScoringSaveFailed': 'Could not save the point scale.',
+    'editQuiz.pointsLabel': 'Points',
+    'editQuiz.pointsBadge': '{points} pts',
+    'editQuiz.validationPoints': 'Enter a whole number from 1 to 100.',
     'editQuiz.questionsTitle': 'Questions ({count})',
     'editQuiz.searchQuestions': 'Search questions',
     'editQuiz.searchPlaceholder': 'Search questions…',
@@ -585,6 +630,10 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Question #{index}: questionText is required.',
     'editQuiz.importUnknownType':
       'Question #{index}: unsupported type. Use CHOICE, TEXT, MATCHING, ORDERING, or FILL_BLANK.',
+    'editQuiz.importCustomScoringInvalid':
+      'customScoring must be true or false.',
+    'editQuiz.importPointsInvalid':
+      'Question #{index}: points must be a whole number from 1 to 100.',
     'editQuiz.importChoiceOptionsMin':
       'Question #{index}: CHOICE requires at least 2 options.',
     'editQuiz.importChoiceOptionInvalid':
@@ -695,6 +744,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.stayAction': 'Stay here',
     'quizStudy.resultsTitle': '{title} - Quiz results',
     'quizStudy.resultsCorrect': '{correct} of {total} correct',
+    'quizStudy.resultsPoints': '{earned} of {max} points',
     'quizStudy.sessionComplete': 'Attempt complete',
     'quizStudy.performanceExcellent': 'Excellent',
     'quizStudy.performanceGood': 'Good job',
@@ -895,6 +945,15 @@ export const messages: Record<Locale, Record<string, string>> = {
     'statistics.yesterday': 'вчера',
     'statistics.hoursAgo': '{count}ч назад',
     'statistics.daysAgo': '{count}д назад',
+    'statistics.setsTitle': 'Тематические наборы',
+    'statistics.setsHint':
+      'Прогресс — доля модулей, с которыми вы уже занимались. Ниже последние попытки по набору.',
+    'statistics.setsEmpty': 'Тематических наборов пока нет.',
+    'statistics.setProgress': '{studied} из {total} модулей · {percent}%',
+    'statistics.setSessions': 'Попыток в наборе: {count}',
+    'statistics.setQuizResult': 'Квиз {percent}%',
+    'statistics.setFlashResult': 'Карточки {known}/{total}',
+    'statistics.setNoHistory': 'В этом наборе попыток ещё нет.',
     'admin.overviewTitle': 'Обзор',
     'admin.overviewSubtitle':
       'Основные метрики платформы и последняя активность.',
@@ -970,6 +1029,34 @@ export const messages: Record<Locale, Record<string, string>> = {
     'profile.title': 'Профиль',
     'profile.subtitle':
       'Фото, имя, email и пароль. Выйдите из аккаунта, когда закончите работу на этом устройстве.',
+    'progress.levelLabel': 'Уровень',
+    'progress.levelBar': 'Прогресс до следующего уровня',
+    'progress.levelHint': '{into} / {span} опыта до следующего уровня',
+    'progress.xpTotal': '{xp} опыта',
+    'progress.achievements': 'Достижения',
+    'progress.earned': 'Получено',
+    'progress.progressCount': '{current} / {target}',
+    'progress.achievements.first-flashcard.title': 'Первые карточки',
+    'progress.achievements.first-flashcard.hint':
+      'Завершите одно занятие карточками.',
+    'progress.achievements.first-quiz.title': 'Первый квиз',
+    'progress.achievements.first-quiz.hint': 'Завершите один квиз.',
+    'progress.achievements.first-retry.title': 'Второй взгляд',
+    'progress.achievements.first-retry.hint':
+      'Повторите квиз только из вопросов с ошибками.',
+    'progress.achievements.first-assignment.title': 'Ведущий',
+    'progress.achievements.first-assignment.hint':
+      'Создайте занятие по квизу с кодом и сроком.',
+    'progress.achievements.first-set.title': 'Собрал набор',
+    'progress.achievements.first-set.hint': 'Создайте тематический набор.',
+    'progress.achievements.five-studies.title': 'В ритме',
+    'progress.achievements.five-studies.hint':
+      'Завершите пять попыток: карточки, квизы или повтор ошибок.',
+    'progress.achievements.perfect-quiz.title': 'Без ошибок',
+    'progress.achievements.perfect-quiz.hint': 'Наберите 100% в квизе.',
+    'progress.achievements.set-complete.title': 'Набор закрыт',
+    'progress.achievements.set-complete.hint':
+      'Займитесь каждым модулем одного тематического набора.',
     'profile.identity': 'Личные данные',
     'profile.security': 'Безопасность',
     'profile.session': 'Сессия',
@@ -1209,6 +1296,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'assignments.participant': 'Участник',
     'assignments.score': 'Результат',
     'assignments.scoreValue': '{correct} из {total} · {percent}%',
+    'assignments.scorePoints': '{earned} из {max} баллов · {percent}%',
     'assignments.when': 'Завершено',
     'assignments.deleteTitle': 'Удалить занятие?',
     'assignments.deleteDescription':
@@ -1299,6 +1387,13 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.timer': 'Таймер прохождения',
     'editQuiz.timerDuration': 'Лимит времени',
     'editQuiz.shuffle': 'Перемешивать вопросы',
+    'editQuiz.customScoring': 'Своя шкала баллов',
+    'editQuiz.customScoringHint':
+      'У каждого вопроса может быть свой вес в баллах.',
+    'editQuiz.customScoringSaveFailed': 'Не удалось сохранить шкалу баллов.',
+    'editQuiz.pointsLabel': 'Баллы',
+    'editQuiz.pointsBadge': '{points} б.',
+    'editQuiz.validationPoints': 'Введите целое число от 1 до 100.',
     'editQuiz.questionsTitle': 'Вопросы ({count})',
     'editQuiz.searchQuestions': 'Поиск вопросов',
     'editQuiz.searchPlaceholder': 'Поиск вопросов…',
@@ -1391,6 +1486,10 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Вопрос №{index}: поле questionText обязательно.',
     'editQuiz.importUnknownType':
       'Вопрос №{index}: неизвестный тип. Используйте CHOICE, TEXT, MATCHING, ORDERING или FILL_BLANK.',
+    'editQuiz.importCustomScoringInvalid':
+      'Поле customScoring должно быть true или false.',
+    'editQuiz.importPointsInvalid':
+      'Вопрос №{index}: баллы должны быть целым числом от 1 до 100.',
     'editQuiz.importChoiceOptionsMin':
       'Вопрос №{index}: для CHOICE нужно минимум 2 варианта.',
     'editQuiz.importChoiceOptionInvalid':
@@ -1503,6 +1602,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.stayAction': 'Остаться',
     'quizStudy.resultsTitle': '{title} - Результаты теста',
     'quizStudy.resultsCorrect': 'Верно {correct} из {total}',
+    'quizStudy.resultsPoints': '{earned} из {max} баллов',
     'quizStudy.sessionComplete': 'Прохождение завершено',
     'quizStudy.performanceExcellent': 'Отлично',
     'quizStudy.performanceGood': 'Хороший результат',

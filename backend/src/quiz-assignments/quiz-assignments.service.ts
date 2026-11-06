@@ -5,8 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ModuleType, Prisma } from '@prisma/client';
+import { ModuleType, Prisma, XpActivity } from '@prisma/client';
 import { randomBytes } from 'crypto';
+import { ExperienceService } from '../experience/experience.service';
+import { ASSIGNMENT_POINTS } from '../experience/experience.math';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuizAssignmentDto } from './dto/create-quiz-assignment.dto';
 import {
@@ -34,6 +36,8 @@ export type QuizAssignmentAttempt = {
   correctCount: number;
   totalQuestions: number;
   scorePercent: number;
+  pointsEarned: number | null;
+  pointsMax: number | null;
   completedAt: string | null;
 };
 
@@ -90,7 +94,10 @@ function parseDeadline(raw: string): Date {
 
 @Injectable()
 export class QuizAssignmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly experience: ExperienceService,
+  ) {}
 
   async list(userId: string): Promise<QuizAssignmentSummary[]> {
     await this.assertLearner(userId);
@@ -145,6 +152,12 @@ export class QuizAssignmentsService {
             _count: { select: { sessions: true } },
           },
         });
+        await this.experience.record(this.prisma, {
+          userId,
+          activity: XpActivity.ASSIGNMENT,
+          sourceId: created.id,
+          points: ASSIGNMENT_POINTS,
+        });
         return this.toSummary(created);
       } catch (error) {
         if (
@@ -192,6 +205,11 @@ export class QuizAssignmentsService {
         correctCount: session.correctCount,
         totalQuestions: session.totalQuestions,
         scorePercent: Math.round(session.scorePercent * 10) / 10,
+        pointsEarned:
+          session.pointsEarned == null
+            ? null
+            : Math.round(session.pointsEarned * 10) / 10,
+        pointsMax: session.pointsMax,
         completedAt: session.completedAt?.toISOString() ?? null,
       })),
     };

@@ -1,4 +1,5 @@
 import { questionImageUrl } from '@/entities/module';
+import { formatScorePoints } from '@/shared/lib/formatScorePoints';
 import { formatStudyElapsed } from '@/shared/lib/sessionTimerPrefs';
 import { Button } from '@/shared/ui/button';
 import { FocusBar } from '@/shared/ui/focus-bar';
@@ -31,6 +32,8 @@ export function QuizResultView({ study }: { study: QuizStudy }) {
   const titleTrimmed = moduleTitle.trim() || t('quizStudy.quizModule');
   const scorePercent = Math.round(session.scorePercent);
   const wrongCount = session.totalQuestions - session.correctCount;
+  const hasPointScale =
+    session.pointsMax != null && session.pointsEarned != null;
   const visibleAnswers =
     reviewFilter === 'wrong'
       ? resultAnswers.filter((answer) => !answer.isCorrect)
@@ -71,6 +74,14 @@ export function QuizResultView({ study }: { study: QuizStudy }) {
           <h2 className="font-(family-name:--font-syne) text-2xl font-extrabold tracking-[-0.04em] sm:text-3xl">
             {t('quizStudy.resultsTitle', { title: titleTrimmed })}
           </h2>
+          {hasPointScale ? (
+            <p className="mt-2 text-sm text-(--text-secondary)">
+              {t('quizStudy.resultsPoints', {
+                earned: formatScorePoints(session.pointsEarned ?? 0),
+                max: session.pointsMax ?? 0,
+              })}
+            </p>
+          ) : null}
           <p className="mt-2 text-sm text-(--text-secondary)">
             {t('quizStudy.resultsCorrect', {
               correct: session.correctCount,

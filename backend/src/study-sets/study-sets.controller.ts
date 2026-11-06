@@ -30,6 +30,11 @@ export class StudySetsController {
     return this.studySets.create(userId, body);
   }
 
+  @Get('statistics')
+  statistics(@CurrentUserId() userId: string) {
+    return this.studySets.statistics(userId);
+  }
+
   @Get(':setId')
   getOne(@CurrentUserId() userId: string, @Param('setId') setId: string) {
     return this.studySets.getOne(userId, setId);

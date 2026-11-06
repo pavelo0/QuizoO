@@ -22,6 +22,8 @@ function draft(
     orderingItems: [],
     fillBlanks: [],
     acceptedVariantsText: '',
+    points: '1',
+    customScoring: false,
     editing: false,
     questionsCount: 0,
     ...partial,
@@ -154,5 +156,54 @@ describe('validateQuizQuestionDraft', () => {
         tStub,
       ).ok,
     ).toBe(true);
+  });
+
+  it('принимает баллы только на своей шкале', () => {
+    const off = validateQuizQuestionDraft(draft({ points: '9' }), tStub);
+    expect(off.ok).toBe(true);
+    if (off.ok) expect(off.payload.points).toBeUndefined();
+
+    const on = validateQuizQuestionDraft(
+      draft({ customScoring: true, points: '9' }),
+      tStub,
+    );
+    expect(on.ok).toBe(true);
+    if (on.ok) expect(on.payload.points).toBe(9);
+
+    const invalid = validateQuizQuestionDraft(
+      draft({ customScoring: true, points: '0' }),
+      tStub,
+    );
+    expect(invalid.ok).toBe(false);
+    if (!invalid.ok) {
+      expect(invalid.errors.points).toBe('editQuiz.validationPoints');
+    }
+  });
+
+  it('проверяет границы и пробелы в баллах', () => {
+    const upper = validateQuizQuestionDraft(
+      draft({ customScoring: true, points: '100' }),
+      tStub,
+    );
+    expect(upper.ok).toBe(true);
+    if (upper.ok) expect(upper.payload.points).toBe(100);
+
+    const padded = validateQuizQuestionDraft(
+      draft({ customScoring: true, points: ' 8 ' }),
+      tStub,
+    );
+    expect(padded.ok).toBe(true);
+    if (padded.ok) expect(padded.payload.points).toBe(8);
+
+    for (const points of ['', '  ', '101', '1.5', '4a', '-1']) {
+      const result = validateQuizQuestionDraft(
+        draft({ customScoring: true, points }),
+        tStub,
+      );
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors.points).toBe('editQuiz.validationPoints');
+      }
+    }
   });
 });

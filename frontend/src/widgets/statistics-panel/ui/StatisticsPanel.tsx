@@ -23,6 +23,7 @@ import { ActivityMetric, scoreColor } from './ActivityMetric';
 import { formatDate, formatRelative } from './formatSession';
 import { MetricCard } from './MetricCard';
 import { ProgressChart } from './ProgressChart';
+import { StudySetStatsSection } from './StudySetStatsSection';
 
 export function StatisticsPanel() {
   const { locale, t } = useI18n();
@@ -103,6 +104,8 @@ export function StatisticsPanel() {
             helper={t('statistics.avgQuizHint')}
           />
         </div>
+
+        <StudySetStatsSection />
 
         <section className="mb-6 rounded-3xl border border-(--border-default) bg-(--bg-color) p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

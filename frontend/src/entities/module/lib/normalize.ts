@@ -15,8 +15,11 @@ export function normalizeActivityPage(
 }
 
 export function normalizeModuleQuestion(q: ModuleQuestion): ModuleQuestion {
+  const points = q.points;
   return {
     ...q,
+    points:
+      Number.isInteger(points) && points >= 1 && points <= 100 ? points : 1,
     questionOptions: Array.isArray(q.questionOptions) ? q.questionOptions : [],
     matchingPairs: Array.isArray(q.matchingPairs) ? q.matchingPairs : [],
     orderingItems: Array.isArray(q.orderingItems) ? q.orderingItems : [],
@@ -27,6 +30,7 @@ export function normalizeModuleQuestion(q: ModuleQuestion): ModuleQuestion {
 export function normalizeModuleDetail(module: ModuleDetail): ModuleDetail {
   return {
     ...module,
+    customScoring: module.customScoring === true,
     questions: Array.isArray(module.questions)
       ? module.questions.map(normalizeModuleQuestion)
       : [],

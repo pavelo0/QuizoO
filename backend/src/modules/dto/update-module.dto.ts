@@ -1,5 +1,11 @@
 import { ModuleType } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class UpdateModuleDto {
   @IsOptional()
@@ -14,4 +20,8 @@ export class UpdateModuleDto {
   @IsOptional()
   @IsEnum(ModuleType)
   type?: ModuleType;
+
+  @IsOptional()
+  @IsBoolean()
+  customScoring?: boolean;
 }

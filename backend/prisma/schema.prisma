@@ -45,9 +45,17 @@ model User {
   quizSessions      QuizSession[]
   studySets         StudySet[]
   quizAssignments   QuizAssignment[]
+  xpEvents          XpEvent[]
 
   @@unique([oauthProvider, oauthId])
   @@map("users")
+}
+
+enum XpActivity {
+  FLASHCARD
+  QUIZ
+  RETRY
+  ASSIGNMENT
 }
 
 enum ModuleType {
@@ -64,13 +72,14 @@ enum QuestionType {
 }
 
 model Module {
-  id          String     @id @default(cuid())
-  userId      String
-  title       String
-  description String?
-  type        ModuleType
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  userId        String
+  title         String
+  description   String?
+  type          ModuleType
+  customScoring Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   cards             Card[]
@@ -107,6 +116,7 @@ model Question {
   questionImageMime    String?
   orderIndex           Int          @default(0)
   acceptedVariants     String[]     @default([])
+  points               Int          @default(1)
   createdAt            DateTime     @default(now())
 
   module          Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -194,6 +204,8 @@ model QuizSession {
   totalQuestions Int
   correctCount   Int
   scorePercent   Float
+  pointsEarned   Float?
+  pointsMax      Int?
   completedAt    DateTime?
 
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -223,6 +235,21 @@ model QuizAssignment {
   @@index([userId])
   @@index([moduleId])
   @@map("quiz_assignments")
+}
+
+model XpEvent {
+  id        String     @id @default(cuid())
+  userId    String
+  activity  XpActivity
+  sourceId  String
+  points    Int
+  createdAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activity, sourceId])
+  @@index([userId])
+  @@map("xp_events")
 }
 
 model QuizAnswer {

@@ -31,11 +31,48 @@ describe('normalize module payloads', () => {
     expect(question.matchingPairs).toEqual([]);
     expect(question.orderingItems).toEqual([]);
     expect(question.fillBlanks).toEqual([]);
+    expect(question.points).toBe(1);
 
     const detail = normalizeModuleDetail({
       id: 'm1',
       questions: undefined,
     } as unknown as ModuleDetail);
     expect(detail.questions).toEqual([]);
+    expect(detail.customScoring).toBe(false);
+  });
+
+  it('оставляет валидные баллы и флаг шкалы', () => {
+    const question = normalizeModuleQuestion({
+      id: 'q1',
+      type: 'TEXT',
+      points: 4,
+      questionOptions: [],
+      matchingPairs: [],
+      orderingItems: [],
+      fillBlanks: [],
+    } as unknown as ModuleQuestion);
+    expect(question.points).toBe(4);
+
+    expect(
+      normalizeModuleQuestion({
+        id: 'q2',
+        type: 'TEXT',
+        points: 0,
+      } as unknown as ModuleQuestion).points,
+    ).toBe(1);
+    expect(
+      normalizeModuleQuestion({
+        id: 'q3',
+        type: 'TEXT',
+        points: 1.5,
+      } as unknown as ModuleQuestion).points,
+    ).toBe(1);
+
+    const detail = normalizeModuleDetail({
+      id: 'm1',
+      customScoring: true,
+      questions: [],
+    } as unknown as ModuleDetail);
+    expect(detail.customScoring).toBe(true);
   });
 });

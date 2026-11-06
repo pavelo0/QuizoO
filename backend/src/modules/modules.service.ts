@@ -6,10 +6,16 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
-import { ModuleType, Prisma, QuestionType } from '@prisma/client';
+import { ModuleType, Prisma, QuestionType, XpActivity } from '@prisma/client';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import { ExperienceService } from '../experience/experience.service';
+import {
+  pointsForFlashcard,
+  pointsForQuiz,
+  RETRY_POINTS,
+} from '../experience/experience.math';
 import { QuizAssignmentsService } from '../quiz-assignments/quiz-assignments.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
@@ -41,6 +47,22 @@ function isQuestionType(v: unknown): v is QuestionType {
     v === QuestionType.ORDERING ||
     v === QuestionType.FILL_BLANK
   );
+}
+
+const QUESTION_POINTS_MIN = 1;
+const QUESTION_POINTS_MAX = 100;
+
+function parseQuestionPoints(value: unknown): number {
+  if (value === undefined || value === null) {
+    return QUESTION_POINTS_MIN;
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new BadRequestException('points must be an integer from 1 to 100');
+  }
+  if (value < QUESTION_POINTS_MIN || value > QUESTION_POINTS_MAX) {
+    throw new BadRequestException('points must be an integer from 1 to 100');
+  }
+  return value;
 }
 
 function parseFillBlankInputs(
@@ -200,6 +222,7 @@ export class ModulesService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly quizAssignments: QuizAssignmentsService,
+    private readonly experience: ExperienceService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -649,6 +672,15 @@ export class ModulesService implements OnModuleInit {
     if (body.type !== undefined) {
       data.type = body.type;
     }
+    if (body.customScoring !== undefined) {
+      const nextType = body.type ?? existing.type;
+      if (nextType !== ModuleType.QUIZ) {
+        throw new BadRequestException(
+          'customScoring is only available for quiz modules',
+        );
+      }
+      data.customScoring = body.customScoring;
+    }
 
     if (Object.keys(data).length === 0) {
       return existing;
@@ -767,7 +799,7 @@ export class ModulesService implements OnModuleInit {
       );
     }
 
-    return this.prisma.flashcardSession.create({
+    const created = await this.prisma.flashcardSession.create({
       data: {
         userId,
         moduleId,
@@ -777,6 +809,13 @@ export class ModulesService implements OnModuleInit {
         completedAt: new Date(),
       },
     });
+    await this.experience.record(this.prisma, {
+      userId,
+      activity: XpActivity.FLASHCARD,
+      sourceId: created.id,
+      points: pointsForFlashcard(knownCount),
+    });
+    return created;
   }
 
   async createQuizSession(
@@ -793,14 +832,28 @@ export class ModulesService implements OnModuleInit {
         fillBlankAnswers?: string[] | null;
       }>;
       assignmentId?: string;
+      retryOfSessionId?: string;
     },
   ) {
     await this.assertLearningModuleAccessAllowed(userId);
     const assignmentId = body.assignmentId?.trim() ?? '';
+    const retryOfSessionId = body.retryOfSessionId?.trim() ?? '';
+    if (assignmentId && retryOfSessionId) {
+      throw new BadRequestException(
+        'An assignment attempt cannot be a mistake retry',
+      );
+    }
+    let customScoring = false;
     if (assignmentId) {
       await this.quizAssignments.assertOpen(assignmentId, moduleId);
+      const scoringModule = await this.prisma.module.findFirst({
+        where: { id: moduleId },
+        select: { customScoring: true },
+      });
+      customScoring = scoringModule?.customScoring === true;
     } else {
-      await this.assertQuizModule(moduleId, userId);
+      const scoringModule = await this.assertQuizModule(moduleId, userId);
+      customScoring = scoringModule.customScoring === true;
     }
     const answers = body.answers ?? [];
     if (!Array.isArray(answers)) {
@@ -819,6 +872,15 @@ export class ModulesService implements OnModuleInit {
     );
     if (questionIds.length !== answers.length) {
       throw new BadRequestException('Each answer must have a questionId');
+    }
+    const xpActivity = retryOfSessionId ? XpActivity.RETRY : XpActivity.QUIZ;
+    if (retryOfSessionId) {
+      await this.assertRetrySource(
+        userId,
+        moduleId,
+        retryOfSessionId,
+        questionIds,
+      );
     }
 
     const questions = await this.prisma.question.findMany({
@@ -1004,8 +1066,22 @@ export class ModulesService implements OnModuleInit {
       (sum, answer) => sum + answer.credit,
       0,
     );
-    const scorePercent =
-      totalQuestions > 0 ? (creditSum / totalQuestions) * 100 : 0;
+    let pointsEarned = 0;
+    let pointsMax = 0;
+    if (customScoring) {
+      for (const answer of normalizedAnswers) {
+        const weight = questionById.get(answer.questionId)?.points ?? 1;
+        pointsMax += weight;
+        pointsEarned += answer.credit * weight;
+      }
+    }
+    const scorePercent = customScoring
+      ? pointsMax > 0
+        ? (pointsEarned / pointsMax) * 100
+        : 0
+      : totalQuestions > 0
+        ? (creditSum / totalQuestions) * 100
+        : 0;
 
     const session = await this.prisma.$transaction(async (tx) => {
       const created = await tx.quizSession.create({
@@ -1016,6 +1092,7 @@ export class ModulesService implements OnModuleInit {
           totalQuestions,
           correctCount,
           scorePercent,
+          ...(customScoring ? { pointsEarned, pointsMax } : {}),
           completedAt: new Date(),
           answers: {
             create: normalizedAnswers.map((a) => ({
@@ -1025,6 +1102,15 @@ export class ModulesService implements OnModuleInit {
             })),
           },
         },
+      });
+      await this.experience.record(tx, {
+        userId,
+        activity: xpActivity,
+        sourceId: created.id,
+        points:
+          xpActivity === XpActivity.RETRY
+            ? RETRY_POINTS
+            : pointsForQuiz(scorePercent),
       });
       return created;
     });
@@ -1068,6 +1154,11 @@ export class ModulesService implements OnModuleInit {
       totalQuestions: sess.totalQuestions,
       correctCount: sess.correctCount,
       scorePercent: Math.round(sess.scorePercent * 10) / 10,
+      pointsEarned:
+        sess.pointsEarned == null
+          ? null
+          : Math.round(sess.pointsEarned * 10) / 10,
+      pointsMax: sess.pointsMax,
       completedAt: sess.completedAt?.toISOString() ?? null,
       answers: sess.answers.map((a) => ({
         id: a.id,
@@ -1092,6 +1183,7 @@ export class ModulesService implements OnModuleInit {
       orderingItems?: Array<{ text?: string; correctOrder?: number }>;
       fillBlanks?: Array<{ answer?: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
+      points?: number;
     },
   ) {
     await this.assertLearningModuleAccessAllowed(userId);
@@ -1107,6 +1199,7 @@ export class ModulesService implements OnModuleInit {
 
     const orderIndex = body.orderIndex ?? 0;
     const questionText = body.questionText.trim();
+    const points = parseQuestionPoints(body.points);
 
     if (body.type === QuestionType.CHOICE) {
       const opts = body.options ?? [];
@@ -1119,6 +1212,7 @@ export class ModulesService implements OnModuleInit {
           type: QuestionType.CHOICE,
           allowMultipleAnswers,
           orderIndex,
+          points,
           questionOptions: {
             create: opts.map((o) => ({
               text: o.text!.trim(),
@@ -1156,6 +1250,7 @@ export class ModulesService implements OnModuleInit {
           type: QuestionType.MATCHING,
           allowMultipleAnswers: false,
           orderIndex,
+          points,
           matchingPairs: {
             create: pairs.map((p) => ({
               leftItem: p.leftItem!.trim(),
@@ -1207,6 +1302,7 @@ export class ModulesService implements OnModuleInit {
           type: QuestionType.TEXT,
           allowMultipleAnswers: false,
           orderIndex,
+          points,
           acceptedVariants,
           questionOptions: {
             create: [
@@ -1269,6 +1365,7 @@ export class ModulesService implements OnModuleInit {
           type: QuestionType.ORDERING,
           allowMultipleAnswers: false,
           orderIndex,
+          points,
           orderingItems: {
             create: items.map((item) => ({
               text: item.text!.trim(),
@@ -1294,6 +1391,7 @@ export class ModulesService implements OnModuleInit {
           type: QuestionType.FILL_BLANK,
           allowMultipleAnswers: false,
           orderIndex,
+          points,
           fillBlanks: { create: blanks },
         },
         include: {
@@ -1312,6 +1410,7 @@ export class ModulesService implements OnModuleInit {
         type: body.type,
         allowMultipleAnswers: false,
         orderIndex,
+        points,
       },
       include: {
         questionOptions: true,
@@ -1336,6 +1435,7 @@ export class ModulesService implements OnModuleInit {
       orderingItems?: Array<{ text?: string; correctOrder?: number }>;
       fillBlanks?: Array<{ answer?: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
+      points?: number;
     },
   ) {
     await this.assertLearningModuleAccessAllowed(userId);
@@ -1420,6 +1520,9 @@ export class ModulesService implements OnModuleInit {
     }
     if (body.allowMultipleAnswers !== undefined || body.type !== undefined) {
       data.allowMultipleAnswers = nextAllowMultipleAnswers;
+    }
+    if (body.points !== undefined) {
+      data.points = parseQuestionPoints(body.points);
     }
 
     if (Object.keys(data).length > 0) {
@@ -1760,6 +1863,34 @@ export class ModulesService implements OnModuleInit {
     }
   }
 
+  private async assertRetrySource(
+    userId: string,
+    moduleId: string,
+    sessionId: string,
+    questionIds: string[],
+  ) {
+    const previous = await this.prisma.quizSession.findFirst({
+      where: { id: sessionId, userId, moduleId },
+      select: {
+        answers: { select: { questionId: true, isCorrect: true } },
+      },
+    });
+    if (!previous) {
+      throw new BadRequestException('Retry source was not found');
+    }
+    const wrong = new Set(
+      previous.answers
+        .filter((answer) => !answer.isCorrect)
+        .map((answer) => answer.questionId),
+    );
+    if (wrong.size === 0) {
+      throw new BadRequestException('Retry source has no mistakes');
+    }
+    if (questionIds.some((id) => !wrong.has(id))) {
+      throw new BadRequestException('Retry can include only missed questions');
+    }
+  }
+
   private async resolveQuizForStudy(
     userId: string,
     moduleId: string,
@@ -1783,7 +1914,7 @@ export class ModulesService implements OnModuleInit {
   private async assertQuizModule(moduleId: string, userId: string) {
     const m = await this.prisma.module.findFirst({
       where: { id: moduleId, userId },
-      select: { id: true, title: true, type: true },
+      select: { id: true, title: true, type: true, customScoring: true },
     });
     if (!m) {
       throw new NotFoundException('Module not found');

@@ -2,6 +2,8 @@ import type { ModuleQuestion, QuestionType } from '@/entities/module';
 
 export const MAX_QUESTIONS_PER_MODULE = 30;
 export const QUIZ_IMPORT_FORMAT_VERSION = 1;
+export const QUESTION_POINTS_MIN = 1;
+export const QUESTION_POINTS_MAX = 100;
 export const QUESTION_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 export const QUESTION_IMAGE_ALLOWED_MIMES = [
   'image/jpeg',
@@ -18,7 +20,21 @@ export type QuestionPayload = {
   orderingItems?: Array<{ text: string; correctOrder: number }>;
   fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
   acceptedVariants?: string[];
+  points?: number;
 };
+
+export type QuizImportDraft = {
+  customScoring: boolean;
+  questions: QuestionPayload[];
+};
+
+export function parseQuestionPointsInput(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const points = Number(trimmed);
+  if (points < QUESTION_POINTS_MIN || points > QUESTION_POINTS_MAX) return null;
+  return points;
+}
 
 export function createDefaultOrderingItems() {
   return [
@@ -31,12 +47,15 @@ export const quizJsonExample = JSON.stringify(
   {
     formatVersion: QUIZ_IMPORT_FORMAT_VERSION,
     moduleType: 'QUIZ',
-    _comment: 'Изображения вопросов не включаются в JSON импорта/экспорта.',
+    customScoring: true,
+    _comment:
+      'Изображения вопросов не включаются. customScoring и points необязательны: без них шкала выключена, балл вопроса равен 1.',
     title: 'Контрольный квиз',
     questions: [
       {
         type: 'CHOICE',
         questionText: 'Какой HTTP-метод обычно используют для создания записи?',
+        points: 2,
         allowMultipleAnswers: false,
         options: [
           { text: 'POST', isCorrect: true },
@@ -86,9 +105,15 @@ export function sanitizeFilenamePart(value: string) {
     .replace(/^-|-$/g, '');
 }
 
+function withQuestionPoints<T extends object>(q: ModuleQuestion, body: T) {
+  const points = q.points ?? 1;
+  if (points === 1) return body;
+  return { ...body, points };
+}
+
 export function toExportQuestion(q: ModuleQuestion) {
   if (q.type === 'CHOICE') {
-    return {
+    return withQuestionPoints(q, {
       type: 'CHOICE',
       questionText: q.questionText,
       allowMultipleAnswers: q.allowMultipleAnswers,
@@ -96,7 +121,7 @@ export function toExportQuestion(q: ModuleQuestion) {
         text: o.text,
         isCorrect: o.isCorrect,
       })),
-    };
+    });
   }
   if (q.type === 'TEXT') {
     const answer = q.questionOptions.find((o) => o.isCorrect)?.text ?? '';
@@ -113,17 +138,17 @@ export function toExportQuestion(q: ModuleQuestion) {
     if (q.acceptedVariants && q.acceptedVariants.length > 0) {
       exported.acceptedVariants = q.acceptedVariants;
     }
-    return exported;
+    return withQuestionPoints(q, exported);
   }
   if (q.type === 'MATCHING') {
-    return {
+    return withQuestionPoints(q, {
       type: 'MATCHING',
       questionText: q.questionText,
       pairs: q.matchingPairs.map((p) => ({
         left: p.leftItem,
         right: p.rightItem,
       })),
-    };
+    });
   }
   if (q.type === 'FILL_BLANK') {
     const blanks = [...(Array.isArray(q.fillBlanks) ? q.fillBlanks : [])]
@@ -137,25 +162,25 @@ export function toExportQuestion(q: ModuleQuestion) {
         }
         return exported;
       });
-    return {
+    return withQuestionPoints(q, {
       type: 'FILL_BLANK' as const,
       questionText: q.questionText,
       blanks,
-    };
+    });
   }
-  return {
+  return withQuestionPoints(q, {
     type: 'ORDERING',
     questionText: q.questionText,
     items: [...(Array.isArray(q.orderingItems) ? q.orderingItems : [])]
       .sort((a, b) => (a.correctOrder ?? 0) - (b.correctOrder ?? 0))
       .map((item) => item.text),
-  };
+  });
 }
 
 export function parseQuizImportJson(
   raw: unknown,
   t: (key: string, vars?: Record<string, string | number>) => string,
-): QuestionPayload[] {
+): QuizImportDraft {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new Error(t('editQuiz.importInvalidStructure'));
   }
@@ -163,6 +188,7 @@ export function parseQuizImportJson(
   const data = raw as {
     formatVersion?: number;
     moduleType?: string;
+    customScoring?: unknown;
     questions?: unknown;
   };
 
@@ -176,6 +202,12 @@ export function parseQuizImportJson(
   if (data.moduleType !== 'QUIZ') {
     throw new Error(t('editQuiz.importWrongModuleType'));
   }
+  if (
+    data.customScoring !== undefined &&
+    typeof data.customScoring !== 'boolean'
+  ) {
+    throw new Error(t('editQuiz.importCustomScoringInvalid'));
+  }
   if (!Array.isArray(data.questions)) {
     throw new Error(t('editQuiz.importQuestionsArrayRequired'));
   }
@@ -185,7 +217,7 @@ export function parseQuizImportJson(
     );
   }
 
-  return data.questions.map((item, idx) => {
+  const questions = data.questions.map((item, idx) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) {
       throw new Error(
         t('editQuiz.importQuestionObjectExpected', { index: idx + 1 }),
@@ -201,7 +233,9 @@ export function parseQuizImportJson(
       pairs?: unknown;
       items?: unknown;
       blanks?: unknown;
+      points?: unknown;
     };
+    const points = readImportPoints(q.points, idx + 1, t);
     const questionText = q.questionText?.trim() ?? '';
     if (!questionText) {
       throw new Error(
@@ -242,12 +276,15 @@ export function parseQuizImportJson(
           t('editQuiz.importChoiceSingleCorrect', { index: idx + 1 }),
         );
       }
-      return {
-        questionText,
-        type: 'CHOICE' as const,
-        allowMultipleAnswers,
-        options,
-      };
+      return attachImportPoints(
+        {
+          questionText,
+          type: 'CHOICE' as const,
+          allowMultipleAnswers,
+          options,
+        },
+        points,
+      );
     }
 
     if (q.type === 'TEXT') {
@@ -268,12 +305,15 @@ export function parseQuizImportJson(
           .map((item) => (typeof item === 'string' ? item.trim() : ''))
           .filter((item) => item.length > 0);
       }
-      return {
-        questionText,
-        type: 'TEXT' as const,
-        options: [{ text: answer, isCorrect: true }],
-        acceptedVariants,
-      };
+      return attachImportPoints(
+        {
+          questionText,
+          type: 'TEXT' as const,
+          options: [{ text: answer, isCorrect: true }],
+          acceptedVariants,
+        },
+        points,
+      );
     }
 
     if (q.type === 'MATCHING') {
@@ -298,11 +338,14 @@ export function parseQuizImportJson(
         }
         return { leftItem, rightItem };
       });
-      return {
-        questionText,
-        type: 'MATCHING' as const,
-        matchingPairs,
-      };
+      return attachImportPoints(
+        {
+          questionText,
+          type: 'MATCHING' as const,
+          matchingPairs,
+        },
+        points,
+      );
     }
 
     if (q.type === 'ORDERING') {
@@ -322,11 +365,14 @@ export function parseQuizImportJson(
           correctOrder: itemIndex,
         };
       });
-      return {
-        questionText,
-        type: 'ORDERING' as const,
-        orderingItems,
-      };
+      return attachImportPoints(
+        {
+          questionText,
+          type: 'ORDERING' as const,
+          orderingItems,
+        },
+        points,
+      );
     }
 
     if (q.type === 'FILL_BLANK') {
@@ -379,13 +425,46 @@ export function parseQuizImportJson(
           t('editQuiz.importFillBlankMarkers', { index: idx + 1 }),
         );
       }
-      return {
-        questionText,
-        type: 'FILL_BLANK' as const,
-        fillBlanks,
-      };
+      return attachImportPoints(
+        {
+          questionText,
+          type: 'FILL_BLANK' as const,
+          fillBlanks,
+        },
+        points,
+      );
     }
 
     throw new Error(t('editQuiz.importUnknownType', { index: idx + 1 }));
   });
+
+  return {
+    customScoring: data.customScoring === true,
+    questions,
+  };
+}
+
+function readImportPoints(
+  value: unknown,
+  index: number,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): number | undefined {
+  if (value === undefined) return undefined;
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < QUESTION_POINTS_MIN ||
+    value > QUESTION_POINTS_MAX
+  ) {
+    throw new Error(t('editQuiz.importPointsInvalid', { index }));
+  }
+  return value;
+}
+
+function attachImportPoints(
+  payload: QuestionPayload,
+  points: number | undefined,
+): QuestionPayload {
+  if (points === undefined) return payload;
+  return { ...payload, points };
 }

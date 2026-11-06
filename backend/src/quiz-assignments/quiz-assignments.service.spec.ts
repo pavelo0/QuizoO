@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ModuleType } from '@prisma/client';
+import { ExperienceService } from '../experience/experience.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuizAssignmentsService } from './quiz-assignments.service';
 
@@ -28,7 +29,9 @@ describe('QuizAssignmentsService', () => {
   beforeEach(() => {
     prisma = createPrismaMock();
     prisma.user.findUnique = jest.fn().mockResolvedValue({ role: 'USER' });
-    service = new QuizAssignmentsService(prisma);
+    service = new QuizAssignmentsService(prisma, {
+      record: jest.fn(),
+    } as unknown as ExperienceService);
   });
 
   it('rejects an admin', async () => {
@@ -143,6 +146,53 @@ describe('QuizAssignmentsService', () => {
 
     expect(found.closed).toBe(true);
     expect(found.questionCount).toBe(3);
+  });
+
+  it('rounds weighted attempt points and keeps an old attempt empty', async () => {
+    prisma.quizAssignment.findFirst = jest.fn().mockResolvedValue({
+      id: 'a1',
+      code: 'AB23CD',
+      moduleId: 'm1',
+      deadline: new Date('2026-12-01T00:00:00.000Z'),
+      createdAt: new Date('2026-11-06T00:00:00.000Z'),
+      module: { title: 'Biology' },
+      sessions: [
+        {
+          id: 's1',
+          correctCount: 1,
+          totalQuestions: 2,
+          scorePercent: 80,
+          pointsEarned: 2.25,
+          pointsMax: 5,
+          completedAt: new Date('2026-11-06T12:00:00.000Z'),
+          user: { id: 'u2', username: 'ann', email: 'ann@example.com' },
+        },
+        {
+          id: 's2',
+          correctCount: 1,
+          totalQuestions: 1,
+          scorePercent: 100,
+          pointsEarned: null,
+          pointsMax: null,
+          completedAt: null,
+          user: { id: 'u3', username: null, email: 'bob@example.com' },
+        },
+      ],
+    });
+
+    const detail = await service.getOne('u1', 'a1');
+
+    expect(detail.attempts[0]).toMatchObject({
+      username: 'ann',
+      pointsEarned: 2.3,
+      pointsMax: 5,
+      scorePercent: 80,
+    });
+    expect(detail.attempts[1]).toMatchObject({
+      pointsEarned: null,
+      pointsMax: null,
+      scorePercent: 100,
+    });
   });
 
   it('does not show another author the journal', async () => {
