@@ -446,6 +446,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'assignments.participant': 'Participant',
     'assignments.score': 'Score',
     'assignments.scoreValue': '{correct} of {total} · {percent}%',
+    'assignments.scorePoints': '{earned} of {max} points · {percent}%',
     'assignments.when': 'Finished',
     'assignments.deleteTitle': 'Delete assignment?',
     'assignments.deleteDescription':
@@ -535,6 +536,13 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.timer': 'Attempt timer',
     'editQuiz.timerDuration': 'Time limit',
     'editQuiz.shuffle': 'Shuffle questions',
+    'editQuiz.customScoring': 'Custom point scale',
+    'editQuiz.customScoringHint':
+      'Each question can be worth a different number of points.',
+    'editQuiz.customScoringSaveFailed': 'Could not save the point scale.',
+    'editQuiz.pointsLabel': 'Points',
+    'editQuiz.pointsBadge': '{points} pts',
+    'editQuiz.validationPoints': 'Enter a whole number from 1 to 100.',
     'editQuiz.questionsTitle': 'Questions ({count})',
     'editQuiz.searchQuestions': 'Search questions',
     'editQuiz.searchPlaceholder': 'Search questions…',
@@ -622,6 +630,10 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Question #{index}: questionText is required.',
     'editQuiz.importUnknownType':
       'Question #{index}: unsupported type. Use CHOICE, TEXT, MATCHING, ORDERING, or FILL_BLANK.',
+    'editQuiz.importCustomScoringInvalid':
+      'customScoring must be true or false.',
+    'editQuiz.importPointsInvalid':
+      'Question #{index}: points must be a whole number from 1 to 100.',
     'editQuiz.importChoiceOptionsMin':
       'Question #{index}: CHOICE requires at least 2 options.',
     'editQuiz.importChoiceOptionInvalid':
@@ -732,6 +744,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.stayAction': 'Stay here',
     'quizStudy.resultsTitle': '{title} - Quiz results',
     'quizStudy.resultsCorrect': '{correct} of {total} correct',
+    'quizStudy.resultsPoints': '{earned} of {max} points',
     'quizStudy.sessionComplete': 'Attempt complete',
     'quizStudy.performanceExcellent': 'Excellent',
     'quizStudy.performanceGood': 'Good job',
@@ -1283,6 +1296,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'assignments.participant': 'Участник',
     'assignments.score': 'Результат',
     'assignments.scoreValue': '{correct} из {total} · {percent}%',
+    'assignments.scorePoints': '{earned} из {max} баллов · {percent}%',
     'assignments.when': 'Завершено',
     'assignments.deleteTitle': 'Удалить занятие?',
     'assignments.deleteDescription':
@@ -1373,6 +1387,13 @@ export const messages: Record<Locale, Record<string, string>> = {
     'editQuiz.timer': 'Таймер прохождения',
     'editQuiz.timerDuration': 'Лимит времени',
     'editQuiz.shuffle': 'Перемешивать вопросы',
+    'editQuiz.customScoring': 'Своя шкала баллов',
+    'editQuiz.customScoringHint':
+      'У каждого вопроса может быть свой вес в баллах.',
+    'editQuiz.customScoringSaveFailed': 'Не удалось сохранить шкалу баллов.',
+    'editQuiz.pointsLabel': 'Баллы',
+    'editQuiz.pointsBadge': '{points} б.',
+    'editQuiz.validationPoints': 'Введите целое число от 1 до 100.',
     'editQuiz.questionsTitle': 'Вопросы ({count})',
     'editQuiz.searchQuestions': 'Поиск вопросов',
     'editQuiz.searchPlaceholder': 'Поиск вопросов…',
@@ -1465,6 +1486,10 @@ export const messages: Record<Locale, Record<string, string>> = {
       'Вопрос №{index}: поле questionText обязательно.',
     'editQuiz.importUnknownType':
       'Вопрос №{index}: неизвестный тип. Используйте CHOICE, TEXT, MATCHING, ORDERING или FILL_BLANK.',
+    'editQuiz.importCustomScoringInvalid':
+      'Поле customScoring должно быть true или false.',
+    'editQuiz.importPointsInvalid':
+      'Вопрос №{index}: баллы должны быть целым числом от 1 до 100.',
     'editQuiz.importChoiceOptionsMin':
       'Вопрос №{index}: для CHOICE нужно минимум 2 варианта.',
     'editQuiz.importChoiceOptionInvalid':
@@ -1577,6 +1602,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'quizStudy.stayAction': 'Остаться',
     'quizStudy.resultsTitle': '{title} - Результаты теста',
     'quizStudy.resultsCorrect': 'Верно {correct} из {total}',
+    'quizStudy.resultsPoints': '{earned} из {max} баллов',
     'quizStudy.sessionComplete': 'Прохождение завершено',
     'quizStudy.performanceExcellent': 'Отлично',
     'quizStudy.performanceGood': 'Хороший результат',

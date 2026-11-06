@@ -19,6 +19,8 @@ export type QuizAssignmentAttempt = {
   correctCount: number;
   totalQuestions: number;
   scorePercent: number;
+  pointsEarned: number | null;
+  pointsMax: number | null;
   completedAt: string | null;
 };
 

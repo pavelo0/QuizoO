@@ -19,6 +19,8 @@ function session(correct: boolean): QuizSessionDetail {
     totalQuestions: 1,
     correctCount: correct ? 1 : 0,
     scorePercent: correct ? 100 : 0,
+    pointsEarned: null,
+    pointsMax: null,
     completedAt: '2026-02-01T00:00:00.000Z',
     answers: [
       {
@@ -34,6 +36,7 @@ function session(correct: boolean): QuizSessionDetail {
           allowMultipleAnswers: false,
           questionImageMime: null,
           orderIndex: 0,
+          points: 1,
           createdAt: '2026-01-01T00:00:00.000Z',
           questionOptions: [],
           matchingPairs: [],

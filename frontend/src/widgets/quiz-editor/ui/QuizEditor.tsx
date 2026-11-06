@@ -222,6 +222,8 @@ export function QuizEditor() {
   const [title, setTitle] = useState(t('edit.common.newQuizModule'));
   const [savedTitle, setSavedTitle] = useState(t('edit.common.newQuizModule'));
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [customScoring, setCustomScoring] = useState(false);
+  const [customScoringSaving, setCustomScoringSaving] = useState(false);
   const [questions, setQuestions] = useState<ModuleQuestion[]>([]);
   const [search, setSearch] = useState('');
   const [shuffle, setShuffle] = useState(true);
@@ -278,6 +280,7 @@ export function QuizEditor() {
       setTitle(m.title);
       setSavedTitle(m.title);
       setTitleError(null);
+      setCustomScoring(m.customScoring);
       setQuestions(m.questions);
       setShuffle(readShuffle(m.id));
       setTimerEnabled(readQuizTimerEnabled(m.id));
@@ -416,6 +419,7 @@ export function QuizEditor() {
         orderingItems?: Array<{ text: string; correctOrder: number }>;
         fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
         acceptedVariants?: string[];
+        points?: number;
       },
       imageFile: File | null,
     ) => {
@@ -448,6 +452,7 @@ export function QuizEditor() {
         orderingItems?: Array<{ text: string; correctOrder: number }>;
         fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
         acceptedVariants?: string[];
+        points?: number;
       },
       imageUpdate: {
         file: File | null;
@@ -493,6 +498,23 @@ export function QuizEditor() {
       }
     },
     [editingQuestion?.id, moduleId, t],
+  );
+
+  const onCustomScoring = useCallback(
+    async (next: boolean) => {
+      const previous = customScoring;
+      setCustomScoring(next);
+      setCustomScoringSaving(true);
+      try {
+        await updateModule(moduleId, { customScoring: next });
+      } catch {
+        setCustomScoring(previous);
+        toast.error(t('editQuiz.customScoringSaveFailed'));
+      } finally {
+        setCustomScoringSaving(false);
+      }
+    },
+    [customScoring, moduleId, t],
   );
 
   const onShuffle = useCallback(
@@ -547,12 +569,12 @@ export function QuizEditor() {
       try {
         const rawText = await file.text();
         const parsed = JSON.parse(rawText) as unknown;
-        const importedQuestions = parseQuizImportJson(parsed, t);
+        const imported = parseQuizImportJson(parsed, t);
 
         await Promise.all(questions.map((q) => deleteQuestion(moduleId, q.id)));
 
         const createdQuestions: ModuleQuestion[] = [];
-        for (const [index, payload] of importedQuestions.entries()) {
+        for (const [index, payload] of imported.questions.entries()) {
           const created = await createQuestion(moduleId, {
             ...payload,
             orderIndex: index,
@@ -565,6 +587,8 @@ export function QuizEditor() {
             (left, right) => left.orderIndex - right.orderIndex,
           ),
         );
+        await updateModule(moduleId, { customScoring: imported.customScoring });
+        setCustomScoring(imported.customScoring);
         toast.success(
           t('editQuiz.importSuccess', { count: createdQuestions.length }),
         );
@@ -609,6 +633,7 @@ export function QuizEditor() {
     const exportData = {
       formatVersion: QUIZ_IMPORT_FORMAT_VERSION,
       moduleType: 'QUIZ',
+      ...(customScoring ? { customScoring: true } : {}),
       title: title.trim(),
       questions: [...questions]
         .sort((left, right) => left.orderIndex - right.orderIndex)
@@ -626,7 +651,7 @@ export function QuizEditor() {
     anchor.remove();
     URL.revokeObjectURL(url);
     toast.success(t('editQuiz.exportSuccess'));
-  }, [questions, t, title]);
+  }, [customScoring, questions, t, title]);
 
   const saveTitle = useCallback(
     async (options?: { proceedIfBlocked?: boolean }) => {
@@ -922,6 +947,22 @@ export function QuizEditor() {
                 aria-labelledby="switch-shuffle-label"
               />
             </div>
+            <div className="flex items-center justify-between gap-3 sm:justify-end">
+              <span
+                className="font-(family-name:--font-dm-sans) text-sm text-(--text-primary)"
+                id="switch-custom-scoring-label"
+                title={t('editQuiz.customScoringHint')}
+              >
+                {t('editQuiz.customScoring')}
+              </span>
+              <Switch
+                checked={customScoring}
+                disabled={customScoringSaving}
+                onCheckedChange={(value) => void onCustomScoring(value)}
+                className="data-[state=checked]:border-transparent data-[state=checked]:bg-(--secondary-accent) dark:data-[state=checked]:bg-(--secondary-accent) dark:data-[state=unchecked]:bg-white/20"
+                aria-labelledby="switch-custom-scoring-label"
+              />
+            </div>
           </div>
         </section>
 
@@ -1034,6 +1075,7 @@ export function QuizEditor() {
                               questionDialogOpen && editingQuestion?.id === q.id
                             }
                             onEdit={openEditQuestion}
+                            showPoints={customScoring}
                             onDelete={onDeleteQuestion}
                             onMoveUp={(questionId) =>
                               onMoveQuestion(questionId, -1)
@@ -1075,6 +1117,7 @@ export function QuizEditor() {
               open={questionDialogOpen}
               editingQuestion={editingQuestion}
               questionsCount={questions.length}
+              customScoring={customScoring}
               moduleId={moduleId}
               onOpenChange={(nextOpen) => {
                 setQuestionDialogOpen(nextOpen);
@@ -1091,6 +1134,7 @@ export function QuizEditor() {
             open={questionDialogOpen}
             editingQuestion={editingQuestion}
             questionsCount={questions.length}
+            customScoring={customScoring}
             moduleId={moduleId}
             onOpenChange={(nextOpen) => {
               setQuestionDialogOpen(nextOpen);

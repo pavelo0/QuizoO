@@ -5,6 +5,7 @@ import {
 } from '@/entities/quiz-assignment';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { apiErrorMessage, apiErrorText } from '@/shared/lib/apiErrorMessage';
+import { formatScorePoints } from '@/shared/lib/formatScorePoints';
 import { Button } from '@/shared/ui/button';
 import {
   AlertDialog,
@@ -174,11 +175,17 @@ export function QuizAssignmentJournal({
                     ) : null}
                   </td>
                   <td className="px-4 py-3">
-                    {t('assignments.scoreValue', {
-                      correct: attempt.correctCount,
-                      total: attempt.totalQuestions,
-                      percent: Math.round(attempt.scorePercent),
-                    })}
+                    {attempt.pointsMax != null && attempt.pointsEarned != null
+                      ? t('assignments.scorePoints', {
+                          earned: formatScorePoints(attempt.pointsEarned),
+                          max: attempt.pointsMax,
+                          percent: Math.round(attempt.scorePercent),
+                        })
+                      : t('assignments.scoreValue', {
+                          correct: attempt.correctCount,
+                          total: attempt.totalQuestions,
+                          percent: Math.round(attempt.scorePercent),
+                        })}
                   </td>
                   <td className="px-4 py-3 text-(--text-secondary)">
                     {attempt.completedAt

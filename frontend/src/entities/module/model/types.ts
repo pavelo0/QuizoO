@@ -59,6 +59,7 @@ export interface ModuleQuestion {
   allowMultipleAnswers: boolean;
   questionImageMime: string | null;
   orderIndex: number;
+  points: number;
   createdAt: string;
   questionOptions: ModuleQuestionOption[];
   matchingPairs: ModuleMatchingPair[];
@@ -74,6 +75,7 @@ export interface ModuleDetail {
   title: string;
   description: string | null;
   type: ModuleType;
+  customScoring: boolean;
   createdAt: string;
   updatedAt: string;
   cardCount: number;
@@ -179,6 +181,8 @@ export interface QuizSessionDetail {
   totalQuestions: number;
   correctCount: number;
   scorePercent: number;
+  pointsEarned: number | null;
+  pointsMax: number | null;
   completedAt: string | null;
   answers: QuizSessionAnswerDetail[];
 }

@@ -54,6 +54,7 @@ type QuestionDialogProps = {
   presentation?: 'dialog' | 'panel';
   editingQuestion: ModuleQuestion | null;
   questionsCount: number;
+  customScoring?: boolean;
   onOpenChange: (open: boolean) => void;
   onCreateQuestion: (
     payload: {
@@ -65,6 +66,7 @@ type QuestionDialogProps = {
       orderingItems?: Array<{ text: string; correctOrder: number }>;
       fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
+      points?: number;
     },
     imageFile: File | null,
   ) => Promise<void>;
@@ -79,6 +81,7 @@ type QuestionDialogProps = {
       orderingItems?: Array<{ text: string; correctOrder: number }>;
       fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
+      points?: number;
     },
     imageUpdate: {
       file: File | null;
@@ -94,6 +97,7 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
   presentation = 'dialog',
   editingQuestion,
   questionsCount,
+  customScoring = false,
   onOpenChange,
   onCreateQuestion,
   onUpdateQuestion,
@@ -117,6 +121,7 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
   const [fillBlanks, setFillBlanks] = useState<FillBlankDraft[]>(() => [
     { id: crypto.randomUUID(), answer: '', variantsText: '' },
   ]);
+  const [points, setPoints] = useState('1');
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -129,6 +134,7 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
     orderingItems?: string;
     fillBlanks?: string;
     image?: string;
+    points?: string;
     form?: string;
   }>({});
   const hasExistingImage = Boolean(editingQuestion?.questionImageMime);
@@ -173,10 +179,12 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
       setFillBlanks([
         { id: crypto.randomUUID(), answer: '', variantsText: '' },
       ]);
+      setPoints('1');
       return;
     }
     setType(editingQuestion.type);
     setQuestionText(editingQuestion.questionText);
+    setPoints(String(editingQuestion.points ?? 1));
     setAllowMultipleAnswers(
       editingQuestion.type === 'CHOICE'
         ? editingQuestion.allowMultipleAnswers
@@ -371,6 +379,8 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
         orderingItems,
         fillBlanks,
         acceptedVariantsText,
+        points,
+        customScoring,
         editing: Boolean(editingQuestion),
         questionsCount,
       },
@@ -415,6 +425,8 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
     questionText,
     textAnswer,
     acceptedVariantsText,
+    points,
+    customScoring,
     presentation,
     questionsCount,
     type,
@@ -508,6 +520,41 @@ export const QuizQuestionDialog = memo(function QuizQuestionDialog({
               </p>
             ) : null}
           </div>
+
+          {customScoring ? (
+            <div>
+              <label className={labelClass} htmlFor="quiz-question-points">
+                {t('editQuiz.pointsLabel')}
+              </label>
+              <input
+                id="quiz-question-points"
+                inputMode="numeric"
+                value={points}
+                onChange={(event) => {
+                  setPoints(event.target.value);
+                  setErrors((prev) => ({
+                    ...prev,
+                    points: undefined,
+                    form: undefined,
+                  }));
+                }}
+                aria-invalid={!!errors.points}
+                className={cn(
+                  textareaClass,
+                  'h-11 min-h-0 w-28 py-2',
+                  errors.points && 'border-destructive',
+                )}
+              />
+              {errors.points ? (
+                <p
+                  className="mt-1.5 font-(family-name:--font-dm-sans) text-xs text-destructive"
+                  role="alert"
+                >
+                  {errors.points}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div>
             <p className={labelClass}>{t('editQuiz.imageLabel')}</p>

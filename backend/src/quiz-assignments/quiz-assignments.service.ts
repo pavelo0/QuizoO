@@ -36,6 +36,8 @@ export type QuizAssignmentAttempt = {
   correctCount: number;
   totalQuestions: number;
   scorePercent: number;
+  pointsEarned: number | null;
+  pointsMax: number | null;
   completedAt: string | null;
 };
 
@@ -203,6 +205,11 @@ export class QuizAssignmentsService {
         correctCount: session.correctCount,
         totalQuestions: session.totalQuestions,
         scorePercent: Math.round(session.scorePercent * 10) / 10,
+        pointsEarned:
+          session.pointsEarned == null
+            ? null
+            : Math.round(session.pointsEarned * 10) / 10,
+        pointsMax: session.pointsMax,
         completedAt: session.completedAt?.toISOString() ?? null,
       })),
     };

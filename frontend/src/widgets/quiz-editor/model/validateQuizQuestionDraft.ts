@@ -7,6 +7,7 @@ import type { QuestionType } from '@/entities/module';
 import type { TranslationKey } from '@/shared/i18n/messages';
 import {
   MAX_QUESTIONS_PER_MODULE,
+  parseQuestionPointsInput,
   type QuestionPayload,
 } from './quizQuestionDraft';
 
@@ -18,6 +19,7 @@ export type QuizQuestionFieldErrors = {
   orderingItems?: string;
   fillBlanks?: string;
   image?: string;
+  points?: string;
   form?: string;
 };
 
@@ -31,6 +33,8 @@ export type QuizQuestionDraftInput = {
   orderingItems: Array<{ id: string; text: string }>;
   fillBlanks: Array<{ answer: string; variantsText: string }>;
   acceptedVariantsText: string;
+  points: string;
+  customScoring: boolean;
   editing: boolean;
   questionsCount: number;
 };
@@ -127,11 +131,21 @@ export function validateQuizQuestionDraft(
     }
   }
 
+  const parsedPoints = input.customScoring
+    ? parseQuestionPointsInput(input.points)
+    : null;
+  if (input.customScoring && parsedPoints === null) {
+    errors.points = t('editQuiz.validationPoints');
+  }
+
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
 
   const payload: QuestionPayload = { questionText: question, type: input.type };
+  if (input.customScoring && parsedPoints !== null) {
+    payload.points = parsedPoints;
+  }
   if (input.type === 'CHOICE') {
     payload.allowMultipleAnswers = input.allowMultipleAnswers;
     payload.options = cleanOptions;

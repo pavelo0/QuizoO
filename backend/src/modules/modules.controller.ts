@@ -180,6 +180,7 @@ export class ModulesController {
       orderingItems?: Array<{ text?: string; correctOrder?: number }>;
       fillBlanks?: Array<{ answer?: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
+      points?: number;
     },
   ) {
     return this.modules.createQuestion(userId, moduleId, body);
@@ -201,6 +202,7 @@ export class ModulesController {
       orderingItems?: Array<{ text?: string; correctOrder?: number }>;
       fillBlanks?: Array<{ answer?: string; acceptedVariants?: string[] }>;
       acceptedVariants?: string[];
+      points?: number;
     },
   ) {
     return this.modules.updateQuestion(userId, moduleId, questionId, body);

@@ -22,6 +22,7 @@ type SortableQuestionRowProps = {
   index: number;
   total: number;
   canReorder: boolean;
+  showPoints?: boolean;
   selected?: boolean;
   onEdit: (q: ModuleQuestion) => void;
   onDelete: (q: ModuleQuestion) => Promise<void>;
@@ -35,6 +36,7 @@ export const SortableQuestionRow = memo(function SortableQuestionRow({
   index,
   total,
   canReorder,
+  showPoints = false,
   selected = false,
   onEdit,
   onDelete,
@@ -86,6 +88,11 @@ export const SortableQuestionRow = memo(function SortableQuestionRow({
           <span className="inline-flex items-center rounded-full bg-(--module-badge-violet-bg) px-2.5 py-1 text-[0.625rem] font-bold tracking-[0.08em] text-(--module-badge-violet-fg) uppercase">
             {labelByType(q.type, t)}
           </span>
+          {showPoints ? (
+            <span className="inline-flex items-center rounded-full bg-(--module-badge-mint-bg) px-2.5 py-1 text-[0.625rem] font-bold tracking-[0.08em] text-(--module-badge-mint-fg) uppercase">
+              {t('editQuiz.pointsBadge', { points: q.points ?? 1 })}
+            </span>
+          ) : null}
         </div>
         <p className="mt-1 text-sm text-(--text-secondary) sm:text-sm">
           {summarizeQuestion(q, t)}

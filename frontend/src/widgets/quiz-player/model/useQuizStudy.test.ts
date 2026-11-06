@@ -21,6 +21,7 @@ function question(
     allowMultipleAnswers: false,
     questionImageMime: null,
     orderIndex: 0,
+    points: 1,
     createdAt: '2026-01-01T00:00:00.000Z',
     questionOptions: [],
     matchingPairs: [],

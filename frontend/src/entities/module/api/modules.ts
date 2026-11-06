@@ -67,7 +67,12 @@ export async function fetchModuleById(moduleId: ModuleId) {
 
 export async function updateModule(
   moduleId: ModuleId,
-  body: { title?: string; description?: string | null; type?: ModuleType },
+  body: {
+    title?: string;
+    description?: string | null;
+    type?: ModuleType;
+    customScoring?: boolean;
+  },
 ) {
   const { data } = await apiClient.patch<CreateModuleResult>(
     `/modules/${moduleId}`,
@@ -186,6 +191,7 @@ export async function createQuestion(
     orderingItems?: Array<{ text: string; correctOrder: number }>;
     fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
     acceptedVariants?: string[];
+    points?: number;
   },
 ) {
   const { data } = await apiClient.post<ModuleQuestion>(
@@ -208,6 +214,7 @@ export async function updateQuestion(
     orderingItems?: Array<{ text: string; correctOrder: number }>;
     fillBlanks?: Array<{ answer: string; acceptedVariants?: string[] }>;
     acceptedVariants?: string[];
+    points?: number;
   },
 ) {
   const { data } = await apiClient.patch<ModuleQuestion>(
