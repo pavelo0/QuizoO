@@ -8,6 +8,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { ModulesModule } from './modules/modules.module';
+import { QuizAssignmentsModule } from './quiz-assignments/quiz-assignments.module';
 import { StudySetsModule } from './study-sets/study-sets.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { StudySetsModule } from './study-sets/study-sets.module';
     UsersModule,
     ModulesModule,
     StudySetsModule,
+    QuizAssignmentsModule,
   ],
   controllers: [AppController],
   providers: [

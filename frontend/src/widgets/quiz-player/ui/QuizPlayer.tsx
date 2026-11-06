@@ -6,8 +6,15 @@ import { QuizResultView } from './QuizResultView';
 
 export function QuizPlayer() {
   const study = useQuizStudy();
-  const { t, loadState, moduleId, totalQuestions, session, currentQuestion } =
-    study;
+  const {
+    t,
+    loadState,
+    moduleId,
+    assignmentId,
+    totalQuestions,
+    session,
+    currentQuestion,
+  } = study;
 
   if (loadState === 'loading') {
     return (
@@ -39,6 +46,24 @@ export function QuizPlayer() {
           <Link to={`/app/modules/${encodeURIComponent(moduleId)}/quiz-study`}>
             {t('quizStudy.retake')}
           </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (loadState === 'assignmentClosed') {
+    return (
+      <div className="mx-auto max-w-md text-center">
+        <p className="text-(--text-secondary)">
+          {t('assignments.deadlinePassed')}
+        </p>
+        <Button
+          asChild
+          className="mt-6 rounded-xl"
+          variant="outline"
+          size="outlineCompact"
+        >
+          <Link to="/app">{t('common.backToDashboard')}</Link>
         </Button>
       </div>
     );
@@ -77,8 +102,16 @@ export function QuizPlayer() {
             size="outlineCompact"
             className="rounded-xl"
           >
-            <Link to={`/app/modules/${encodeURIComponent(moduleId)}/quiz-edit`}>
-              {t('common.backToModule')}
+            <Link
+              to={
+                assignmentId
+                  ? '/app'
+                  : `/app/modules/${encodeURIComponent(moduleId)}/quiz-edit`
+              }
+            >
+              {assignmentId
+                ? t('common.backToDashboard')
+                : t('common.backToModule')}
             </Link>
           </Button>
         </div>

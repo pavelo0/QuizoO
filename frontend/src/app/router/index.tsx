@@ -16,6 +16,7 @@ import CreateModulePage from '@/pages/CreateModulePage';
 import EditFlashcardModulePage from '@/pages/EditFlashcardModulePage';
 import EditQuizModulePage from '@/pages/EditQuizModulePage';
 import FlashcardStudyPage from '@/pages/FlashcardStudyPage';
+import QuizAssignmentPage from '@/pages/QuizAssignmentPage';
 import QuizStudyPage from '@/pages/QuizStudyPage';
 import DashboardPage from '@/pages/DashboardPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
@@ -87,6 +88,14 @@ export const router: DataRouter = createBrowserRouter([
     ),
     children: [
       { index: true, element: <UserHomeRoute /> },
+      {
+        path: 'assignments/:assignmentId',
+        element: (
+          <LearnerOnlyRoute>
+            <QuizAssignmentPage />
+          </LearnerOnlyRoute>
+        ),
+      },
       {
         path: 'sets/:setId',
         element: (

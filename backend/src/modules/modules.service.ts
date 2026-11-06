@@ -10,6 +10,7 @@ import { ModuleType, Prisma, QuestionType } from '@prisma/client';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import { QuizAssignmentsService } from '../quiz-assignments/quiz-assignments.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import {
@@ -196,7 +197,10 @@ function validateChoiceOptions(
 
 @Injectable()
 export class ModulesService implements OnModuleInit {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly quizAssignments: QuizAssignmentsService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     await mkdir(this.questionImagesDir, { recursive: true });
@@ -523,10 +527,14 @@ export class ModulesService implements OnModuleInit {
   async getQuizQuestionsPage(
     userId: string,
     moduleId: string,
-    args: { take?: number; cursor?: string },
+    args: { take?: number; cursor?: string; assignmentId?: string },
   ) {
     await this.assertLearningModuleAccessAllowed(userId);
-    const module = await this.assertQuizModule(moduleId, userId);
+    const module = await this.resolveQuizForStudy(
+      userId,
+      moduleId,
+      args.assignmentId,
+    );
     const take = Math.min(Math.max(args.take ?? 20, 1), 50);
     const cursor = args.cursor?.trim() ? args.cursor.trim() : null;
 
@@ -784,10 +792,16 @@ export class ModulesService implements OnModuleInit {
         orderingAnswer?: string[] | null;
         fillBlankAnswers?: string[] | null;
       }>;
+      assignmentId?: string;
     },
   ) {
     await this.assertLearningModuleAccessAllowed(userId);
-    await this.assertQuizModule(moduleId, userId);
+    const assignmentId = body.assignmentId?.trim() ?? '';
+    if (assignmentId) {
+      await this.quizAssignments.assertOpen(assignmentId, moduleId);
+    } else {
+      await this.assertQuizModule(moduleId, userId);
+    }
     const answers = body.answers ?? [];
     if (!Array.isArray(answers)) {
       throw new BadRequestException('answers must be an array');
@@ -998,6 +1012,7 @@ export class ModulesService implements OnModuleInit {
         data: {
           userId,
           moduleId,
+          assignmentId: assignmentId || null,
           totalQuestions,
           correctCount,
           scorePercent,
@@ -1019,7 +1034,6 @@ export class ModulesService implements OnModuleInit {
 
   async getQuizSession(userId: string, moduleId: string, sessionId: string) {
     await this.assertLearningModuleAccessAllowed(userId);
-    await this.assertQuizModule(moduleId, userId);
     const sess = await this.prisma.quizSession.findFirst({
       where: { id: sessionId, userId, moduleId },
       include: {
@@ -1041,6 +1055,9 @@ export class ModulesService implements OnModuleInit {
     });
     if (!sess) {
       throw new NotFoundException('Quiz session not found');
+    }
+    if (!sess.assignmentId) {
+      await this.assertQuizModule(moduleId, userId);
     }
 
     return {
@@ -1681,9 +1698,10 @@ export class ModulesService implements OnModuleInit {
     userId: string,
     moduleId: string,
     questionId: string,
+    assignmentId?: string,
   ): Promise<{ path: string; mime: string } | null> {
     await this.assertLearningModuleAccessAllowed(userId);
-    await this.assertQuizModule(moduleId, userId);
+    await this.resolveQuizForStudy(userId, moduleId, assignmentId);
     const question = await this.prisma.question.findFirst({
       where: { id: questionId, moduleId },
       select: { questionImageMime: true },
@@ -1740,6 +1758,26 @@ export class ModulesService implements OnModuleInit {
         'Cards can only be managed in FLASHCARD modules',
       );
     }
+  }
+
+  private async resolveQuizForStudy(
+    userId: string,
+    moduleId: string,
+    assignmentId?: string,
+  ) {
+    const id = assignmentId?.trim() ?? '';
+    if (id) {
+      await this.quizAssignments.assertOpen(id, moduleId);
+      const module = await this.prisma.module.findFirst({
+        where: { id: moduleId, type: ModuleType.QUIZ },
+        select: { id: true, title: true, type: true },
+      });
+      if (!module) {
+        throw new NotFoundException('Module not found');
+      }
+      return module;
+    }
+    return this.assertQuizModule(moduleId, userId);
   }
 
   private async assertQuizModule(moduleId: string, userId: string) {

@@ -125,11 +125,17 @@ export async function createFlashcardSession(
 
 export async function fetchQuizQuestionsPage(
   moduleId: ModuleId,
-  params?: { take?: number; cursor?: string | null },
+  params?: { take?: number; cursor?: string | null; assignmentId?: string },
 ) {
   const { data } = await apiClient.get<QuizQuestionsPage>(
     `/modules/${moduleId}/quiz-questions`,
-    { params },
+    {
+      params: {
+        take: params?.take,
+        cursor: params?.cursor ?? undefined,
+        assignmentId: params?.assignmentId || undefined,
+      },
+    },
   );
   return {
     ...data,
@@ -150,6 +156,7 @@ export async function createQuizSession(
       matchingAnswer?: Record<string, string> | null;
       orderingAnswer?: string[] | null;
     }>;
+    assignmentId?: string;
   },
 ) {
   const { data } = await apiClient.post<QuizSessionDetail>(
@@ -228,17 +235,22 @@ function normalizedApiBaseUrl() {
 export function questionImageUrl(
   moduleId: ModuleId,
   questionId: string,
-  options?: { version?: string | number | null },
+  options?: { version?: string | number | null; assignmentId?: string | null },
 ) {
   const apiBase = normalizedApiBaseUrl();
   const path = `/modules/${encodeURIComponent(moduleId)}/questions/${encodeURIComponent(questionId)}/image`;
   const base = `${apiBase}${path}`;
+  const search = new URLSearchParams();
   const version = options?.version;
-  if (version === undefined || version === null || version === '') {
-    return base;
+  if (version !== undefined && version !== null && version !== '') {
+    search.set('v', String(version));
   }
-  const separator = base.includes('?') ? '&' : '?';
-  return `${base}${separator}v=${encodeURIComponent(String(version))}`;
+  const assignmentId = options?.assignmentId?.trim();
+  if (assignmentId) {
+    search.set('assignmentId', assignmentId);
+  }
+  const query = search.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 export async function uploadQuestionImage(

@@ -283,11 +283,20 @@ export function useQuizStudy() {
   const [searchParams] = useSearchParams();
   const { moduleId: rawId } = useParams();
   const moduleId = (rawId ?? '') as ModuleId;
-  const retrySessionId = searchParams.get('retrySession')?.trim() ?? '';
+  const assignmentId = searchParams.get('assignment')?.trim() ?? '';
+  const retrySessionId = assignmentId
+    ? ''
+    : (searchParams.get('retrySession')?.trim() ?? '');
   const tRef = useRef(t);
 
   const [loadState, setLoadState] = useState<
-    'loading' | 'ok' | 'notfound' | 'wrongType' | 'emptyRetry' | 'retryMissing'
+    | 'loading'
+    | 'ok'
+    | 'notfound'
+    | 'wrongType'
+    | 'emptyRetry'
+    | 'retryMissing'
+    | 'assignmentClosed'
   >('loading');
   const [moduleTitle, setModuleTitle] = useState(t('quizStudy.quizModule'));
   const [questions, setQuestions] = useState<ModuleQuestion[]>([]);
@@ -377,7 +386,10 @@ export function useQuizStudy() {
         setLoadState('ok');
         return;
       }
-      const page = await fetchQuizQuestionsPage(moduleId, { take: PAGE_SIZE });
+      const page = await fetchQuizQuestionsPage(moduleId, {
+        take: PAGE_SIZE,
+        assignmentId: assignmentId || undefined,
+      });
       setModuleTitle(
         page.moduleTitle?.trim() || tRef.current('quizStudy.quizModule'),
       );
@@ -401,13 +413,17 @@ export function useQuizStudy() {
         setLoadState('retryMissing');
         return;
       }
+      if (normalizeText(msg).includes('deadline has passed')) {
+        setLoadState('assignmentClosed');
+        return;
+      }
       if (normalizeText(msg).includes('quiz modules')) {
         setLoadState('wrongType');
         return;
       }
       setLoadState('notfound');
     }
-  }, [moduleId, retrySessionId, shuffleEnabled]);
+  }, [assignmentId, moduleId, retrySessionId, shuffleEnabled]);
 
   const loadMore = useCallback(async () => {
     const cursor = nextCursorRef.current;
@@ -417,6 +433,7 @@ export function useQuizStudy() {
       const page = await fetchQuizQuestionsPage(moduleId, {
         take: PAGE_SIZE,
         cursor,
+        assignmentId: assignmentId || undefined,
       });
       const prepared = maybeShuffleQuestions(page.items, shuffleEnabled);
       mergeQuestions(prepared);
@@ -429,7 +446,7 @@ export function useQuizStudy() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, mergeQuestions, moduleId, shuffleEnabled]);
+  }, [assignmentId, isLoadingMore, mergeQuestions, moduleId, shuffleEnabled]);
 
   useEffect(() => {
     if (!timerEnabled || loadState !== 'ok' || session || totalQuestions < 1) {
@@ -589,6 +606,7 @@ export function useQuizStudy() {
       );
       const nextSession = await createQuizSession(moduleId, {
         answers: payload,
+        ...(assignmentId ? { assignmentId } : {}),
       });
       const elapsed =
         studyStartedAtRef.current !== null
@@ -605,7 +623,16 @@ export function useQuizStudy() {
       setSubmitError(message);
       toast.error(message);
     }
-  }, [answers, moduleId, questions, session, submitState, t, totalQuestions]);
+  }, [
+    answers,
+    assignmentId,
+    moduleId,
+    questions,
+    session,
+    submitState,
+    t,
+    totalQuestions,
+  ]);
 
   const {
     remainingSec,
@@ -772,6 +799,7 @@ export function useQuizStudy() {
       );
       const nextSession = await createQuizSession(moduleId, {
         answers: payload,
+        ...(assignmentId ? { assignmentId } : {}),
       });
       const elapsed =
         studyStartedAtRef.current !== null
@@ -787,7 +815,7 @@ export function useQuizStudy() {
       setSubmitError(message);
       toast.error(message);
     }
-  }, [answers, canSubmit, moduleId, questions, submitState, t]);
+  }, [answers, assignmentId, canSubmit, moduleId, questions, submitState, t]);
 
   useEffect(() => {
     if (session) return;
@@ -851,6 +879,7 @@ export function useQuizStudy() {
   return {
     t,
     moduleId,
+    assignmentId,
     loadState,
     moduleTitle,
     questions,
