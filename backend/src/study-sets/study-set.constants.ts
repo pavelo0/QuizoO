@@ -1,0 +1,1 @@
+export const MAX_STUDY_SET_TITLE_LENGTH = 200;
