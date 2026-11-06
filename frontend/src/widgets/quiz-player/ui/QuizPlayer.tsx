@@ -22,6 +22,28 @@ export function QuizPlayer() {
     );
   }
 
+  if (loadState === 'emptyRetry' || loadState === 'retryMissing') {
+    return (
+      <div className="mx-auto max-w-md text-center">
+        <p className="text-(--text-secondary)">
+          {loadState === 'emptyRetry'
+            ? t('quizStudy.retryNothing')
+            : t('quizStudy.retryMissing')}
+        </p>
+        <Button
+          asChild
+          className="mt-6 rounded-xl"
+          variant="outline"
+          size="outlineCompact"
+        >
+          <Link to={`/app/modules/${encodeURIComponent(moduleId)}/quiz-study`}>
+            {t('quizStudy.retake')}
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
   if (loadState === 'notfound' || loadState === 'wrongType') {
     return (
       <div className="mx-auto max-w-md text-center">

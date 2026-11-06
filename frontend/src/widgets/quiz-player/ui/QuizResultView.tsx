@@ -146,6 +146,21 @@ export function QuizResultView({ study }: { study: QuizStudy }) {
               <RotateCcw className="size-4" />
               {t('quizStudy.retake')}
             </Button>
+            {wrongCount > 0 ? (
+              <Button
+                asChild
+                type="button"
+                variant="quiz"
+                size="outlineCompact"
+                className="h-11 min-w-36 rounded-xl"
+              >
+                <Link
+                  to={`/app/modules/${encodeURIComponent(moduleId)}/quiz-study?retrySession=${encodeURIComponent(session.id)}`}
+                >
+                  {t('quizStudy.retryWrong')}
+                </Link>
+              </Button>
+            ) : null}
             <Button
               asChild
               type="button"
