@@ -28,6 +28,7 @@ import ProfilePage from '@/pages/ProfilePage';
 import RegisterPage from '@/pages/RegisterPage';
 import RouteErrorPage from '@/pages/RouteErrorPage';
 import StatisticsPage from '@/pages/statistics';
+import StudySetPage from '@/pages/StudySetPage';
 
 function UserHomeRoute() {
   return <DashboardPage />;
@@ -86,6 +87,14 @@ export const router: DataRouter = createBrowserRouter([
     ),
     children: [
       { index: true, element: <UserHomeRoute /> },
+      {
+        path: 'sets/:setId',
+        element: (
+          <LearnerOnlyRoute>
+            <StudySetPage />
+          </LearnerOnlyRoute>
+        ),
+      },
       {
         path: 'modules/create',
         element: (

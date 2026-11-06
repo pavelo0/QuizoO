@@ -8,6 +8,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { ModulesModule } from './modules/modules.module';
+import { StudySetsModule } from './study-sets/study-sets.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ModulesModule } from './modules/modules.module';
     AuthModule,
     UsersModule,
     ModulesModule,
+    StudySetsModule,
   ],
   controllers: [AppController],
   providers: [

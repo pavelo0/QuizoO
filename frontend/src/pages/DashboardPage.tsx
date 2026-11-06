@@ -1,9 +1,11 @@
 import { fetchModuleList, type ModuleListItem } from '@/entities/module';
+import { fetchStudySetList, type StudySetSummary } from '@/entities/study-set';
 import { useAuthContext } from '@/features/auth-session';
 import { Button } from '@/shared/ui/button';
 import { apiErrorMessage } from '@/shared/lib/apiErrorMessage';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { DashboardModulesSection } from '@/widgets/dashboard-module-list';
+import { StudySetListSection } from '@/widgets/study-set-list';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const DashboardPage = () => {
@@ -11,6 +13,7 @@ const DashboardPage = () => {
   const { user } = useAuthContext();
   const isAdmin = user?.role === 'ADMIN';
   const [modules, setModules] = useState<ModuleListItem[]>([]);
+  const [studySets, setStudySets] = useState<StudySetSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -22,6 +25,7 @@ const DashboardPage = () => {
   const load = useCallback(async () => {
     if (isAdmin) {
       setModules([]);
+      setStudySets([]);
       setLoadError(null);
       setLoading(false);
       return;
@@ -29,7 +33,12 @@ const DashboardPage = () => {
     setLoadError(null);
     setLoading(true);
     try {
-      setModules(await fetchModuleList());
+      const [moduleRows, setRows] = await Promise.all([
+        fetchModuleList(),
+        fetchStudySetList(),
+      ]);
+      setModules(moduleRows);
+      setStudySets(setRows);
     } catch (e) {
       setLoadError(apiErrorMessage(e));
     } finally {
@@ -73,6 +82,16 @@ const DashboardPage = () => {
             {t('common.retry')}
           </Button>
         </div>
+      )}
+
+      {!isAdmin && (
+        <StudySetListSection
+          sets={studySets}
+          loading={loading}
+          onCreated={(created) =>
+            setStudySets((current) => [created, ...current])
+          }
+        />
       )}
 
       <DashboardModulesSection

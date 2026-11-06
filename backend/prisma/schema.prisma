@@ -43,6 +43,7 @@ model User {
   modules           Module[]
   flashcardSessions FlashcardSession[]
   quizSessions      QuizSession[]
+  studySets         StudySet[]
 
   @@unique([oauthProvider, oauthId])
   @@map("users")
@@ -75,6 +76,7 @@ model Module {
   questions         Question[]
   flashcardSessions FlashcardSession[]
   quizSessions      QuizSession[]
+  studySetModules   StudySetModule[]
 
   @@index([userId])
   @@map("modules")
@@ -215,4 +217,31 @@ model QuizAnswer {
   @@index([sessionId])
   @@index([questionId])
   @@map("quiz_answers")
+}
+
+model StudySet {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items StudySetModule[]
+
+  @@index([userId])
+  @@map("study_sets")
+}
+
+model StudySetModule {
+  setId      String
+  moduleId   String
+  orderIndex Int      @default(0)
+
+  set    StudySet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  module Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@id([setId, moduleId])
+  @@index([moduleId])
+  @@map("study_set_modules")
 }
