@@ -15,6 +15,7 @@ export function QuizResultView({ study }: { study: QuizStudy }) {
   const {
     t,
     moduleId,
+    assignmentId,
     moduleTitle,
     session,
     quizElapsedMs,
@@ -146,7 +147,7 @@ export function QuizResultView({ study }: { study: QuizStudy }) {
               <RotateCcw className="size-4" />
               {t('quizStudy.retake')}
             </Button>
-            {wrongCount > 0 ? (
+            {!assignmentId && wrongCount > 0 ? (
               <Button
                 asChild
                 type="button"
@@ -169,9 +170,15 @@ export function QuizResultView({ study }: { study: QuizStudy }) {
               className="h-11 min-w-36 rounded-xl"
             >
               <Link
-                to={`/app/modules/${encodeURIComponent(moduleId)}/quiz-edit`}
+                to={
+                  assignmentId
+                    ? '/app'
+                    : `/app/modules/${encodeURIComponent(moduleId)}/quiz-edit`
+                }
               >
-                {t('common.backToModule')}
+                {assignmentId
+                  ? t('common.backToDashboard')
+                  : t('common.backToModule')}
               </Link>
             </Button>
           </div>
@@ -230,6 +237,7 @@ export function QuizResultView({ study }: { study: QuizStudy }) {
                     <img
                       src={questionImageUrl(moduleId, answer.question.id, {
                         version: answer.question.createdAt,
+                        assignmentId,
                       })}
                       alt={t('quizStudy.questionImageAlt')}
                       className="max-h-56 w-full rounded-lg object-contain"

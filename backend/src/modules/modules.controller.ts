@@ -71,10 +71,12 @@ export class ModulesController {
     @Param('moduleId') moduleId: string,
     @Query('take', new ParseIntPipe({ optional: true })) take?: number,
     @Query('cursor') cursor?: string,
+    @Query('assignmentId') assignmentId?: string,
   ) {
     return this.modules.getQuizQuestionsPage(userId, moduleId, {
       take,
       cursor,
+      assignmentId,
     });
   }
 
@@ -147,6 +149,7 @@ export class ModulesController {
         orderingAnswer?: string[] | null;
         fillBlankAnswers?: string[] | null;
       }>;
+      assignmentId?: string;
     },
   ) {
     return this.modules.createQuizSession(userId, moduleId, body);
@@ -232,12 +235,14 @@ export class ModulesController {
     @CurrentUserId() userId: string,
     @Param('moduleId') moduleId: string,
     @Param('questionId') questionId: string,
+    @Query('assignmentId') assignmentId: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const meta = await this.modules.getQuestionImageForDownload(
       userId,
       moduleId,
       questionId,
+      assignmentId,
     );
     if (!meta) {
       throw new NotFoundException();

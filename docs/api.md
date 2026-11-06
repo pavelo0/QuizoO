@@ -33,61 +33,68 @@ REST API серверной части построен вокруг ресур�
 
 В колонке «Путь» указан суффикс **после** `/api`. Например, полный URL при локальном backend: `http://localhost:3001/api/modules`.
 
-| Метод  | Путь                                             | Контроллер            | Доступ      | Назначение                                                        |
-| ------ | ------------------------------------------------ | --------------------- | ----------- | ----------------------------------------------------------------- |
-| GET    | `/`                                              | `AppController`       | Публичный   | Проверка отклика (строка приветствия)                             |
-| GET    | `/health`                                        | `AppController`       | Публичный   | Health-check `{ status: 'ok' }`                                   |
-| POST   | `/auth/register`                                 | `AuthController`      | Публичный   | Регистрация; выдача кода подтверждения email                      |
-| POST   | `/auth/resend-verification`                      | `AuthController`      | Публичный   | Повторная отправка кода верификации                               |
-| POST   | `/auth/verify-email`                             | `AuthController`      | Публичный   | Подтверждение email по коду; установка cookie сессии              |
-| POST   | `/auth/login`                                    | `AuthController`      | Публичный   | Вход (только если email подтверждён); cookie                      |
-| POST   | `/auth/logout`                                   | `AuthController`      | Публичный   | Очистка cookie сессии                                             |
-| POST   | `/auth/forgot-password`                          | `AuthController`      | Публичный   | Запрос кода сброса пароля                                         |
-| POST   | `/auth/reset-password`                           | `AuthController`      | Публичный   | Смена пароля по коду; cookie                                      |
-| GET    | `/auth/google`                                   | `AuthController`      | Публичный   | Редирект на Google OAuth                                          |
-| GET    | `/auth/google/callback`                          | `AuthController`      | Публичный   | Callback OAuth; редирект на фронтенд                              |
-| GET    | `/users/me`                                      | `UsersController`     | Авторизован | Текущий пользователь (публичное DTO)                              |
-| GET    | `/users/me/avatar`                               | `UsersController`     | Авторизован | Скачивание файла аватара (binary)                                 |
-| PATCH  | `/users/me`                                      | `UsersController`     | Авторизован | Обновление `username` (поле обязательно в теле)                   |
-| PATCH  | `/users/me/password`                             | `UsersController`     | Авторизован | Смена пароля: `currentPassword`, `newPassword`                    |
-| PATCH  | `/users/me/email`                                | `UsersController`     | Авторизован | Смена email с подтверждением текущим паролем                      |
-| POST   | `/users/me/avatar`                               | `UsersController`     | Авторизован | Загрузка аватара (`multipart`, поле `file`)                       |
-| DELETE | `/users/me/avatar`                               | `UsersController`     | Авторизован | Удаление аватара                                                  |
-| GET    | `/users/admin/overview`                          | `UsersController`     | ADMIN       | Сводка для админ-панели                                           |
-| GET    | `/users/admin/users`                             | `UsersController`     | ADMIN       | Список пользователей                                              |
-| PATCH  | `/users/admin/users/:targetUserId/block`         | `UsersController`     | ADMIN       | Блокировка/разблокировка: тело `{ isBlocked: boolean }`           |
-| GET    | `/users/admin/modules`                           | `UsersController`     | ADMIN       | Список модулей всех пользователей                                 |
-| GET    | `/modules/summary`                               | `ModulesController`   | Авторизован | Сводка дашборда по модулям пользователя                           |
-| GET    | `/modules/activity`                              | `ModulesController`   | Авторизован | Недавняя активность; query `limit?`                               |
-| GET    | `/modules`                                       | `ModulesController`   | Авторизован | Список модулей текущего пользователя                              |
-| POST   | `/modules`                                       | `ModulesController`   | Авторизован | Создание модуля (`CreateModuleDto`)                               |
-| GET    | `/modules/:moduleId`                             | `ModulesController`   | Авторизован | Детали модуля и контент (карточки / вопросы)                      |
-| GET    | `/modules/:moduleId/quiz-questions`              | `ModulesController`   | Авторизован | Постраничная выдача вопросов квиза: `take?`, `cursor?`            |
-| PATCH  | `/modules/:moduleId`                             | `ModulesController`   | Авторизован | Обновление модуля (`UpdateModuleDto`)                             |
-| DELETE | `/modules/:moduleId`                             | `ModulesController`   | Авторизован | Удаление модуля                                                   |
-| POST   | `/modules/:moduleId/cards`                       | `ModulesController`   | Авторизован | Добавление карточки                                               |
-| PATCH  | `/modules/:moduleId/cards/:cardId`               | `ModulesController`   | Авторизован | Редактирование карточки                                           |
-| DELETE | `/modules/:moduleId/cards/:cardId`               | `ModulesController`   | Авторизован | Удаление карточки                                                 |
-| POST   | `/modules/:moduleId/flashcard-sessions`          | `ModulesController`   | Авторизован | Завершение сессии карточек (статистика)                           |
-| POST   | `/modules/:moduleId/quiz-sessions`               | `ModulesController`   | Авторизован | Отправка ответов и создание сессии квиза                          |
-| GET    | `/modules/:moduleId/quiz-sessions/:sessionId`    | `ModulesController`   | Авторизован | Детали сессии квиза с ответами                                    |
-| POST   | `/modules/:moduleId/questions`                   | `ModulesController`   | Авторизован | Создание вопроса квиза                                            |
-| PATCH  | `/modules/:moduleId/questions/:questionId`       | `ModulesController`   | Авторизован | Обновление вопроса и вариантов / пар                              |
-| DELETE | `/modules/:moduleId/questions/:questionId`       | `ModulesController`   | Авторизован | Удаление вопроса                                                  |
-| POST   | `/modules/:moduleId/questions/:questionId/image` | `ModulesController`   | Авторизован | Загрузка изображения к вопросу (`multipart`, поле `file`)         |
-| GET    | `/modules/:moduleId/questions/:questionId/image` | `ModulesController`   | Авторизован | Выдача изображения вопроса                                        |
-| DELETE | `/modules/:moduleId/questions/:questionId/image` | `ModulesController`   | Авторизован | Удаление изображения вопроса                                      |
-| GET    | `/study-sets`                                    | `StudySetsController` | Авторизован | Список наборов: `moduleCount`, `studiedCount`, `progress` (0–100) |
-| POST   | `/study-sets`                                    | `StudySetsController` | Авторизован | Создание набора (`title`)                                         |
-| GET    | `/study-sets/:setId`                             | `StudySetsController` | Авторизован | Набор и модули по порядку добавления                              |
-| PATCH  | `/study-sets/:setId`                             | `StudySetsController` | Авторизован | Переименование набора (`title`)                                   |
-| DELETE | `/study-sets/:setId`                             | `StudySetsController` | Авторизован | Удаление набора; модули остаются                                  |
-| POST   | `/study-sets/:setId/modules`                     | `StudySetsController` | Авторизован | Добавить свой модуль (`moduleId`); повтор без ошибки              |
-| DELETE | `/study-sets/:setId/modules/:moduleId`           | `StudySetsController` | Авторизован | Убрать модуль из набора                                           |
+| Метод  | Путь                                             | Контроллер                  | Доступ      | Назначение                                                        |
+| ------ | ------------------------------------------------ | --------------------------- | ----------- | ----------------------------------------------------------------- |
+| GET    | `/`                                              | `AppController`             | Публичный   | Проверка отклика (строка приветствия)                             |
+| GET    | `/health`                                        | `AppController`             | Публичный   | Health-check `{ status: 'ok' }`                                   |
+| POST   | `/auth/register`                                 | `AuthController`            | Публичный   | Регистрация; выдача кода подтверждения email                      |
+| POST   | `/auth/resend-verification`                      | `AuthController`            | Публичный   | Повторная отправка кода верификации                               |
+| POST   | `/auth/verify-email`                             | `AuthController`            | Публичный   | Подтверждение email по коду; установка cookie сессии              |
+| POST   | `/auth/login`                                    | `AuthController`            | Публичный   | Вход (только если email подтверждён); cookie                      |
+| POST   | `/auth/logout`                                   | `AuthController`            | Публичный   | Очистка cookie сессии                                             |
+| POST   | `/auth/forgot-password`                          | `AuthController`            | Публичный   | Запрос кода сброса пароля                                         |
+| POST   | `/auth/reset-password`                           | `AuthController`            | Публичный   | Смена пароля по коду; cookie                                      |
+| GET    | `/auth/google`                                   | `AuthController`            | Публичный   | Редирект на Google OAuth                                          |
+| GET    | `/auth/google/callback`                          | `AuthController`            | Публичный   | Callback OAuth; редирект на фронтенд                              |
+| GET    | `/users/me`                                      | `UsersController`           | Авторизован | Текущий пользователь (публичное DTO)                              |
+| GET    | `/users/me/avatar`                               | `UsersController`           | Авторизован | Скачивание файла аватара (binary)                                 |
+| PATCH  | `/users/me`                                      | `UsersController`           | Авторизован | Обновление `username` (поле обязательно в теле)                   |
+| PATCH  | `/users/me/password`                             | `UsersController`           | Авторизован | Смена пароля: `currentPassword`, `newPassword`                    |
+| PATCH  | `/users/me/email`                                | `UsersController`           | Авторизован | Смена email с подтверждением текущим паролем                      |
+| POST   | `/users/me/avatar`                               | `UsersController`           | Авторизован | Загрузка аватара (`multipart`, поле `file`)                       |
+| DELETE | `/users/me/avatar`                               | `UsersController`           | Авторизован | Удаление аватара                                                  |
+| GET    | `/users/admin/overview`                          | `UsersController`           | ADMIN       | Сводка для админ-панели                                           |
+| GET    | `/users/admin/users`                             | `UsersController`           | ADMIN       | Список пользователей                                              |
+| PATCH  | `/users/admin/users/:targetUserId/block`         | `UsersController`           | ADMIN       | Блокировка/разблокировка: тело `{ isBlocked: boolean }`           |
+| GET    | `/users/admin/modules`                           | `UsersController`           | ADMIN       | Список модулей всех пользователей                                 |
+| GET    | `/modules/summary`                               | `ModulesController`         | Авторизован | Сводка дашборда по модулям пользователя                           |
+| GET    | `/modules/activity`                              | `ModulesController`         | Авторизован | Недавняя активность; query `limit?`                               |
+| GET    | `/modules`                                       | `ModulesController`         | Авторизован | Список модулей текущего пользователя                              |
+| POST   | `/modules`                                       | `ModulesController`         | Авторизован | Создание модуля (`CreateModuleDto`)                               |
+| GET    | `/modules/:moduleId`                             | `ModulesController`         | Авторизован | Детали модуля и контент (карточки / вопросы)                      |
+| GET    | `/modules/:moduleId/quiz-questions`              | `ModulesController`         | Авторизован | Постраничная выдача вопросов квиза: `take?`, `cursor?`            |
+| PATCH  | `/modules/:moduleId`                             | `ModulesController`         | Авторизован | Обновление модуля (`UpdateModuleDto`)                             |
+| DELETE | `/modules/:moduleId`                             | `ModulesController`         | Авторизован | Удаление модуля                                                   |
+| POST   | `/modules/:moduleId/cards`                       | `ModulesController`         | Авторизован | Добавление карточки                                               |
+| PATCH  | `/modules/:moduleId/cards/:cardId`               | `ModulesController`         | Авторизован | Редактирование карточки                                           |
+| DELETE | `/modules/:moduleId/cards/:cardId`               | `ModulesController`         | Авторизован | Удаление карточки                                                 |
+| POST   | `/modules/:moduleId/flashcard-sessions`          | `ModulesController`         | Авторизован | Завершение сессии карточек (статистика)                           |
+| POST   | `/modules/:moduleId/quiz-sessions`               | `ModulesController`         | Авторизован | Отправка ответов и создание сессии квиза                          |
+| GET    | `/modules/:moduleId/quiz-sessions/:sessionId`    | `ModulesController`         | Авторизован | Детали сессии квиза с ответами                                    |
+| POST   | `/modules/:moduleId/questions`                   | `ModulesController`         | Авторизован | Создание вопроса квиза                                            |
+| PATCH  | `/modules/:moduleId/questions/:questionId`       | `ModulesController`         | Авторизован | Обновление вопроса и вариантов / пар                              |
+| DELETE | `/modules/:moduleId/questions/:questionId`       | `ModulesController`         | Авторизован | Удаление вопроса                                                  |
+| POST   | `/modules/:moduleId/questions/:questionId/image` | `ModulesController`         | Авторизован | Загрузка изображения к вопросу (`multipart`, поле `file`)         |
+| GET    | `/modules/:moduleId/questions/:questionId/image` | `ModulesController`         | Авторизован | Выдача изображения вопроса                                        |
+| DELETE | `/modules/:moduleId/questions/:questionId/image` | `ModulesController`         | Авторизован | Удаление изображения вопроса                                      |
+| GET    | `/study-sets`                                    | `StudySetsController`       | Авторизован | Список наборов: `moduleCount`, `studiedCount`, `progress` (0–100) |
+| POST   | `/study-sets`                                    | `StudySetsController`       | Авторизован | Создание набора (`title`)                                         |
+| GET    | `/study-sets/:setId`                             | `StudySetsController`       | Авторизован | Набор и модули по порядку добавления                              |
+| PATCH  | `/study-sets/:setId`                             | `StudySetsController`       | Авторизован | Переименование набора (`title`)                                   |
+| DELETE | `/study-sets/:setId`                             | `StudySetsController`       | Авторизован | Удаление набора; модули остаются                                  |
+| POST   | `/study-sets/:setId/modules`                     | `StudySetsController`       | Авторизован | Добавить свой модуль (`moduleId`); повтор без ошибки              |
+| DELETE | `/study-sets/:setId/modules/:moduleId`           | `StudySetsController`       | Авторизован | Убрать модуль из набора                                           |
+| GET    | `/quiz-assignments`                              | `QuizAssignmentsController` | Авторизован | Занятия автора: код, срок, число попыток                          |
+| POST   | `/quiz-assignments`                              | `QuizAssignmentsController` | Авторизован | Создать занятие по своему квизу (`moduleId`, `deadline`)          |
+| GET    | `/quiz-assignments/by-code/:code`                | `QuizAssignmentsController` | Авторизован | Найти занятие по короткому коду                                   |
+| GET    | `/quiz-assignments/:assignmentId`                | `QuizAssignmentsController` | Авторизован | Журнал попыток своего занятия                                     |
+| DELETE | `/quiz-assignments/:assignmentId`                | `QuizAssignmentsController` | Авторизован | Удалить занятие; попытки остаются без привязки                    |
 
 **Порядок маршрутов в `ModulesController` важен:** статические сегменты (`summary`, `activity`) объявлены **раньше** параметрического `:moduleId`, чтобы не перехватывались как id модуля.
 
-**Итого:** в таблице **51** HTTP-эндпоинт (все объявленные в коде контроллеров).
+**Итого:** в таблице **56** HTTP-эндпоинтов (все объявленные в коде контроллеров).
+
+Маршрут `GET /quiz-assignments/by-code/:code` объявлен **раньше** `GET /quiz-assignments/:assignmentId`.
 
 ---
 
@@ -151,6 +158,18 @@ REST API серверной части построен вокруг ресур�
 
 ---
 
+## Таблица 6 — Форматы данных: занятия по квизу (`/api/quiz-assignments/*`)
+
+**Создание** POST `/quiz-assignments`: `moduleId` своего модуля типа `QUIZ` с хотя бы одним вопросом, `deadline` — ISO-дата в будущем, не дальше 366 дней. Ответ содержит `code` из 6 символов (латиница и цифры без `0`, `O`, `1`, `I`).
+
+**Вход по коду** возвращает `id`, `moduleId`, `moduleTitle`, `deadline`, `questionCount`, `closed`. Неизвестный код — **404**. Истёкший срок — `closed: true`, без выдачи вопросов.
+
+Прохождение идёт существующими `GET /modules/:moduleId/quiz-questions`, `POST /modules/:moduleId/quiz-sessions` и картинкой вопроса. В запросе передаётся `assignmentId` (query или поле тела сессии). Без открытого занятия чужой квиз по-прежнему **404**. После срока — **403** `Assignment deadline has passed`.
+
+**Журнал** (`GET /quiz-assignments/:assignmentId`) видит только автор. Попытка: `username`, `email`, `correctCount`, `totalQuestions`, `scorePercent`, `completedAt`. Чужое занятие — **404**. Администратор — **403**.
+
+---
+
 ## Frontend и прокси
 
 - Базовый URL для axios: `import.meta.env.VITE_API_URL` или по умолчанию **`/api`** (относительный путь к backend за Nginx).
@@ -167,4 +186,4 @@ REST API серверной части построен вокруг ресур�
 
 ---
 
-_Источники в репозитории:_ `backend/src/main.ts`, `backend/src/app.controller.ts`, `backend/src/auth/auth.controller.ts`, `backend/src/users/users.controller.ts`, `backend/src/modules/modules.controller.ts`, `backend/src/study-sets/study-sets.controller.ts`, `backend/src/auth/jwt-auth.guard.ts`, `backend/prisma/schema.prisma`.
+_Источники в репозитории:_ `backend/src/main.ts`, `backend/src/app.controller.ts`, `backend/src/auth/auth.controller.ts`, `backend/src/users/users.controller.ts`, `backend/src/modules/modules.controller.ts`, `backend/src/study-sets/study-sets.controller.ts`, `backend/src/quiz-assignments/quiz-assignments.controller.ts`, `backend/src/auth/jwt-auth.guard.ts`, `backend/prisma/schema.prisma`.

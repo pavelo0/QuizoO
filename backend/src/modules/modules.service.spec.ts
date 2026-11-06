@@ -3,6 +3,7 @@ import { ModuleType, QuestionType } from '@prisma/client';
 import { writeFile } from 'fs/promises';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUESTION_IMAGE_MAX_BYTES } from './question-image.constants';
+import { QuizAssignmentsService } from '../quiz-assignments/quiz-assignments.service';
 import { ModulesService } from './modules.service';
 
 jest.mock('fs/promises', () => ({
@@ -46,7 +47,9 @@ describe('ModulesService', () => {
     jest.clearAllMocks();
     prisma = createPrismaMock();
     prisma.user.findUnique = jest.fn().mockResolvedValue({ role: 'USER' });
-    service = new ModulesService(prisma);
+    service = new ModulesService(prisma, {
+      assertOpen: jest.fn(),
+    } as unknown as QuizAssignmentsService);
   });
 
   describe('createModule', () => {

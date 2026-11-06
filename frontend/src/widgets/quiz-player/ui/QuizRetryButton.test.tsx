@@ -45,7 +45,7 @@ function session(correct: boolean): QuizSessionDetail {
   };
 }
 
-function renderResult(correct: boolean) {
+function renderResult(correct: boolean, assignmentId = '') {
   const detail = session(correct);
   renderWithProviders(
     <QuizResultView
@@ -53,6 +53,7 @@ function renderResult(correct: boolean) {
         {
           t: translate,
           moduleId: 'mod-1',
+          assignmentId,
           moduleTitle: 'Biology',
           session: detail,
           quizElapsedMs: null,
@@ -83,5 +84,15 @@ describe('QuizResultView retry', () => {
     expect(
       screen.queryByRole('link', { name: 'Retry mistakes' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('hides the retry link during an assignment attempt', () => {
+    renderResult(false, 'asg-1');
+    expect(
+      screen.queryByRole('link', { name: 'Retry mistakes' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Back to dashboard' }),
+    ).toHaveAttribute('href', '/app');
   });
 });

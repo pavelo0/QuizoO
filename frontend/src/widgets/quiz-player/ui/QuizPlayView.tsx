@@ -28,6 +28,7 @@ export function QuizPlayView({ study }: { study: QuizStudy }) {
   const {
     t,
     moduleId,
+    assignmentId,
     moduleTitle,
     questions,
     totalQuestions,
@@ -205,6 +206,7 @@ export function QuizPlayView({ study }: { study: QuizStudy }) {
               <img
                 src={questionImageUrl(moduleId, currentQuestion.id, {
                   version: currentQuestion.createdAt,
+                  assignmentId,
                 })}
                 alt={t('quizStudy.questionImageAlt')}
                 className="max-h-80 w-full rounded-xl object-contain"

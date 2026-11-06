@@ -1,10 +1,15 @@
 import { fetchModuleList, type ModuleListItem } from '@/entities/module';
+import {
+  fetchQuizAssignmentList,
+  type QuizAssignmentSummary,
+} from '@/entities/quiz-assignment';
 import { fetchStudySetList, type StudySetSummary } from '@/entities/study-set';
 import { useAuthContext } from '@/features/auth-session';
 import { Button } from '@/shared/ui/button';
 import { apiErrorMessage } from '@/shared/lib/apiErrorMessage';
 import { useI18n } from '@/shared/i18n/useI18n';
 import { DashboardModulesSection } from '@/widgets/dashboard-module-list';
+import { QuizAssignmentListSection } from '@/widgets/quiz-assignment-list';
 import { StudySetListSection } from '@/widgets/study-set-list';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -14,6 +19,7 @@ const DashboardPage = () => {
   const isAdmin = user?.role === 'ADMIN';
   const [modules, setModules] = useState<ModuleListItem[]>([]);
   const [studySets, setStudySets] = useState<StudySetSummary[]>([]);
+  const [assignments, setAssignments] = useState<QuizAssignmentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -26,6 +32,7 @@ const DashboardPage = () => {
     if (isAdmin) {
       setModules([]);
       setStudySets([]);
+      setAssignments([]);
       setLoadError(null);
       setLoading(false);
       return;
@@ -33,12 +40,14 @@ const DashboardPage = () => {
     setLoadError(null);
     setLoading(true);
     try {
-      const [moduleRows, setRows] = await Promise.all([
+      const [moduleRows, setRows, assignmentRows] = await Promise.all([
         fetchModuleList(),
         fetchStudySetList(),
+        fetchQuizAssignmentList(),
       ]);
       setModules(moduleRows);
       setStudySets(setRows);
+      setAssignments(assignmentRows);
     } catch (e) {
       setLoadError(apiErrorMessage(e));
     } finally {
@@ -91,6 +100,14 @@ const DashboardPage = () => {
           onCreated={(created) =>
             setStudySets((current) => [created, ...current])
           }
+        />
+      )}
+
+      {!isAdmin && (
+        <QuizAssignmentListSection
+          assignments={assignments}
+          modules={modules}
+          loading={loading}
         />
       )}
 

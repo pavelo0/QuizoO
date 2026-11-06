@@ -44,6 +44,7 @@ model User {
   flashcardSessions FlashcardSession[]
   quizSessions      QuizSession[]
   studySets         StudySet[]
+  quizAssignments   QuizAssignment[]
 
   @@unique([oauthProvider, oauthId])
   @@map("users")
@@ -77,6 +78,7 @@ model Module {
   flashcardSessions FlashcardSession[]
   quizSessions      QuizSession[]
   studySetModules   StudySetModule[]
+  quizAssignments   QuizAssignment[]
 
   @@index([userId])
   @@map("modules")
@@ -194,13 +196,33 @@ model QuizSession {
   scorePercent   Float
   completedAt    DateTime?
 
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  module  Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  answers QuizAnswer[]
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module       Module          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  assignment   QuizAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  answers      QuizAnswer[]
+  assignmentId String?
 
   @@index([userId])
   @@index([moduleId])
+  @@index([assignmentId])
   @@map("quiz_sessions")
+}
+
+model QuizAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  moduleId  String
+  code      String   @unique
+  deadline  DateTime
+  createdAt DateTime @default(now())
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module   Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  sessions QuizSession[]
+
+  @@index([userId])
+  @@index([moduleId])
+  @@map("quiz_assignments")
 }
 
 model QuizAnswer {
